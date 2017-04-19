@@ -254,10 +254,7 @@ func (g *Gist) Delete(id string) error {
 		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
 		s.Suffix = " Deleting..."
 		s.Start()
-		defer func() {
-			s.Stop()
-			fmt.Printf("Deleted %s\n", id)
-		}()
+		defer s.Stop()
 	}
 	_, err := g.Client.Gists.Delete(id)
 	return err

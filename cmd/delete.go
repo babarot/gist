@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/b4b4r07/gist/config"
@@ -52,6 +53,7 @@ func delete(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			log.Printf("[ERROR] %v", err)
 		}
+		fmt.Printf("Deleted %s\n", id)
 	}
 
 	return nil
