@@ -1,0 +1,165 @@
+{
+    "memo": "6eef48a749468d0839d87a3ffa8701de6f92fe67bea7667e90fefca6ad436273",
+    "projects": [
+        {
+            "name": "github.com/BurntSushi/toml",
+            "branch": "master",
+            "revision": "99064174e013895bbd9b025c31100bd1d9b590ca",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/b4b4r07/go-colon",
+            "branch": "master",
+            "revision": "fe6fa4fff5ea1305190c5d474f8d1d2e20bf3c46",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/briandowns/spinner",
+            "branch": "master",
+            "revision": "fb621c2fd72fdd729f857e6d9c3a990e43fef910",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/chzyer/readline",
+            "branch": "master",
+            "revision": "41eea22f717c616615e1e59aa06cf831f9901f35",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/fatih/color",
+            "branch": "master",
+            "revision": "bf82308e8c8546dc2b945157173eb8a959ae9505",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/golang/protobuf",
+            "branch": "master",
+            "revision": "2bba0603135d7d7f5cb73b2125beeda19c09f4ef",
+            "packages": [
+                "proto"
+            ]
+        },
+        {
+            "name": "github.com/google/go-github",
+            "branch": "master",
+            "revision": "56add9d4071bb1a06003a1239ebbc1500692b55d",
+            "packages": [
+                "github"
+            ]
+        },
+        {
+            "name": "github.com/google/go-querystring",
+            "branch": "master",
+            "revision": "9235644dd9e52eeae6fa48efd539fdc351a0af53",
+            "packages": [
+                "query"
+            ]
+        },
+        {
+            "name": "github.com/inconshreveable/mousetrap",
+            "branch": "master",
+            "revision": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mattn/go-colorable",
+            "branch": "master",
+            "revision": "6c903ff4aa50920ca86087a280590b36b3152b9c",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mattn/go-isatty",
+            "branch": "master",
+            "revision": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/mattn/go-shellwords",
+            "branch": "master",
+            "revision": "753a2322a99f87c0eff284980e77f53041555bc6",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/pkg/errors",
+            "branch": "master",
+            "revision": "839d9e913e063e28dfd0e6c7b7512793e0a48be9",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/skratchdot/open-golang",
+            "branch": "master",
+            "revision": "75fb7ed4208cf72d323d7d02fd1a5964a7a9073c",
+            "packages": [
+                "open"
+            ]
+        },
+        {
+            "name": "github.com/spf13/cobra",
+            "branch": "master",
+            "revision": "1dd5ff2e11b6dca62fdcb275eb804b94607d8b06",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/spf13/pflag",
+            "branch": "master",
+            "revision": "51268031d79952516489a9f8aa34e9709b98d946",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "golang.org/x/net",
+            "branch": "master",
+            "revision": "a6577fac2d73be281a500b310739095313165611",
+            "packages": [
+                "context"
+            ]
+        },
+        {
+            "name": "golang.org/x/oauth2",
+            "branch": "master",
+            "revision": "4784bb855e56a530f1ce5d788959359ed6cb4a16",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "golang.org/x/sys",
+            "branch": "master",
+            "revision": "a646d33e2ee3172a661fc09bca23bb4889a41bc8",
+            "packages": [
+                "unix"
+            ]
+        },
+        {
+            "name": "google.golang.org/appengine",
+            "version": "v1.0.0",
+            "revision": "150dc57a1b433e64154302bdc40b6bb8aefa313a",
+            "packages": [
+                "urlfetch"
+            ]
+        }
+    ]
+}
