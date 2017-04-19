@@ -125,23 +125,10 @@ func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
 		return gfs, err
 	}
 
-	// for downloading
-	oldwd, _ := os.Getwd()
-	dir := config.Conf.Gist.Dir
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		os.Mkdir(dir, 0700)
-	}
-	os.Chdir(dir)
-	defer os.Chdir(oldwd)
-
 	var files Files
 	for _, item := range g.Items {
-		if !util.Exists(*item.ID) {
-			// TODO: Start()
-			err := exec.Command("git", "clone", *item.GitPullURL).Start()
-			if err != nil {
-				continue
-			}
+		if err := cloneGist(item); err != nil {
+			continue
 		}
 		desc := ""
 		if item.Description != nil {
@@ -237,7 +224,7 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 			Content:  &content,
 		}
 	}
-	gistResp, resp, err := g.Client.Gists.Create(&github.Gist{
+	item, resp, err := g.Client.Gists.Create(&github.Gist{
 		Files:       gistFiles,
 		Public:      &public,
 		Description: &desc,
@@ -245,8 +232,29 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 	if resp == nil {
 		return url, errors.New("Try again when you have a better network connection")
 	}
-	url = *gistResp.HTMLURL
+	err = cloneGist(item)
+	if err != nil {
+		return url, err
+	}
+	url = *item.HTMLURL
 	return url, errors.Wrap(err, "Failed to create")
+}
+
+func cloneGist(item *github.Gist) error {
+	if util.Exists(*item.ID) {
+		return nil
+	}
+
+	oldwd, _ := os.Getwd()
+	dir := config.Conf.Gist.Dir
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.Mkdir(dir, 0700)
+	}
+	os.Chdir(dir)
+	defer os.Chdir(oldwd)
+
+	// TODO: Start()
+	return exec.Command("git", "clone", *item.GitPullURL).Start()
 }
 
 func (g *Gist) Delete(id string) error {
