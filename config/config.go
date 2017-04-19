@@ -96,7 +96,7 @@ func (cfg *Config) LoadFile(file string) error {
 	if cfg.Core.Editor == "" {
 		cfg.Core.Editor = "vim"
 	}
-	cfg.Core.SelectCmd = "peco"
+	cfg.Core.SelectCmd = "fzf-tmux --multi:fzf --multi:peco"
 	cfg.Core.TomlFile = file
 	cfg.Core.User = os.Getenv("USER")
 	cfg.Core.ShowIndicator = true
