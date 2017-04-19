@@ -388,13 +388,11 @@ func (g *Gist) Sync(fname string) error {
 
 	fi, err := os.Stat(fname)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "%s: no such file or directory", fname)
 	}
 
-	// TODO: utc
-	jst := time.FixedZone("Asia/Tokyo", 9*60*60)
-	local := fi.ModTime().In(jst)
-	remote := item.UpdatedAt.In(jst)
+	local := fi.ModTime().UTC()
+	remote := item.UpdatedAt.UTC()
 
 	var (
 		msg, url string

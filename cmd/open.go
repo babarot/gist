@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"net/url"
 	"path"
 
@@ -18,6 +19,9 @@ var openCmd = &cobra.Command{
 
 func open(cmd *cobra.Command, args []string) error {
 	gistURL := config.Conf.Core.BaseURL
+	if gistURL == "" {
+		return errors.New("No specified gist base URL")
+	}
 
 	u, err := url.Parse(gistURL)
 	if err != nil {
