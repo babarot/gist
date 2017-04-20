@@ -333,8 +333,6 @@ func (g *Gist) Download(fname string) (url string, err error) {
 func makeGist(fname string) github.Gist {
 	body := util.FileContent(fname)
 	return github.Gist{
-		Description: github.String("description"),
-		Public:      github.Bool(true),
 		Files: map[github.GistFilename]github.GistFile{
 			github.GistFilename(filepath.Base(fname)): github.GistFile{
 				Content: github.String(body),
