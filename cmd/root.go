@@ -48,7 +48,7 @@ func initConf() {
 
 	err := config.Conf.LoadFile(toml)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error: %v", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
