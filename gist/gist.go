@@ -21,8 +21,6 @@ var (
 	SpinnerSymbol int  = 14
 	ShowSpinner   bool = true
 	Verbose       bool = true
-
-	DescriptionEmpty string = "description"
 )
 
 type (
@@ -133,9 +131,6 @@ func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
 		desc := ""
 		if item.Description != nil {
 			desc = *item.Description
-		}
-		if desc == DescriptionEmpty {
-			desc = ""
 		}
 		for _, f := range item.Files {
 			files = append(files, File{
@@ -424,26 +419,21 @@ func (g *Gist) Sync(fname string) error {
 }
 
 func (g *Gist) Edit(fname string) error {
-	var err error
-	// TODO: use pkg/errors
+	if err := g.Sync(fname); err != nil {
+		return err
+	}
 
-	err = g.Sync(fname)
+	editor := config.Conf.Core.Editor
+	if editor == "" {
+		return errors.New("$EDITOR: not set")
+	}
+
+	err := util.RunCommand(editor, fname)
 	if err != nil {
 		return err
 	}
 
-	// err = config.Conf.Command(config.Conf.Core.Editor, "", fname)
-	err = util.RunCommand(config.Conf.Core.Editor, fname)
-	if err != nil {
-		return err
-	}
-
-	err = g.Sync(fname)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return g.Sync(fname)
 }
 
 func (gfs *GistFiles) ExtendID(id string) string {
