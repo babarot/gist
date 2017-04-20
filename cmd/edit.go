@@ -44,10 +44,22 @@ func edit(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
-		file := filepath.Join(config.Conf.Gist.Dir, gfs.ExtendID(parsedLine.ID), parsedLine.Filename)
-		err = gist.Edit(file)
-		if err != nil {
-			return err
+		if config.Conf.Flag.EditDesc {
+			util.ScanDefaultString = parsedLine.Description
+			desc, err := util.Scan(parsedLine.Filename+"> ", util.ScanAllowEmpty)
+			if err != nil {
+				return err
+			}
+			err = gist.EditDesc(gfs.ExtendID(parsedLine.ID), desc)
+			if err != nil {
+				return err
+			}
+		} else {
+			file := filepath.Join(config.Conf.Gist.Dir, gfs.ExtendID(parsedLine.ID), parsedLine.Filename)
+			err = gist.Edit(file)
+			if err != nil {
+				return err
+			}
 		}
 
 		if config.Conf.Flag.OpenURL {
@@ -62,4 +74,5 @@ func edit(cmd *cobra.Command, args []string) error {
 func init() {
 	RootCmd.AddCommand(editCmd)
 	editCmd.Flags().BoolVarP(&config.Conf.Flag.OpenURL, "open", "o", false, "Open with the default browser")
+	editCmd.Flags().BoolVarP(&config.Conf.Flag.EditDesc, "description", "d", false, "Edit only the description")
 }

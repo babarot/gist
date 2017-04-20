@@ -35,6 +35,7 @@ _gist () {
         (edit)
             _arguments \
                 '(-o --open)'{-o,--open}'[Open with the default browser]' \
+                '(-d --description)'{-d,--description}'[Edit only the description]' \
                 && return 0
             ;;
         (new)

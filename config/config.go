@@ -37,6 +37,7 @@ type Flag struct {
 	Sort        string `toml:"sort"`
 	Only        string `toml:"only"`
 	NoSelect    bool   `toml:"no_select"`
+	EditDesc    bool   `toml:"edit_desc"`
 }
 
 var Conf Config

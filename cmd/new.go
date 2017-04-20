@@ -1,18 +1,14 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/b4b4r07/gist/config"
 	"github.com/b4b4r07/gist/gist"
 	"github.com/b4b4r07/gist/util"
-	"github.com/chzyer/readline"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -22,44 +18,6 @@ var newCmd = &cobra.Command{
 	Short: "Create a new gist",
 	Long:  `Create a new gist. If you pass file/dir paths, upload those files`,
 	RunE:  new,
-}
-
-func scan(message string) (string, error) {
-	tmp := "/tmp"
-	if runtime.GOOS == "windows" {
-		tmp = os.Getenv("TEMP")
-	}
-	l, err := readline.NewEx(&readline.Config{
-		Prompt:            message,
-		HistoryFile:       filepath.Join(tmp, "gist.txt"),
-		InterruptPrompt:   "^C",
-		EOFPrompt:         "exit",
-		HistorySearchFold: true,
-	})
-	if err != nil {
-		return "", err
-	}
-	defer l.Close()
-
-	for {
-		line, err := l.Readline()
-		if err == readline.ErrInterrupt {
-			if len(line) == 0 {
-				break
-			} else {
-				continue
-			}
-		} else if err == io.EOF {
-			break
-		}
-
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		return line, nil
-	}
-	return "", errors.New("canceled")
 }
 
 func new(cmd *cobra.Command, args []string) error {
@@ -102,7 +60,7 @@ func new(cmd *cobra.Command, args []string) error {
 			})
 		}
 	} else {
-		filename, err := scan(color.YellowString("Filename> "))
+		filename, err := util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
 		if err != nil {
 			return err
 		}
@@ -119,7 +77,7 @@ func new(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	desc, err = scan(color.GreenString("Description> "))
+	desc, err = util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
 	if err != nil {
 		return err
 	}

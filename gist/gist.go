@@ -418,6 +418,20 @@ func (g *Gist) Sync(fname string) error {
 	return nil
 }
 
+func (g *Gist) EditDesc(id, desc string) error {
+	if ShowSpinner {
+		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
+		s.Suffix = " Editing..."
+		s.Start()
+		defer s.Stop()
+	}
+	item := github.Gist{
+		Description: github.String(desc),
+	}
+	_, _, err := g.Client.Gists.Edit(id, &item)
+	return err
+}
+
 func (g *Gist) Edit(fname string) error {
 	if err := g.Sync(fname); err != nil {
 		return err
