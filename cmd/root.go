@@ -38,7 +38,7 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConf)
+	initConf()
 	RootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "show the version and exit")
 }
 

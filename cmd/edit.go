@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"path"
 	"path/filepath"
 
 	"github.com/b4b4r07/gist/config"
@@ -52,7 +53,8 @@ func edit(cmd *cobra.Command, args []string) error {
 
 		// TODO: FIXME: gist.Edit
 		if config.Conf.Flag.OpenURL {
-			util.Open(url)
+			url = path.Join(config.Conf.Core.BaseURL, gfs.ExtendID(parsedLine.ID))
+			_ = util.Open(url)
 		}
 	}
 

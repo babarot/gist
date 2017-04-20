@@ -1,4 +1,4 @@
-memo = "53209b124b9f49b98571dcc582374c9bac4cf6d0795d3d561e4961794ccaa9f2"
+memo = "388e980745c499f84a89f4abf35f9c125bad65a5b421fac514676acd0db7074d"
 
 [[projects]]
   branch = "master"
@@ -74,15 +74,15 @@ memo = "53209b124b9f49b98571dcc582374c9bac4cf6d0795d3d561e4961794ccaa9f2"
 
 [[projects]]
   branch = "master"
-  name = "github.com/pkg/errors"
+  name = "github.com/pkg/browser"
   packages = ["."]
-  revision = "839d9e913e063e28dfd0e6c7b7512793e0a48be9"
+  revision = "8189194c9f158043d6d45a0b939a47a924ea4b13"
 
 [[projects]]
   branch = "master"
-  name = "github.com/skratchdot/open-golang"
-  packages = ["open"]
-  revision = "75fb7ed4208cf72d323d7d02fd1a5964a7a9073c"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "839d9e913e063e28dfd0e6c7b7512793e0a48be9"
 
 [[projects]]
   branch = "master"

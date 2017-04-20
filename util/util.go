@@ -16,7 +16,7 @@ import (
 	"github.com/b4b4r07/gist/config"
 	"github.com/b4b4r07/go-colon"
 	"github.com/fatih/color"
-	"github.com/skratchdot/open-golang/open"
+	"github.com/pkg/browser"
 )
 
 const LengthID = 9
@@ -26,7 +26,7 @@ func Open(target string) error {
 	if err != nil {
 		return err
 	}
-	return open.Start(target)
+	return browser.OpenURL(target)
 }
 
 func Underline(message, target string) {
