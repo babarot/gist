@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/b4b4r07/gist/config"
+	"github.com/b4b4r07/gist/gist"
 	"github.com/b4b4r07/gist/util"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +18,7 @@ var openCmd = &cobra.Command{
 	RunE:  open,
 }
 
-func open(cmd *cobra.Command, args []string) error {
+func openURL() error {
 	gistURL := config.Conf.Core.BaseURL
 	if gistURL == "" {
 		return errors.New("No specified gist base URL")
@@ -48,8 +49,43 @@ func open(cmd *cobra.Command, args []string) error {
 	return util.Open(u.String())
 }
 
+func open(cmd *cobra.Command, args []string) error {
+	if config.Conf.Flag.NoSelect {
+		return openURL()
+	}
+	var err error
+
+	gist, err := gist.New(config.Conf.Gist.Token)
+	if err != nil {
+		return err
+	}
+
+	gfs, err := gist.GetRemoteFiles()
+	if err != nil {
+		return err
+	}
+
+	selectedLines, err := util.Filter(gfs.Text)
+	if err != nil {
+		return err
+	}
+
+	if len(selectedLines) == 0 {
+		return errors.New("No gist selected")
+	}
+
+	parsedLine, err := util.ParseLine(selectedLines[0])
+	if err != nil {
+		return err
+	}
+
+	url := path.Join(config.Conf.Core.BaseURL, gfs.ExtendID(parsedLine.ID))
+	return util.Open(url)
+}
+
 func init() {
 	RootCmd.AddCommand(openCmd)
-	openCmd.Flags().StringVarP(&config.Conf.Flag.Sort, "sort", "", "created", "Sort")
-	openCmd.Flags().StringVarP(&config.Conf.Flag.Only, "only", "", "", "Only")
+	openCmd.Flags().StringVarP(&config.Conf.Flag.Sort, "sort", "", "created", "Sort by the argument")
+	openCmd.Flags().StringVarP(&config.Conf.Flag.Only, "only", "", "", "Open only for the condition")
+	openCmd.Flags().BoolVarP(&config.Conf.Flag.NoSelect, "no-select", "", false, "Open only gist base URL without selecting")
 }

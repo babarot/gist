@@ -39,7 +39,6 @@ func edit(cmd *cobra.Command, args []string) error {
 		if line == "" {
 			continue
 		}
-		var url string
 		parsedLine, err := util.ParseLine(line)
 		if err != nil {
 			continue
@@ -51,9 +50,8 @@ func edit(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		// TODO: FIXME: gist.Edit
 		if config.Conf.Flag.OpenURL {
-			url = path.Join(config.Conf.Core.BaseURL, gfs.ExtendID(parsedLine.ID))
+			url := path.Join(config.Conf.Core.BaseURL, gfs.ExtendID(parsedLine.ID))
 			_ = util.Open(url)
 		}
 	}

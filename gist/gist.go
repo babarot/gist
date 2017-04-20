@@ -413,6 +413,7 @@ func (g *Gist) Sync(fname string) error {
 		}
 		msg = "Downloaded"
 	} else {
+		// TODO
 		return errors.New("something wrong")
 	}
 	if Verbose {

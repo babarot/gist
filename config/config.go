@@ -36,6 +36,7 @@ type Flag struct {
 	ShowSpinner bool   `toml:"show_spinner"`
 	Sort        string `toml:"sort"`
 	Only        string `toml:"only"`
+	NoSelect    bool   `toml:"no_select"`
 }
 
 var Conf Config
