@@ -92,15 +92,16 @@ func Filter(text string) ([]string, error) {
 }
 
 func runFilter(command string, r io.Reader, w io.Writer) error {
-	if command == "" {
-		return errors.New("Specify the selectcmd e.g. peco/fzf")
-	}
 	command = os.Expand(command, os.Getenv)
 	result, err := colon.Parse(command)
 	if err != nil {
 		return err
 	}
-	command = strings.Join(result.Executable().One().Attr.Args, " ")
+	first, err := result.Executable().First()
+	if err != nil {
+		return err
+	}
+	command = first.Item
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd", "/c", command)
