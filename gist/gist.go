@@ -355,8 +355,10 @@ func (g *Gist) upload(fname string) (done bool, err error) {
 }
 
 func (g *Gist) Sync(fname string) error {
-	var err error
-	var msg string
+	var (
+		err error
+		msg string
+	)
 
 	if g.Config.ShowSpinner {
 		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
@@ -449,4 +451,46 @@ func (gfs *GistFiles) ExtendID(id string) string {
 		}
 	}
 	return ""
+}
+
+func (g *Gist) GetItem(id string) Item {
+	return g.Items.Filter(func(i Item) bool {
+		return *i.ID == id
+	}).One()
+}
+
+type ParsedLine struct {
+	ID, Filename, Description, Path string
+}
+
+func (g *Gist) ParseLine(line string) (*ParsedLine, error) {
+	l := strings.Split(line, "\t")
+	if len(l) != 3 {
+		return &ParsedLine{}, errors.New("error")
+	}
+	var (
+		id = func(id string) string {
+			id = strings.TrimSpace(id)
+			id = strings.TrimLeft(id, " | ")
+			id = strings.TrimLeft(id, " + ")
+			return id
+		}(l[0])
+		filename    = strings.TrimSpace(l[1])
+		description = l[2]
+	)
+
+	// Convert to full id
+	for _, item := range g.Items {
+		if strings.HasPrefix(*item.ID, id) {
+			id = *item.ID
+			continue
+		}
+	}
+
+	return &ParsedLine{
+		ID:          id,
+		Filename:    filename,
+		Description: description,
+		Path:        filepath.Join(id, filename),
+	}, nil
 }

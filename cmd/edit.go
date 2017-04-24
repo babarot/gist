@@ -39,7 +39,7 @@ func edit(cmd *cobra.Command, args []string) error {
 		if line == "" {
 			continue
 		}
-		parsedLine, err := util.ParseLine(line)
+		parsedLine, err := gist.ParseLine(line)
 		if err != nil {
 			continue
 		}
@@ -50,12 +50,12 @@ func edit(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return err
 			}
-			err = gist.EditDesc(gfs.ExtendID(parsedLine.ID), desc)
+			err = gist.EditDesc(parsedLine.ID, desc)
 			if err != nil {
 				return err
 			}
 		} else {
-			file := filepath.Join(config.Conf.Gist.Dir, gfs.ExtendID(parsedLine.ID), parsedLine.Filename)
+			file := filepath.Join(config.Conf.Gist.Dir, parsedLine.ID, parsedLine.Filename)
 			err = gist.Edit(file)
 			if err != nil {
 				return err
@@ -63,7 +63,7 @@ func edit(cmd *cobra.Command, args []string) error {
 		}
 
 		if config.Conf.Flag.OpenURL {
-			url := path.Join(config.Conf.Core.BaseURL, gfs.ExtendID(parsedLine.ID))
+			url := path.Join(config.Conf.Core.BaseURL, parsedLine.ID)
 			_ = util.Open(url)
 		}
 	}

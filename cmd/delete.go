@@ -40,11 +40,11 @@ func delete(cmd *cobra.Command, args []string) error {
 		if line == "" {
 			continue
 		}
-		parsedLine, err := util.ParseLine(line)
+		parsedLine, err := gist.ParseLine(line)
 		if err != nil {
 			continue
 		}
-		ids = append(ids, gfs.ExtendID(parsedLine.ID))
+		ids = append(ids, parsedLine.ID)
 	}
 
 	ids = util.UniqueArray(ids)

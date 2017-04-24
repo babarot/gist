@@ -130,33 +130,6 @@ func RunCommand(command string, args ...string) error {
 	return cmd.Run()
 }
 
-type ParsedLine struct {
-	ID, Filename, Description, Path string
-}
-
-func ParseLine(line string) (*ParsedLine, error) {
-	l := strings.Split(line, "\t")
-	if len(l) != 3 {
-		return &ParsedLine{}, errors.New("error")
-	}
-	var (
-		id = func(id string) string {
-			id = strings.TrimSpace(id)
-			id = strings.TrimLeft(id, " | ")
-			id = strings.TrimLeft(id, " + ")
-			return id
-		}(l[0])
-		filename    = strings.TrimSpace(l[1])
-		description = l[2]
-	)
-	return &ParsedLine{
-		ID:          id,
-		Filename:    filename,
-		Description: description,
-		Path:        filepath.Join(id, filename),
-	}, nil
-}
-
 func ShortenID(id string) string {
 	var ret string
 	for pos, str := range strings.Split(id, "") {
