@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -18,9 +19,7 @@ import (
 )
 
 var (
-	SpinnerSymbol int  = 14
-	ShowSpinner   bool = true
-	Verbose       bool = true
+	SpinnerSymbol int = 14
 )
 
 type (
@@ -31,6 +30,11 @@ type (
 type Gist struct {
 	Client *github.Client
 	Items  Items
+	Config Config
+}
+
+type Config struct {
+	ShowSpinner bool
 }
 
 type File struct {
@@ -55,10 +59,6 @@ func New(token string) (*Gist, error) {
 		return &Gist{}, errors.New("token is missing")
 	}
 
-	// TODO: c.f. go-redis
-	ShowSpinner = config.Conf.Flag.ShowSpinner
-	Verbose = config.Conf.Flag.Verbose
-
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
@@ -68,6 +68,9 @@ func New(token string) (*Gist, error) {
 	return &Gist{
 		Client: client,
 		Items:  []*github.Gist{},
+		Config: Config{
+			ShowSpinner: config.Conf.Flag.ShowSpinner,
+		},
 	}, nil
 }
 
@@ -110,7 +113,7 @@ func (g *Gist) getItems() error {
 }
 
 func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
-	if ShowSpinner {
+	if g.Config.ShowSpinner {
 		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
 		s.Suffix = " Fetching..."
 		s.Start()
@@ -198,7 +201,7 @@ func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
 }
 
 func (g *Gist) Create(files Files, desc string) (url string, err error) {
-	if ShowSpinner {
+	if g.Config.ShowSpinner {
 		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
 		s.Suffix = " Creating..."
 		s.Start()
@@ -253,7 +256,7 @@ func cloneGist(item *github.Gist) error {
 }
 
 func (g *Gist) Delete(id string) error {
-	if ShowSpinner {
+	if g.Config.ShowSpinner {
 		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
 		s.Suffix = " Deleting..."
 		s.Start()
@@ -291,16 +294,7 @@ func (i *Items) One() Item {
 	return item
 }
 
-// TODO:
-// Gist -> []Files
-func (g *Gist) Download(fname string) (url string, err error) {
-	if ShowSpinner {
-		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
-		s.Suffix = " Checking..."
-		s.Start()
-		defer s.Stop()
-	}
-
+func (g *Gist) download(fname string) (done bool, err error) {
 	gists := g.Items.Filter(func(i Item) bool {
 		return *i.ID == util.GetID(fname)
 	})
@@ -308,7 +302,7 @@ func (g *Gist) Download(fname string) (url string, err error) {
 	for _, gist := range *gists {
 		g, _, err := g.Client.Gists.Get(*gist.ID)
 		if err != nil {
-			return url, err
+			return done, err
 		}
 		// for multiple files in one Gist folder
 		for _, f := range g.Files {
@@ -317,12 +311,11 @@ func (g *Gist) Download(fname string) (url string, err error) {
 			// write to the local files if there are some diff
 			if *f.Content != content {
 				ioutil.WriteFile(fpath, []byte(*f.Content), os.ModePerm)
-				// After rewriting returns URL
-				url = *gist.HTMLURL
+				done = true
 			}
 		}
 	}
-	return url, nil
+	return done, nil
 }
 
 func makeGist(fname string) github.Gist {
@@ -336,16 +329,7 @@ func makeGist(fname string) github.Gist {
 	}
 }
 
-// TODO:
-// Gist -> []Files
-func (g *Gist) Upload(fname string) (url string, err error) {
-	if ShowSpinner {
-		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
-		s.Suffix = " Checking..."
-		s.Start()
-		defer s.Stop()
-	}
-
+func (g *Gist) upload(fname string) (done bool, err error) {
 	var (
 		gistID   = util.GetID(fname)
 		gist     = makeGist(fname)
@@ -355,23 +339,34 @@ func (g *Gist) Upload(fname string) (url string, err error) {
 
 	res, _, err := g.Client.Gists.Get(gistID)
 	if err != nil {
-		return url, err
+		return done, err
 	}
 
 	name := github.GistFilename(filename)
 	if *res.Files[name].Content != content {
-		gistResp, _, err := g.Client.Gists.Edit(gistID, &gist)
+		_, _, err := g.Client.Gists.Edit(gistID, &gist)
 		if err != nil {
-			return url, err
+			return done, err
 		}
-		url = *gistResp.HTMLURL
+		done = true
 	}
 
-	return url, nil
+	return done, nil
 }
 
 func (g *Gist) Sync(fname string) error {
 	var err error
+	var msg string
+
+	if g.Config.ShowSpinner {
+		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
+		s.Suffix = " Checking..."
+		s.Start()
+		defer func() {
+			s.Stop()
+			util.Underline(msg, path.Join(config.Conf.Core.BaseURL, util.GetID(fname)))
+		}()
+	}
 
 	if len(g.Items) == 0 {
 		err = g.getItems()
@@ -392,34 +387,31 @@ func (g *Gist) Sync(fname string) error {
 	local := fi.ModTime().UTC()
 	remote := item.UpdatedAt.UTC()
 
-	var (
-		msg, url string
-	)
-	if local.After(remote) {
-		url, err = g.Upload(fname)
+	switch {
+	case local.After(remote):
+		done, err := g.upload(fname)
 		if err != nil {
 			return err
 		}
-		msg = "Uploaded"
-	} else if remote.After(local) {
-		url, err = g.Download(fname)
+		if done {
+			msg = "Uploaded"
+		}
+	case remote.After(local):
+		done, err := g.download(fname)
 		if err != nil {
 			return err
 		}
-		msg = "Downloaded"
-	} else {
-		// TODO
-		return errors.New("something wrong")
-	}
-	if Verbose {
-		util.Underline(msg, url)
+		if done {
+			msg = "Downloaded"
+		}
+	default:
 	}
 
 	return nil
 }
 
 func (g *Gist) EditDesc(id, desc string) error {
-	if ShowSpinner {
+	if g.Config.ShowSpinner {
 		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
 		s.Suffix = " Editing..."
 		s.Start()

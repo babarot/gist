@@ -31,7 +31,7 @@ func Open(target string) error {
 }
 
 func Underline(message, target string) {
-	if target == "" {
+	if message == "" || target == "" {
 		return
 	}
 	link := color.New(color.Underline).SprintFunc()
