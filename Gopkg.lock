@@ -10,7 +10,7 @@ memo = "388e980745c499f84a89f4abf35f9c125bad65a5b421fac514676acd0db7074d"
   branch = "master"
   name = "github.com/b4b4r07/go-colon"
   packages = ["."]
-  revision = "fe6fa4fff5ea1305190c5d474f8d1d2e20bf3c46"
+  revision = "bc5ae99f1c2b6d202bd43ea8258596f0a09e7378"
 
 [[projects]]
   branch = "master"
