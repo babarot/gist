@@ -30,6 +30,7 @@ _gist () {
                 '(--sort)--sort=[Sort by the argument]: :(created updated)' \
                 '(--only)--only=[Open only for the condition]: :(secret public private)' \
                 '(--no-select)--no-select[Open only gist base URL without selecting]' \
+                '(--starred -s)'{--starred,-s}'[Open your starred gist]' \
                 && return 0
             ;;
         (edit)

@@ -30,14 +30,15 @@ type Gist struct {
 }
 
 type Flag struct {
-	OpenURL     bool   `toml:"open_url"`
-	Private     bool   `toml:"private"`
-	Verbose     bool   `toml:"verbose"`
-	ShowSpinner bool   `toml:"show_spinner"`
-	Sort        string `toml:"sort"`
-	Only        string `toml:"only"`
-	NoSelect    bool   `toml:"no_select"`
-	EditDesc    bool   `toml:"edit_desc"`
+	OpenURL          bool   `toml:"open_url"`
+	Private          bool   `toml:"private"`
+	Verbose          bool   `toml:"verbose"`
+	ShowSpinner      bool   `toml:"show_spinner"`
+	Sort             string `toml:"sort"`
+	Only             string `toml:"only"`
+	NoSelect         bool   `toml:"no_select"`
+	EditDesc         bool   `toml:"edit_desc"`
+	OpenStarredItems bool
 }
 
 var Conf Config
