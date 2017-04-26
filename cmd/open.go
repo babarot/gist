@@ -88,4 +88,5 @@ func init() {
 	openCmd.Flags().StringVarP(&config.Conf.Flag.Sort, "sort", "", "created", "Sort by the argument")
 	openCmd.Flags().StringVarP(&config.Conf.Flag.Only, "only", "", "", "Open only for the condition")
 	openCmd.Flags().BoolVarP(&config.Conf.Flag.NoSelect, "no-select", "", false, "Open only gist base URL without selecting")
+	openCmd.Flags().BoolVarP(&config.Conf.Flag.OpenStarredItems, "starred", "s", false, "Open your starred gist")
 }

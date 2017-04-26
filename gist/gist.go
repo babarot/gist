@@ -115,6 +115,35 @@ func (g *Gist) getItems() error {
 	return nil
 }
 
+func (g *Gist) getStarredItems() error {
+	var items Items
+
+	// Get items from gist.github.com
+	gists, resp, err := g.Client.Gists.ListStarred(&github.GistListOptions{})
+	if err != nil {
+		return errorWrapper(err)
+		// return err
+	}
+	items = append(items, gists...)
+
+	// pagenation
+	for i := 2; i <= resp.LastPage; i++ {
+		gists, _, err := g.Client.Gists.ListStarred(&github.GistListOptions{
+			ListOptions: github.ListOptions{Page: i},
+		})
+		if err != nil {
+			continue
+		}
+		items = append(items, gists...)
+	}
+	g.Items = items
+
+	if len(g.Items) == 0 {
+		return errors.New("no items")
+	}
+	return nil
+}
+
 func getSize() (int, error) {
 	w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
 	return w, err
@@ -129,7 +158,11 @@ func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
 	}
 
 	// fetch remote files
-	err = g.getItems()
+	if config.Conf.Flag.OpenStarredItems {
+		err = g.getStarredItems()
+	} else {
+		err = g.getItems()
+	}
 	if err != nil {
 		return gfs, err
 	}
