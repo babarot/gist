@@ -39,23 +39,23 @@ func edit(cmd *cobra.Command, args []string) error {
 		if line == "" {
 			continue
 		}
-		parsedLine, err := gist.ParseLine(line)
+		line, err := gist.ParseLine(line)
 		if err != nil {
 			continue
 		}
 
 		if config.Conf.Flag.EditDesc {
-			util.ScanDefaultString = parsedLine.Description
-			desc, err := util.Scan(parsedLine.Filename+"> ", util.ScanAllowEmpty)
+			util.ScanDefaultString = line.Description
+			desc, err := util.Scan(line.Filename+"> ", util.ScanAllowEmpty)
 			if err != nil {
 				return err
 			}
-			err = gist.EditDesc(parsedLine.ID, desc)
+			err = gist.EditDesc(line.ID, desc)
 			if err != nil {
 				return err
 			}
 		} else {
-			file := filepath.Join(config.Conf.Gist.Dir, parsedLine.ID, parsedLine.Filename)
+			file := filepath.Join(config.Conf.Gist.Dir, line.ID, line.Filename)
 			err = gist.Edit(file)
 			if err != nil {
 				return err
@@ -63,7 +63,7 @@ func edit(cmd *cobra.Command, args []string) error {
 		}
 
 		if config.Conf.Flag.OpenURL {
-			url := path.Join(config.Conf.Core.BaseURL, parsedLine.ID)
+			url := path.Join(config.Conf.Core.BaseURL, line.ID)
 			_ = util.Open(url)
 		}
 	}

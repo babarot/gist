@@ -508,14 +508,10 @@ func (g *Gist) GetItem(id string) Item {
 	}).One()
 }
 
-type ParsedLine struct {
-	ID, Filename, Description, Path string
-}
-
-func (g *Gist) ParseLine(line string) (*ParsedLine, error) {
+func (g *Gist) ParseLine(line string) (*File, error) {
 	l := strings.Split(line, "\t")
 	if len(l) != 3 {
-		return &ParsedLine{}, errors.New("error")
+		return &File{}, errors.New("Failed to parse the selected line")
 	}
 	var (
 		id = func(id string) string {
@@ -528,7 +524,6 @@ func (g *Gist) ParseLine(line string) (*ParsedLine, error) {
 		description = l[2]
 	)
 
-	// Convert to full id
 	for _, item := range g.Items {
 		if strings.HasPrefix(*item.ID, id) {
 			id = *item.ID
@@ -536,10 +531,12 @@ func (g *Gist) ParseLine(line string) (*ParsedLine, error) {
 		}
 	}
 
-	return &ParsedLine{
+	return &File{
 		ID:          id,
 		Filename:    filename,
-		Description: description,
 		Path:        filepath.Join(id, filename),
+		Description: description,
+		FullPath:    "",
+		Content:     "",
 	}, nil
 }

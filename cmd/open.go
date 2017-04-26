@@ -74,12 +74,12 @@ func open(cmd *cobra.Command, args []string) error {
 		return errors.New("No gist selected")
 	}
 
-	parsedLine, err := gist.ParseLine(selectedLines[0])
+	line, err := gist.ParseLine(selectedLines[0])
 	if err != nil {
 		return err
 	}
 
-	url := path.Join(config.Conf.Core.BaseURL, parsedLine.ID)
+	url := path.Join(config.Conf.Core.BaseURL, line.ID)
 	return util.Open(url)
 }
 
