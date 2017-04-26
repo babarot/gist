@@ -14,7 +14,10 @@ import (
 	"github.com/b4b4r07/gist/util"
 	"github.com/briandowns/spinner"
 	"github.com/google/go-github/github"
+	"github.com/mattn/go-runewidth"
 	"github.com/pkg/errors"
+
+	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/oauth2"
 )
 
@@ -112,6 +115,11 @@ func (g *Gist) getItems() error {
 	return nil
 }
 
+func getSize() (int, error) {
+	w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
+	return w, err
+}
+
 func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
 	if g.Config.ShowSpinner {
 		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
@@ -182,15 +190,23 @@ func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
 			}
 		}
 	}
+
 	format := fmt.Sprintf("%%-%ds\t%%-%ds\t%%s\n", util.LengthID, length)
+	width, _ := getSize()
 	if config.Conf.Core.ShowIndicator {
 		format = fmt.Sprintf(" %%s %%-%ds\t%%-%ds\t%%s\n", util.LengthID, length)
 	}
+	width = width - util.LengthID - length
+	// TODO
+	if width > 50 {
+		width -= 10
+	}
 	for i, file := range files {
+		desc := runewidth.Truncate(strings.Replace(file.Description, "\n", " ", -1), width-3, "...")
 		if config.Conf.Core.ShowIndicator {
-			text += fmt.Sprintf(format, prefixes[i], util.ShortenID(file.ID), file.Filename, file.Description)
+			text += fmt.Sprintf(format, prefixes[i], util.ShortenID(file.ID), file.Filename, desc)
 		} else {
-			text += fmt.Sprintf(format, util.ShortenID(file.ID), file.Filename, file.Description)
+			text += fmt.Sprintf(format, util.ShortenID(file.ID), file.Filename, desc)
 		}
 	}
 
