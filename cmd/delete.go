@@ -25,7 +25,7 @@ func delete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	gfs, err := gist.GetRemoteFiles()
+	gfs, err := gist.NewScreen()
 	if err != nil {
 		return err
 	}

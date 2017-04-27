@@ -45,14 +45,13 @@ type File struct {
 	ShortID     string
 	Filename    string
 	Path        string
-	FullPath    string
 	Content     string
 	Description string
 }
 
 type Files []File
 
-type GistFiles struct {
+type Screen struct {
 	Files []File
 	Text  string
 }
@@ -149,7 +148,7 @@ func getSize() (int, error) {
 	return w, err
 }
 
-func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
+func (g *Gist) NewScreen() (s *Screen, err error) {
 	if g.Config.ShowSpinner {
 		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
 		s.Suffix = " Fetching..."
@@ -164,7 +163,7 @@ func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
 		err = g.getItems()
 	}
 	if err != nil {
-		return gfs, err
+		return s, err
 	}
 
 	var files Files
@@ -182,7 +181,6 @@ func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
 				ShortID:     util.ShortenID(*item.ID),
 				Filename:    *f.Filename,
 				Path:        filepath.Join(*item.ID, *f.Filename),
-				FullPath:    filepath.Join(config.Conf.Gist.Dir, *item.ID, *f.Filename),
 				Description: desc,
 			})
 		}
@@ -237,13 +235,13 @@ func (g *Gist) GetRemoteFiles() (gfs GistFiles, err error) {
 	for i, file := range files {
 		desc := runewidth.Truncate(strings.Replace(file.Description, "\n", " ", -1), width-3, "...")
 		if config.Conf.Core.ShowIndicator {
-			text += fmt.Sprintf(format, prefixes[i], util.ShortenID(file.ID), file.Filename, desc)
+			text += fmt.Sprintf(format, prefixes[i], file.ShortID, file.Filename, desc)
 		} else {
-			text += fmt.Sprintf(format, util.ShortenID(file.ID), file.Filename, desc)
+			text += fmt.Sprintf(format, file.ShortID, file.Filename, desc)
 		}
 	}
 
-	return GistFiles{
+	return &Screen{
 		Files: files,
 		Text:  text,
 	}, nil
@@ -493,15 +491,6 @@ func (g *Gist) Edit(fname string) error {
 	return g.Sync(fname)
 }
 
-func (gfs *GistFiles) ExtendID(id string) string {
-	for _, file := range gfs.Files {
-		if file.ShortID == id {
-			return file.ID
-		}
-	}
-	return ""
-}
-
 func (g *Gist) GetItem(id string) Item {
 	return g.Items.Filter(func(i Item) bool {
 		return *i.ID == id
@@ -536,7 +525,6 @@ func (g *Gist) ParseLine(line string) (*File, error) {
 		Filename:    filename,
 		Path:        filepath.Join(id, filename),
 		Description: description,
-		FullPath:    "",
 		Content:     "",
 	}, nil
 }
