@@ -37,7 +37,13 @@ type Gist struct {
 }
 
 type Config struct {
-	ShowSpinner bool
+	ShowSpinner      bool
+	ShowIndicator    bool
+	OpenStarredItems bool
+	Private          bool
+	Dir              string
+	BaseURL          string
+	Editor           string
 }
 
 type File struct {
@@ -71,7 +77,13 @@ func New(token string) (*Gist, error) {
 		Client: client,
 		Items:  []*github.Gist{},
 		Config: Config{
-			ShowSpinner: config.Conf.Flag.ShowSpinner,
+			ShowSpinner:      config.Conf.Flag.ShowSpinner,
+			OpenStarredItems: config.Conf.Flag.OpenStarredItems,
+			ShowIndicator:    config.Conf.Flag.ShowSpinner,
+			Private:          config.Conf.Flag.Private,
+			Dir:              config.Conf.Gist.Dir,
+			BaseURL:          config.Conf.Core.BaseURL,
+			Editor:           config.Conf.Core.Editor,
 		},
 	}, nil
 }
@@ -157,7 +169,7 @@ func (g *Gist) NewScreen() (s *Screen, err error) {
 	}
 
 	// fetch remote files
-	if config.Conf.Flag.OpenStarredItems {
+	if g.Config.OpenStarredItems {
 		err = g.getStarredItems()
 	} else {
 		err = g.getItems()
@@ -168,7 +180,7 @@ func (g *Gist) NewScreen() (s *Screen, err error) {
 
 	var files Files
 	for _, item := range g.Items {
-		if err := cloneGist(item); err != nil {
+		if err := g.cloneGist(item); err != nil {
 			continue
 		}
 		desc := ""
@@ -224,7 +236,7 @@ func (g *Gist) NewScreen() (s *Screen, err error) {
 
 	format := fmt.Sprintf("%%-%ds\t%%-%ds\t%%s\n", util.LengthID, length)
 	width, _ := getSize()
-	if config.Conf.Core.ShowIndicator {
+	if g.Config.ShowIndicator {
 		format = fmt.Sprintf(" %%s %%-%ds\t%%-%ds\t%%s\n", util.LengthID, length)
 	}
 	width = width - util.LengthID - length
@@ -234,7 +246,7 @@ func (g *Gist) NewScreen() (s *Screen, err error) {
 	}
 	for i, file := range files {
 		desc := runewidth.Truncate(strings.Replace(file.Description, "\n", " ", -1), width-3, "...")
-		if config.Conf.Core.ShowIndicator {
+		if g.Config.ShowIndicator {
 			text += fmt.Sprintf(format, prefixes[i], file.ShortID, file.Filename, desc)
 		} else {
 			text += fmt.Sprintf(format, file.ShortID, file.Filename, desc)
@@ -256,7 +268,7 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 	}
 
 	public := true
-	if config.Conf.Flag.Private {
+	if g.Config.Private {
 		public = false
 	}
 	gistFiles := make(map[github.GistFilename]github.GistFile, len(files))
@@ -277,7 +289,7 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 	if resp == nil {
 		return url, errors.New("Try again when you have a better network connection")
 	}
-	err = cloneGist(item)
+	err = g.cloneGist(item)
 	if err != nil {
 		return url, err
 	}
@@ -285,13 +297,13 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 	return url, errors.Wrap(err, "Failed to create")
 }
 
-func cloneGist(item *github.Gist) error {
+func (g *Gist) cloneGist(item *github.Gist) error {
 	if util.Exists(*item.ID) {
 		return nil
 	}
 
 	oldwd, _ := os.Getwd()
-	dir := config.Conf.Gist.Dir
+	dir := g.Config.Dir
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		os.Mkdir(dir, 0700)
 	}
@@ -347,13 +359,13 @@ func (g *Gist) download(fname string) (done bool, err error) {
 	})
 
 	for _, gist := range *gists {
-		g, _, err := g.Client.Gists.Get(*gist.ID)
+		item, _, err := g.Client.Gists.Get(*gist.ID)
 		if err != nil {
 			return done, err
 		}
 		// for multiple files in one Gist folder
-		for _, f := range g.Files {
-			fpath := filepath.Join(config.Conf.Gist.Dir, *gist.ID, *f.Filename)
+		for _, f := range item.Files {
+			fpath := filepath.Join(g.Config.Dir, *gist.ID, *f.Filename)
 			content := util.FileContent(fpath)
 			// write to the local files if there are some diff
 			if *f.Content != content {
@@ -413,7 +425,7 @@ func (g *Gist) Sync(fname string) error {
 		s.Start()
 		defer func() {
 			s.Stop()
-			util.Underline(msg, path.Join(config.Conf.Core.BaseURL, util.GetID(fname)))
+			util.Underline(msg, path.Join(g.Config.BaseURL, util.GetID(fname)))
 		}()
 	}
 
@@ -478,7 +490,7 @@ func (g *Gist) Edit(fname string) error {
 		return err
 	}
 
-	editor := config.Conf.Core.Editor
+	editor := g.Config.Editor
 	if editor == "" {
 		return errors.New("$EDITOR: not set")
 	}
