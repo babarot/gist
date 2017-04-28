@@ -20,8 +20,6 @@ import (
 	"github.com/pkg/browser"
 )
 
-const LengthID = 9
-
 func Open(target string) error {
 	_, err := url.ParseRequestURI(target)
 	if err != nil {
@@ -36,10 +34,6 @@ func Underline(message, target string) {
 	}
 	link := color.New(color.Underline).SprintFunc()
 	fmt.Printf("%s %s\n", message, link(target))
-}
-
-func GetID(file string) string {
-	return filepath.Base(filepath.Dir(file))
 }
 
 func FileContent(fname string) string {
@@ -91,8 +85,19 @@ func Filter(text string) ([]string, error) {
 	return selectedLines, nil
 }
 
+func expandPath(s string) string {
+	if len(s) >= 2 && s[0] == '~' && os.IsPathSeparator(s[1]) {
+		if runtime.GOOS == "windows" {
+			s = filepath.Join(os.Getenv("USERPROFILE"), s[2:])
+		} else {
+			s = filepath.Join(os.Getenv("HOME"), s[2:])
+		}
+	}
+	return os.Expand(s, os.Getenv)
+}
+
 func runFilter(command string, r io.Reader, w io.Writer) error {
-	command = os.Expand(command, os.Getenv)
+	command = expandPath(command)
 	result, err := colon.Parse(command)
 	if err != nil {
 		return err
@@ -129,16 +134,6 @@ func RunCommand(command string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	return cmd.Run()
-}
-
-func ShortenID(id string) string {
-	var ret string
-	for pos, str := range strings.Split(id, "") {
-		if pos <= LengthID {
-			ret += str
-		}
-	}
-	return ret
 }
 
 var (

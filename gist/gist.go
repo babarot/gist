@@ -23,6 +23,7 @@ import (
 
 var (
 	SpinnerSymbol int = 14
+	IDLength      int = 9
 )
 
 type (
@@ -34,6 +35,7 @@ type Gist struct {
 	Client *github.Client
 	Items  Items
 	Config Config
+	Files  Files
 }
 
 type Config struct {
@@ -58,7 +60,7 @@ type File struct {
 type Files []File
 
 type Screen struct {
-	Files []File
+	Files Files
 	Text  string
 }
 
@@ -190,7 +192,7 @@ func (g *Gist) NewScreen() (s *Screen, err error) {
 		for _, f := range item.Files {
 			files = append(files, File{
 				ID:          *item.ID,
-				ShortID:     util.ShortenID(*item.ID),
+				ShortID:     shortenID(*item.ID),
 				Filename:    *f.Filename,
 				Path:        filepath.Join(*item.ID, *f.Filename),
 				Description: desc,
@@ -234,12 +236,12 @@ func (g *Gist) NewScreen() (s *Screen, err error) {
 		}
 	}
 
-	format := fmt.Sprintf("%%-%ds\t%%-%ds\t%%s\n", util.LengthID, length)
+	format := fmt.Sprintf("%%-%ds\t%%-%ds\t%%s\n", IDLength, length)
 	width, _ := getSize()
 	if g.Config.ShowIndicator {
-		format = fmt.Sprintf(" %%s %%-%ds\t%%-%ds\t%%s\n", util.LengthID, length)
+		format = fmt.Sprintf(" %%s %%-%ds\t%%-%ds\t%%s\n", IDLength, length)
 	}
-	width = width - util.LengthID - length
+	width = width - IDLength - length
 	// TODO
 	if width > 50 {
 		width -= 10
@@ -252,6 +254,8 @@ func (g *Gist) NewScreen() (s *Screen, err error) {
 			text += fmt.Sprintf(format, file.ShortID, file.Filename, desc)
 		}
 	}
+
+	g.Files = files
 
 	return &Screen{
 		Files: files,
@@ -353,9 +357,20 @@ func (i *Items) One() Item {
 	return item
 }
 
+func getID(file string) string {
+	switch strings.Count(file, "/") {
+	case 0:
+		return file
+	case 1:
+		return filepath.Base(file)
+	default:
+		return filepath.Base(filepath.Dir(file))
+	}
+}
+
 func (g *Gist) download(fname string) (done bool, err error) {
 	gists := g.Items.Filter(func(i Item) bool {
-		return *i.ID == util.GetID(fname)
+		return *i.ID == getID(fname)
 	})
 
 	for _, gist := range *gists {
@@ -390,7 +405,7 @@ func makeGist(fname string) github.Gist {
 
 func (g *Gist) upload(fname string) (done bool, err error) {
 	var (
-		gistID   = util.GetID(fname)
+		gistID   = getID(fname)
 		gist     = makeGist(fname)
 		filename = filepath.Base(fname)
 		content  = util.FileContent(fname)
@@ -425,7 +440,7 @@ func (g *Gist) Sync(fname string) error {
 		s.Start()
 		defer func() {
 			s.Stop()
-			util.Underline(msg, path.Join(g.Config.BaseURL, util.GetID(fname)))
+			util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
 		}()
 	}
 
@@ -437,7 +452,7 @@ func (g *Gist) Sync(fname string) error {
 	}
 
 	item := g.Items.Filter(func(i Item) bool {
-		return *i.ID == util.GetID(fname)
+		return *i.ID == getID(fname)
 	}).One()
 
 	fi, err := os.Stat(fname)
@@ -509,27 +524,53 @@ func (g *Gist) GetItem(id string) Item {
 	}).One()
 }
 
+func shortenID(id string) string {
+	return runewidth.Truncate(id, IDLength, "")
+}
+
+func (g *Gist) expandID(shortID string) (longID string, err error) {
+	if len(g.Files) == 0 {
+		return "", errors.New("no gist items")
+	}
+	for _, file := range g.Files {
+		if shortID == file.ShortID {
+			longID = file.ID
+		}
+	}
+	if longID == "" {
+		err = errors.New("no matched id in fetched items")
+	}
+	return longID, err
+}
+
 func (g *Gist) ParseLine(line string) (*File, error) {
+	lineItems := []string{
+		"id", "filename", "description",
+		// Example Line:
+		//   89fbb2c227    bashpipe.go    Execute Piped Shell Commands in Go
+	}
+
 	l := strings.Split(line, "\t")
-	if len(l) != 3 {
+	if len(l) != len(lineItems) {
 		return &File{}, errors.New("Failed to parse the selected line")
 	}
+
+	trimIndicator := func(id string) string {
+		id = strings.TrimSpace(id)
+		id = strings.TrimLeft(id, " | ")
+		id = strings.TrimLeft(id, " + ")
+		return id
+	}
+
 	var (
-		id = func(id string) string {
-			id = strings.TrimSpace(id)
-			id = strings.TrimLeft(id, " | ")
-			id = strings.TrimLeft(id, " + ")
-			return id
-		}(l[0])
+		id          = trimIndicator(l[0])
 		filename    = strings.TrimSpace(l[1])
 		description = l[2]
 	)
 
-	for _, item := range g.Items {
-		if strings.HasPrefix(*item.ID, id) {
-			id = *item.ID
-			continue
-		}
+	id, err := g.expandID(id)
+	if err != nil {
+		return &File{}, err
 	}
 
 	return &File{
@@ -537,6 +578,6 @@ func (g *Gist) ParseLine(line string) (*File, error) {
 		Filename:    filename,
 		Path:        filepath.Join(id, filename),
 		Description: description,
-		Content:     "",
+		Content:     "", // no need
 	}, nil
 }

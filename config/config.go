@@ -43,17 +43,6 @@ type Flag struct {
 
 var Conf Config
 
-func expandPath(s string) string {
-	if len(s) >= 2 && s[0] == '~' && os.IsPathSeparator(s[1]) {
-		if runtime.GOOS == "windows" {
-			s = filepath.Join(os.Getenv("USERPROFILE"), s[2:])
-		} else {
-			s = filepath.Join(os.Getenv("HOME"), s[2:])
-		}
-	}
-	return os.Expand(s, os.Getenv)
-}
-
 func GetDefaultDir() (string, error) {
 	var dir string
 
