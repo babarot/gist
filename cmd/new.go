@@ -25,102 +25,37 @@ var newCmd = &cobra.Command{
 	RunE:  new,
 }
 
+type gistItem struct {
+	files gist.Files
+	desc  string
+}
+
 func new(cmd *cobra.Command, args []string) error {
-	var fname string
-	var desc string
 	var err error
+	var gi gistItem
 
 	gist_, err := gist.New(config.Conf.Gist.Token)
 	if err != nil {
 		return err
 	}
 
-	var gistFiles []gist.File
-
+	// Make Gist from various conditions
 	switch {
 	case config.Conf.Flag.FromClipboard:
-		content, err := clipboard.ReadAll()
-		if err != nil {
-			return err
-		}
-		if content == "" {
-			return errors.New("clipboard is empty")
-		}
-		filename, err := util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
-		if err != nil {
-			return err
-		}
-		desc, err = util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
-		if err != nil {
-			return err
-		}
-		gistFiles = append(gistFiles, gist.File{
-			Filename: filename,
-			Content:  content,
-		})
+		gi, err = makeFromClipboard()
 	case !terminal.IsTerminal(0):
-		body, err := ioutil.ReadAll(os.Stdin)
-		if err != nil {
-			return err
-		}
-		gistFiles = append(gistFiles, gist.File{
-			Filename: "stdin",
-			Content:  string(body),
-		})
-		desc = ""
+		gi, err = makeFromStdin()
 	case len(args) > 0:
-		target := args[0]
-		files := []string{}
-		err = filepath.Walk(target, func(path string, info os.FileInfo, err error) error {
-			if strings.HasPrefix(path, ".") {
-				return nil
-			}
-			if info.IsDir() {
-				return nil
-			}
-			files = append(files, path)
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-		if len(files) == 0 {
-			return fmt.Errorf("%s: no files", target)
-		}
-		for _, file := range files {
-			fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
-			gistFiles = append(gistFiles, gist.File{
-				Filename: filepath.Base(file),
-				Content:  util.FileContent(file),
-			})
-		}
-		desc, err = util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
-		if err != nil {
-			return err
-		}
+		gi, err = makeFromArguments(args)
 	case len(args) == 0:
-		filename, err := util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
-		if err != nil {
-			return err
-		}
-		f, err := util.TempFile(filename)
-		defer os.Remove(f.Name())
-		fname = f.Name()
-		err = util.RunCommand(config.Conf.Core.Editor, fname)
-		if err != nil {
-			return err
-		}
-		gistFiles = append(gistFiles, gist.File{
-			Filename: filename,
-			Content:  util.FileContent(fname),
-		})
-		desc, err = util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
-		if err != nil {
-			return err
-		}
+		gi, err = makeFromEditor()
 	}
 
-	url, err := gist_.Create(gistFiles, desc)
+	if err != nil {
+		return err
+	}
+
+	url, err := gist_.Create(gi.files, gi.desc)
 	if err != nil {
 		return err
 	}
@@ -130,6 +65,106 @@ func new(cmd *cobra.Command, args []string) error {
 		util.Open(url)
 	}
 	return nil
+}
+
+func makeFromClipboard() (gi gistItem, err error) {
+	content, err := clipboard.ReadAll()
+	if err != nil {
+		return
+	}
+	if content == "" {
+		return gi, errors.New("clipboard is empty")
+	}
+	filename, err := util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
+	if err != nil {
+		return
+	}
+	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
+	if err != nil {
+		return
+	}
+	return gistItem{
+		files: gist.Files{gist.File{
+			Filename: filename,
+			Content:  content,
+		}},
+		desc: desc,
+	}, nil
+}
+
+func makeFromStdin() (gi gistItem, err error) {
+	body, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		return
+	}
+	return gistItem{
+		files: gist.Files{gist.File{
+			Filename: "stdin",
+			Content:  string(body),
+		}},
+		desc: "",
+	}, nil
+}
+
+func makeFromEditor() (gi gistItem, err error) {
+	filename, err := util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
+	if err != nil {
+		return
+	}
+	f, err := util.TempFile(filename)
+	defer os.Remove(f.Name())
+	err = util.RunCommand(config.Conf.Core.Editor, f.Name())
+	if err != nil {
+		return
+	}
+	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
+	if err != nil {
+		return
+	}
+	return gistItem{
+		files: gist.Files{gist.File{
+			Filename: filename,
+			Content:  util.FileContent(f.Name()),
+		}},
+		desc: desc,
+	}, nil
+}
+
+func makeFromArguments(args []string) (gi gistItem, err error) {
+	var gistFiles gist.Files
+	target := args[0]
+	files := []string{}
+	err = filepath.Walk(target, func(path string, info os.FileInfo, err error) error {
+		if strings.HasPrefix(path, ".") {
+			return nil
+		}
+		if info.IsDir() {
+			return nil
+		}
+		files = append(files, path)
+		return nil
+	})
+	if err != nil {
+		return
+	}
+	if len(files) == 0 {
+		return gi, fmt.Errorf("%s: no files", target)
+	}
+	for _, file := range files {
+		fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
+		gistFiles = append(gistFiles, gist.File{
+			Filename: filepath.Base(file),
+			Content:  util.FileContent(file),
+		})
+	}
+	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
+	if err != nil {
+		return
+	}
+	return gistItem{
+		files: gistFiles,
+		desc:  desc,
+	}, nil
 }
 
 func init() {
