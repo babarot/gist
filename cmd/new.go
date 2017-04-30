@@ -131,25 +131,45 @@ func makeFromEditor() (gi gistItem, err error) {
 }
 
 func makeFromArguments(args []string) (gi gistItem, err error) {
-	var gistFiles gist.Files
-	target := args[0]
-	files := []string{}
-	err = filepath.Walk(target, func(path string, info os.FileInfo, err error) error {
-		if strings.HasPrefix(path, ".") {
-			return nil
+	var (
+		gistFiles gist.Files
+		files     []string
+	)
+
+	// Check if the path is directory
+	isdir := func(path string) bool {
+		if stat, err := os.Stat(path); err == nil && stat.IsDir() {
+			return true
 		}
-		if info.IsDir() {
-			return nil
-		}
-		files = append(files, path)
-		return nil
-	})
-	if err != nil {
-		return
+		return false
 	}
+
+	for _, arg := range args {
+		// if the arg is dir, walk within the dir and add them to slice
+		// otherwise (regular file), just add it to slice
+		if isdir(arg) {
+			err = filepath.Walk(arg, func(arg string, info os.FileInfo, err error) error {
+				if strings.HasPrefix(arg, ".") {
+					return nil
+				}
+				if info.IsDir() {
+					return nil
+				}
+				files = append(files, arg)
+				return nil
+			})
+			if err != nil {
+				return
+			}
+		} else {
+			files = append(files, arg)
+		}
+	}
+
 	if len(files) == 0 {
-		return gi, fmt.Errorf("%s: no files", target)
+		return gi, errors.New("no files to be able create")
 	}
+
 	for _, file := range files {
 		fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
 		gistFiles = append(gistFiles, gist.File{
@@ -157,10 +177,12 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 			Content:  util.FileContent(file),
 		})
 	}
+
 	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
 	if err != nil {
 		return
 	}
+
 	return gistItem{
 		files: gistFiles,
 		desc:  desc,
