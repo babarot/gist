@@ -10,6 +10,7 @@ _gist () {
     'new:Create a new gist'
     'delete:Delete gist files'
     'config:Config the setting file'
+    'copy:Copy contents from gist files'
     'help:Show help for any command'
     )
 
@@ -44,11 +45,13 @@ _gist () {
                 '(- :)'{-h,--help}'[Show this help and exit]' \
                 '(-o --open)'{-o,--open}'[Open with the default browser]' \
                 '(-p --private)'{-p,--private}'[Create as private gist]' \
+                '(-c --from-clipboard)'{-c,--from-clipboard}'[Create gist from clipboard]' \
                 '(-)*: :_files' \
                 && return 0
             ;;
         (delete) ;;
         (config) ;;
+        (copy) ;;
         (help)
             _values 'help message' ${_1st_arguments[@]%:*} && return 0
             ;;

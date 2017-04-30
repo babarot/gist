@@ -39,6 +39,7 @@ type Flag struct {
 	NoSelect         bool   `toml:"no_select"`
 	EditDesc         bool   `toml:"edit_desc"`
 	OpenStarredItems bool
+	FromClipboard    bool
 }
 
 var Conf Config
