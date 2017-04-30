@@ -99,7 +99,7 @@ func makeFromStdin() (gi gistItem, err error) {
 	}
 	return gistItem{
 		files: gist.Files{gist.File{
-			Filename: "stdin",
+			Filename: util.RandomString(20),
 			Content:  string(body),
 		}},
 		desc: "",
