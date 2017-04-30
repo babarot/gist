@@ -12,7 +12,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
+	"github.com/Songmu/strrand"
 	"github.com/b4b4r07/gist/config"
 	"github.com/b4b4r07/go-colon"
 	"github.com/chzyer/readline"
@@ -182,4 +184,14 @@ func Scan(message string, allowEmpty bool) (string, error) {
 		return line, nil
 	}
 	return "", errors.New("canceled")
+}
+
+func RandomString(length int) string {
+	l := fmt.Sprintf("%d", length)
+	str, err := strrand.RandomString(`\w{` + l + `}`)
+	if err == nil {
+		// TODO: truncate with length?
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	return str
 }
