@@ -39,13 +39,14 @@ type Gist struct {
 }
 
 type Config struct {
-	ShowSpinner      bool
-	ShowIndicator    bool
-	OpenStarredItems bool
-	Private          bool
-	Dir              string
-	BaseURL          string
-	Editor           string
+	ShowSpinner       bool
+	ShowIndicator     bool
+	OpenStarredItems  bool
+	NewPrivate        bool
+	Dir               string
+	BaseURL           string
+	Editor            string
+	ShowPrivateSymbol bool
 }
 
 type File struct {
@@ -55,6 +56,7 @@ type File struct {
 	Path        string
 	Content     string
 	Description string
+	Public      bool
 }
 
 type Files []File
@@ -79,13 +81,14 @@ func New(token string) (*Gist, error) {
 		Client: client,
 		Items:  []*github.Gist{},
 		Config: Config{
-			ShowSpinner:      config.Conf.Flag.ShowSpinner,
-			OpenStarredItems: config.Conf.Flag.OpenStarredItems,
-			ShowIndicator:    config.Conf.Flag.ShowSpinner,
-			Private:          config.Conf.Flag.Private,
-			Dir:              config.Conf.Gist.Dir,
-			BaseURL:          config.Conf.Core.BaseURL,
-			Editor:           config.Conf.Core.Editor,
+			ShowSpinner:       config.Conf.Flag.ShowSpinner,
+			OpenStarredItems:  config.Conf.Flag.OpenStarredItems,
+			ShowIndicator:     config.Conf.Flag.ShowSpinner,
+			NewPrivate:        config.Conf.Flag.NewPrivate,
+			Dir:               config.Conf.Gist.Dir,
+			BaseURL:           config.Conf.Core.BaseURL,
+			Editor:            config.Conf.Core.Editor,
+			ShowPrivateSymbol: config.Conf.Screen.ShowPrivateSymbol,
 		},
 	}, nil
 }
@@ -196,6 +199,7 @@ func (g *Gist) NewScreen() (s *Screen, err error) {
 				Filename:    *f.Filename,
 				Path:        filepath.Join(*item.ID, *f.Filename),
 				Description: desc,
+				Public:      *item.Public,
 			})
 		}
 	}
@@ -247,11 +251,19 @@ func (g *Gist) NewScreen() (s *Screen, err error) {
 		width -= 10
 	}
 	for i, file := range files {
+		filename := file.Filename
+		if g.Config.ShowPrivateSymbol {
+			if file.Public {
+				filename = "  " + file.Filename
+			} else {
+				filename = "* " + file.Filename
+			}
+		}
 		desc := runewidth.Truncate(strings.Replace(file.Description, "\n", " ", -1), width-3, "...")
 		if g.Config.ShowIndicator {
-			text += fmt.Sprintf(format, prefixes[i], file.ShortID, file.Filename, desc)
+			text += fmt.Sprintf(format, prefixes[i], file.ShortID, filename, desc)
 		} else {
-			text += fmt.Sprintf(format, file.ShortID, file.Filename, desc)
+			text += fmt.Sprintf(format, file.ShortID, filename, desc)
 		}
 	}
 
@@ -272,7 +284,7 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 	}
 
 	public := true
-	if g.Config.Private {
+	if g.Config.NewPrivate {
 		public = false
 	}
 	gistFiles := make(map[github.GistFilename]github.GistFile, len(files))
@@ -555,16 +567,21 @@ func (g *Gist) ParseLine(line string) (*File, error) {
 		return &File{}, errors.New("Failed to parse the selected line")
 	}
 
-	trimIndicator := func(id string) string {
+	trimDirSymbol := func(id string) string {
 		id = strings.TrimSpace(id)
 		id = strings.TrimLeft(id, " | ")
 		id = strings.TrimLeft(id, " + ")
 		return id
 	}
+	trimPrivateSymbol := func(filename string) string {
+		filename = strings.TrimSpace(filename)
+		filename = strings.TrimLeft(filename, "* ")
+		return filename
+	}
 
 	var (
-		id          = trimIndicator(l[0])
-		filename    = strings.TrimSpace(l[1])
+		id          = trimDirSymbol(l[0])
+		filename    = trimPrivateSymbol(l[1])
 		description = l[2]
 	)
 

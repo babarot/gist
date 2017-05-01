@@ -192,6 +192,6 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 func init() {
 	RootCmd.AddCommand(newCmd)
 	newCmd.Flags().BoolVarP(&config.Conf.Flag.OpenURL, "open", "o", false, "Open with the default browser")
-	newCmd.Flags().BoolVarP(&config.Conf.Flag.Private, "private", "p", false, "Create as private gist")
+	newCmd.Flags().BoolVarP(&config.Conf.Flag.NewPrivate, "private", "p", false, "Create as private gist")
 	newCmd.Flags().BoolVarP(&config.Conf.Flag.FromClipboard, "from-clipboard", "c", false, "Create gist from clipboard")
 }

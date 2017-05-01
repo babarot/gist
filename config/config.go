@@ -10,9 +10,10 @@ import (
 )
 
 type Config struct {
-	Core Core
-	Gist Gist
-	Flag Flag
+	Core   Core
+	Gist   Gist
+	Flag   Flag
+	Screen Screen
 }
 
 type Core struct {
@@ -30,16 +31,23 @@ type Gist struct {
 }
 
 type Flag struct {
-	OpenURL          bool   `toml:"open_url"`
-	Private          bool   `toml:"private"`
-	Verbose          bool   `toml:"verbose"`
-	ShowSpinner      bool   `toml:"show_spinner"`
-	Sort             string `toml:"sort"`
-	Only             string `toml:"only"`
-	NoSelect         bool   `toml:"no_select"`
-	EditDesc         bool   `toml:"edit_desc"`
+	ShowSpinner bool `toml:"show_spinner"`
+	Verbose     bool `toml:"verbose"`
+	OpenURL     bool `toml:"open_url"`
+	NewPrivate  bool `toml:"new_private"`
+	OpenBaseURL bool `toml:"open_base_url"`
+
+	// TODO
+	Sort string `toml:"sort"`
+	Only string `toml:"only"`
+
+	EditDesc         bool
 	OpenStarredItems bool
 	FromClipboard    bool
+}
+
+type Screen struct {
+	ShowPrivateSymbol bool `toml:"show_private_symbol"`
 }
 
 var Conf Config
@@ -99,6 +107,10 @@ func (cfg *Config) LoadFile(file string) error {
 	cfg.Gist.Dir = dir
 	cfg.Flag.ShowSpinner = true
 	cfg.Flag.Verbose = true
+	cfg.Flag.OpenURL = false
+	cfg.Flag.NewPrivate = false
+	cfg.Flag.OpenBaseURL = false
+	cfg.Screen.ShowPrivateSymbol = false
 
 	return toml.NewEncoder(f).Encode(cfg)
 }
