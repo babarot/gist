@@ -1,8 +1,8 @@
-<img src="https://raw.githubusercontent.com/b4b4r07/i/master/gist/logo.png" width="200">
+<a href="https://gist.github.com"><img src="https://raw.githubusercontent.com/b4b4r07/i/master/gist/logo.png" width="200"></a>
 
 > A simple gist editor for CLI
 > 
-> <img src="https://octodex.github.com/images/megacat-2.png" width="200">
+> <a href="https://github.com/b4b4r07/gist"><img src="https://octodex.github.com/images/megacat-2.png" width="200"></a>
 
 ## Pros
 
@@ -18,7 +18,7 @@
 
 ***DEMO***
 
-<img src="https://raw.githubusercontent.com/b4b4r07/i/master/gist/demo.gif" width="500">
+<a href="https://github.com/b4b4r07/gist"><img src="https://raw.githubusercontent.com/b4b4r07/i/master/gist/demo.gif" width="500"></a>
 
 ## Usage
 
