@@ -26,8 +26,9 @@ type Core struct {
 }
 
 type Gist struct {
-	Token string `toml:"token"`
-	Dir   string `toml:"dir"`
+	Token    string `toml:"token"`
+	Dir      string `toml:"dir"`
+	StdinExt string `toml:"default_stdin_ext"`
 }
 
 type Flag struct {

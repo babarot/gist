@@ -97,9 +97,17 @@ func makeFromStdin() (gi gistItem, err error) {
 	if err != nil {
 		return
 	}
+	filename := util.RandomString(20)
+	ext := config.Conf.Gist.StdinExt
+	if len(ext) > 0 {
+		if !strings.HasPrefix(ext, ".") {
+			ext = "." + ext
+		}
+		filename = filename + ext
+	}
 	return gistItem{
 		files: gist.Files{gist.File{
-			Filename: util.RandomString(20),
+			Filename: filename,
 			Content:  string(body),
 		}},
 		desc: "",
