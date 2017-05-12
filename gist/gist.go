@@ -215,6 +215,8 @@ func (g *Gist) NewScreen() (s *Screen, err error) {
 		}
 		current = files[i].ID
 		switch {
+		case max == 0:
+			break
 		case i == 0:
 			previous = ""
 			next = files[i+1].ID
