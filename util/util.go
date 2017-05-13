@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/Songmu/strrand"
-	"github.com/b4b4r07/gist/config"
+	// "github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/go-colon"
 	"github.com/chzyer/readline"
 	"github.com/fatih/color"
@@ -76,7 +76,7 @@ func Filter(text string) ([]string, error) {
 	if text == "" {
 		return selectedLines, errors.New("No input")
 	}
-	err = runFilter(config.Conf.Core.SelectCmd, strings.NewReader(text), &buf)
+	err = runFilter("vim", strings.NewReader(text), &buf)
 	if err != nil {
 		return selectedLines, err
 	}

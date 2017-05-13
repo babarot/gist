@@ -1,4 +1,4 @@
-package config
+package cli
 
 import (
 	"fmt"
@@ -10,10 +10,9 @@ import (
 )
 
 type Config struct {
-	Core   Core
-	Gist   Gist
-	Flag   Flag
-	Screen Screen
+	Core Core
+	Gist Gist
+	Flag Flag
 }
 
 type Core struct {
@@ -45,10 +44,6 @@ type Flag struct {
 	EditDesc         bool
 	OpenStarredItems bool
 	FromClipboard    bool
-}
-
-type Screen struct {
-	ShowPrivateSymbol bool `toml:"show_private_symbol"`
 }
 
 var Conf Config
@@ -111,7 +106,7 @@ func (cfg *Config) LoadFile(file string) error {
 	cfg.Flag.OpenURL = false
 	cfg.Flag.NewPrivate = false
 	cfg.Flag.OpenBaseURL = false
-	cfg.Screen.ShowPrivateSymbol = false
+	// cfg.Screen.ShowPrivateSymbol = false
 
 	return toml.NewEncoder(f).Encode(cfg)
 }

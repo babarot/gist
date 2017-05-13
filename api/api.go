@@ -1,7 +1,6 @@
-package gist
+package api
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -10,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/b4b4r07/gist/config"
+	// "github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/util"
 	"github.com/briandowns/spinner"
 	"github.com/google/go-github/github"
-	"github.com/mattn/go-runewidth"
+	// "github.com/mattn/go-runewidth"
 	"github.com/pkg/errors"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -61,11 +60,6 @@ type File struct {
 
 type Files []File
 
-type Screen struct {
-	Files Files
-	Text  string
-}
-
 func New(token string) (*Gist, error) {
 	if token == "" {
 		return &Gist{}, errors.New("token is missing")
@@ -81,14 +75,17 @@ func New(token string) (*Gist, error) {
 		Client: client,
 		Items:  []*github.Gist{},
 		Config: Config{
-			ShowSpinner:       config.Conf.Flag.ShowSpinner,
-			OpenStarredItems:  config.Conf.Flag.OpenStarredItems,
-			ShowIndicator:     config.Conf.Flag.ShowSpinner,
-			NewPrivate:        config.Conf.Flag.NewPrivate,
-			Dir:               config.Conf.Gist.Dir,
-			BaseURL:           config.Conf.Core.BaseURL,
-			Editor:            config.Conf.Core.Editor,
-			ShowPrivateSymbol: config.Conf.Screen.ShowPrivateSymbol,
+			// ShowSpinner:       cli.Conf.Flag.ShowSpinner,
+			// OpenStarredItems:  cli.Conf.Flag.OpenStarredItems,
+			// ShowIndicator:     cli.Conf.Flag.ShowSpinner,
+			// NewPrivate:        cli.Conf.Flag.NewPrivate,
+			// Dir:               cli.Conf.Gist.Dir,
+			// BaseURL:           cli.Conf.Core.BaseURL,
+			// Editor:            cli.Conf.Core.Editor,
+			// ShowPrivateSymbol: cli.Conf.Screen.ShowPrivateSymbol,
+			Dir:     "/Users/b4b4r07/.config/gist/files",
+			BaseURL: "https://gist.github.com",
+			Editor:  "vim",
 		},
 	}, nil
 }
@@ -100,6 +97,10 @@ func errorWrapper(err error) error {
 		return errors.New("Try again when you have a better network connection")
 	}
 	return err
+}
+
+func (g *Gist) Get() error {
+	return g.getItems()
 }
 
 func (g *Gist) getItems() error {
@@ -163,116 +164,6 @@ func (g *Gist) getStarredItems() error {
 func getSize() (int, error) {
 	w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
 	return w, err
-}
-
-func (g *Gist) NewScreen() (s *Screen, err error) {
-	if g.Config.ShowSpinner {
-		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
-		s.Suffix = " Fetching..."
-		s.Start()
-		defer s.Stop()
-	}
-
-	// fetch remote files
-	if g.Config.OpenStarredItems {
-		err = g.getStarredItems()
-	} else {
-		err = g.getItems()
-	}
-	if err != nil {
-		return s, err
-	}
-
-	var files Files
-	for _, item := range g.Items {
-		if err := g.cloneGist(item); err != nil {
-			continue
-		}
-		desc := ""
-		if item.Description != nil {
-			desc = *item.Description
-		}
-		for _, f := range item.Files {
-			files = append(files, File{
-				ID:          *item.ID,
-				ShortID:     shortenID(*item.ID),
-				Filename:    *f.Filename,
-				Path:        filepath.Join(*item.ID, *f.Filename),
-				Description: desc,
-				Public:      *item.Public,
-			})
-		}
-	}
-
-	var text string
-	var length int
-	max := len(files) - 1
-	prefixes := make([]string, max+1)
-	var previous, current, next string
-	for i, file := range files {
-		if len(file.Filename) > length {
-			length = len(file.Filename)
-		}
-		current = files[i].ID
-		switch {
-		case i == 0:
-			previous = ""
-			next = files[i+1].ID
-		case 0 < i && i < max:
-			previous = files[i-1].ID
-			next = files[i+1].ID
-		case i == max:
-			previous = files[i-1].ID
-			next = ""
-		}
-		prefixes[i] = " "
-		if current == previous {
-			prefixes[i] = "|"
-			if current != next {
-				prefixes[i] = "+"
-			}
-		}
-		if current == next {
-			prefixes[i] = "|"
-			if current != previous {
-				prefixes[i] = "+"
-			}
-		}
-	}
-
-	format := fmt.Sprintf("%%-%ds\t%%-%ds\t%%s\n", IDLength, length)
-	width, _ := getSize()
-	if g.Config.ShowIndicator {
-		format = fmt.Sprintf(" %%s %%-%ds\t%%-%ds\t%%s\n", IDLength, length)
-	}
-	width = width - IDLength - length
-	// TODO
-	if width > 50 {
-		width -= 10
-	}
-	for i, file := range files {
-		filename := file.Filename
-		if g.Config.ShowPrivateSymbol {
-			if file.Public {
-				filename = "  " + file.Filename
-			} else {
-				filename = "* " + file.Filename
-			}
-		}
-		desc := runewidth.Truncate(strings.Replace(file.Description, "\n", " ", -1), width-3, "...")
-		if g.Config.ShowIndicator {
-			text += fmt.Sprintf(format, prefixes[i], file.ShortID, filename, desc)
-		} else {
-			text += fmt.Sprintf(format, file.ShortID, filename, desc)
-		}
-	}
-
-	g.Files = files
-
-	return &Screen{
-		Files: files,
-		Text:  text,
-	}, nil
 }
 
 func (g *Gist) Create(files Files, desc string) (url string, err error) {
@@ -534,10 +425,6 @@ func (g *Gist) GetItem(id string) Item {
 	return g.Items.Filter(func(i Item) bool {
 		return *i.ID == id
 	}).One()
-}
-
-func shortenID(id string) string {
-	return runewidth.Truncate(id, IDLength, "")
 }
 
 func (g *Gist) expandID(shortID string) (longID string, err error) {
