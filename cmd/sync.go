@@ -35,7 +35,7 @@ func sync(cmd *cobra.Command, args []string) error {
 			// skip
 			return nil
 		}
-		_ = gist.Sync(path)
+		_ = cli.Sync(gist, path)
 		return nil
 	})
 }

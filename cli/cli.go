@@ -31,3 +31,9 @@ func Edit(g *api.Gist, fname string) error {
 
 	return g.Sync(fname)
 }
+
+func Sync(g *api.Gist, fname string) error {
+	println(fname)
+	return nil
+	// return g.Sync(fname)
+}
