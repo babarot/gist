@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -308,7 +309,7 @@ func (g *Gist) Compare(fname string) (kind, content string, err error) {
 	localContent, _ = util.FileContent(fname)
 	for _, file := range gist.Files {
 		if *file.Filename != filepath.Base(fname) {
-			return "not found", "", fmt.Errorf("%s: not found on cloud", filepath.Base(fname))
+			return "", "", fmt.Errorf("%s: not found on cloud", filepath.Base(fname))
 		}
 		remoteContent = *file.Content
 	}
@@ -321,20 +322,8 @@ func (g *Gist) Compare(fname string) (kind, content string, err error) {
 
 	switch {
 	case local.After(remote):
-		// done, err := g.upload(fname)
-		// if err != nil {
-		// 	return "", err
-		// }
-		// if done {
-		// }
 		return "local", localContent, nil
 	case remote.After(local):
-		// done, err := g.download(fname)
-		// if err != nil {
-		// 	return "", err
-		// }
-		// if done {
-		// }
 		return "remote", remoteContent, nil
 	default:
 	}
@@ -342,45 +331,55 @@ func (g *Gist) Compare(fname string) (kind, content string, err error) {
 	return "equal", "", nil
 }
 
-func (g *Gist) Sync(fname string) (err error) {
-	// var (
-	// 	// err error
-	// 	msg string
-	// )
+func (g *Gist) UpdateLocal(fname, content string) error {
+	return ioutil.WriteFile(fname, []byte(content), os.ModePerm)
+}
 
-	// spn := util.NewSpinner("Checking...")
-	// spn.Start()
-	// defer func() {
-	// 	spn.Stop()
-	// 	util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
-	// }()
+func (g *Gist) UpdateRemote(fname, content string) error {
+	var (
+		gist = func(fname string) github.Gist {
+			return github.Gist{
+				Files: map[github.GistFilename]github.GistFile{
+					github.GistFilename(filepath.Base(fname)): github.GistFile{
+						Content: github.String(content),
+					},
+				},
+			}
+		}(fname)
+		id = getID(fname)
+	)
+	_, _, err := g.Client.Gists.Edit(id, &gist)
+	return err
+}
+
+func (g *Gist) Sync(fname string) (err error) {
+	var msg string
+	spn := util.NewSpinner("Checking...")
+	spn.Start()
+	defer func() {
+		spn.Stop()
+		util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
+	}()
 
 	kind, content, err := g.Compare(fname)
 	if err != nil {
 		return err
 	}
-	// TODO
-	_ = content
 	switch kind {
 	case "local":
-		_, err = g.upload(fname)
-		println("upload", fname)
+		err = g.UpdateRemote(fname, content)
+		msg = "Uploaded"
 	case "remote":
-		_, err = g.download(fname)
-		println("download", fname)
+		err = g.UpdateLocal(fname, content)
+		msg = "Downloaded"
 	case "equal":
-		// skip
-		println("skipped", fname)
+		// Do nothing
 	case "":
-	// TODO:
-	// Locally but not remote
+		// Locally but not remote
 	default:
 	}
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (g *Gist) ExpandID(shortID string) (longID string, err error) {

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/b4b4r07/gist/api"
 )
@@ -33,7 +34,25 @@ func Edit(g *api.Gist, fname string) error {
 }
 
 func Sync(g *api.Gist, fname string) error {
-	// println(fname)
-	// return nil
-	return g.Sync(fname)
+	kind, content, err := g.Compare(fname)
+	if err != nil {
+		return err
+	}
+	// TODO
+	_ = content
+	switch kind {
+	case "local":
+		err = g.UpdateRemote(fname, content)
+		fmt.Printf("Uploaded\t%s\n", fname)
+	case "remote":
+		err = g.UpdateLocal(fname, content)
+		fmt.Printf("Downloaded\t%s\n", fname)
+	case "equal":
+		fmt.Printf("Not changed\t%s\n", fname)
+	case "":
+		// Locally but not remote
+	default:
+	}
+
+	return err
 }
