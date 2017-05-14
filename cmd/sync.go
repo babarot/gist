@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,7 +36,10 @@ func sync(cmd *cobra.Command, args []string) error {
 			// skip
 			return nil
 		}
-		_ = cli.Sync(gist, path)
+		err = cli.Sync(gist, path)
+		if err != nil {
+			log.Printf("[ERROR] %v", err)
+		}
 		return nil
 	})
 }

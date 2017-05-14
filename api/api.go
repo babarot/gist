@@ -1,10 +1,10 @@
 package api
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/mattn/go-runewidth"
 	"github.com/pkg/errors"
-
 	"golang.org/x/oauth2"
 )
 
@@ -276,37 +275,45 @@ func (g *Gist) upload(fname string) (done bool, err error) {
 	return done, nil
 }
 
-func (g *Gist) Sync(fname string) error {
-	var (
-		err error
-		msg string
-	)
-
-	spn := util.NewSpinner("Checking...")
-	spn.Start()
-	defer func() {
-		spn.Stop()
-		util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
-	}()
-
+func (g *Gist) Compare(fname string) (kind, content string, err error) {
 	if len(g.Items) == 0 {
 		err = g.List()
 		if err != nil {
-			return err
+			return
 		}
+	}
+
+	fi, err := os.Stat(fname)
+	if err != nil {
+		err = errors.Wrapf(err, "%s: no such file or directory", fname)
+		return
 	}
 
 	item := g.Items.Filter(func(i Item) bool {
 		return *i.ID == getID(fname)
 	}).One()
-
 	if item == nil {
-		return errors.New("item is nil")
+		err = errors.New("item is nil")
+		err = nil
+		return
 	}
 
-	fi, err := os.Stat(fname)
+	gist, _, err := g.Client.Gists.Get(*item.ID)
 	if err != nil {
-		return errors.Wrapf(err, "%s: no such file or directory", fname)
+		return
+	}
+	var (
+		remoteContent, localContent string
+	)
+	localContent, _ = util.FileContent(fname)
+	for _, file := range gist.Files {
+		if *file.Filename != filepath.Base(fname) {
+			return "not found", "", fmt.Errorf("%s: not found on cloud", filepath.Base(fname))
+		}
+		remoteContent = *file.Content
+	}
+	if remoteContent == localContent {
+		return "equal", "", nil
 	}
 
 	local := fi.ModTime().UTC()
@@ -314,22 +321,63 @@ func (g *Gist) Sync(fname string) error {
 
 	switch {
 	case local.After(remote):
-		done, err := g.upload(fname)
-		if err != nil {
-			return err
-		}
-		if done {
-			msg = "Uploaded"
-		}
+		// done, err := g.upload(fname)
+		// if err != nil {
+		// 	return "", err
+		// }
+		// if done {
+		// }
+		return "local", localContent, nil
 	case remote.After(local):
-		done, err := g.download(fname)
-		if err != nil {
-			return err
-		}
-		if done {
-			msg = "Downloaded"
-		}
+		// done, err := g.download(fname)
+		// if err != nil {
+		// 	return "", err
+		// }
+		// if done {
+		// }
+		return "remote", remoteContent, nil
 	default:
+	}
+
+	return "equal", "", nil
+}
+
+func (g *Gist) Sync(fname string) (err error) {
+	// var (
+	// 	// err error
+	// 	msg string
+	// )
+
+	// spn := util.NewSpinner("Checking...")
+	// spn.Start()
+	// defer func() {
+	// 	spn.Stop()
+	// 	util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
+	// }()
+
+	kind, content, err := g.Compare(fname)
+	if err != nil {
+		return err
+	}
+	// TODO
+	_ = content
+	switch kind {
+	case "local":
+		_, err = g.upload(fname)
+		println("upload", fname)
+	case "remote":
+		_, err = g.download(fname)
+		println("download", fname)
+	case "equal":
+		// skip
+		println("skipped", fname)
+	case "":
+	// TODO:
+	// Locally but not remote
+	default:
+	}
+	if err != nil {
+		return err
 	}
 
 	return nil

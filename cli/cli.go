@@ -33,7 +33,7 @@ func Edit(g *api.Gist, fname string) error {
 }
 
 func Sync(g *api.Gist, fname string) error {
-	println(fname)
-	return nil
-	// return g.Sync(fname)
+	// println(fname)
+	// return nil
+	return g.Sync(fname)
 }
