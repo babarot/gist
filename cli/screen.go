@@ -13,8 +13,10 @@ import (
 )
 
 type Screen struct {
+	Gist  *api.Gist
 	Files api.Files
 	Text  string
+	id    func(string) string
 }
 
 func NewScreen() (s *Screen, err error) {
@@ -32,8 +34,8 @@ func NewScreen() (s *Screen, err error) {
 	if err != nil {
 		return s, err
 	}
-	err = gist.Get()
-	if err != nil {
+
+	if err := gist.Get(); err != nil {
 		return s, err
 	}
 
@@ -53,6 +55,15 @@ func NewScreen() (s *Screen, err error) {
 				Public:      *item.Public,
 			})
 		}
+	}
+
+	id := func(id string) string {
+		for _, item := range gist.Items {
+			if id == shortenID(*item.ID) {
+				return *item.ID
+			}
+		}
+		return ""
 	}
 
 	// var files Files
@@ -139,7 +150,6 @@ func NewScreen() (s *Screen, err error) {
 	// 	}
 	// }
 
-	// format := fmt.Sprintf("%%-%ds\t%%-%ds\t%%s\n", IDLength, length)
 	text := ""
 	for _, file := range files {
 		filename := file.Filename
@@ -148,8 +158,10 @@ func NewScreen() (s *Screen, err error) {
 	}
 
 	return &Screen{
+		Gist:  gist,
 		Files: files,
 		Text:  text,
+		id:    id,
 	}, nil
 }
 
@@ -159,6 +171,7 @@ type Line struct {
 	ShortID  string
 	Filename string
 	Desc     string
+	Path     string
 }
 
 type Lines []Line
@@ -167,10 +180,11 @@ func (s *Screen) parseLine(line string) *Line {
 	l := strings.Split(line, "\t")
 	return &Line{
 		Line:     line,
-		ID:       l[0],
+		ID:       s.id(l[0]),
 		ShortID:  l[0],
 		Filename: l[1],
 		Desc:     l[2],
+		Path:     filepath.Join(Conf.Gist.Dir, s.id(l[0]), l[1]),
 	}
 }
 

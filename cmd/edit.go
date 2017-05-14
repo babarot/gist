@@ -21,11 +21,6 @@ var editCmd = &cobra.Command{
 func edit(cmd *cobra.Command, args []string) error {
 	var err error
 
-	// gist, err := api.New(cli.Conf.Gist.Token)
-	// if err != nil {
-	// 	return err
-	// }
-
 	screen, err := cli.NewScreen()
 	if err != nil {
 		return err
@@ -35,12 +30,15 @@ func edit(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	// selectedLines, err := util.Filter(screen.Text)
-	// if err != nil {
-	// 	return err
-	// }
 
-	fmt.Printf("%#v\n", lines)
+	for _, line := range lines {
+		fmt.Printf("%#v\n", line)
+		err = cli.Edit(screen.Gist, line.Path)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 	// for _, line := range selectedLines {
 	// 	if line == "" {
