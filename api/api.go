@@ -66,10 +66,10 @@ func NewGist(cfg Config) (*Gist, error) {
 	}, nil
 }
 
-func (g *Gist) Get() error {
+func (g *Gist) List() error {
 	var items Items
 
-	// Get items from gist.github.com
+	// List items from gist.github.com
 	gists, resp, err := g.Client.Gists.List("", &github.GistListOptions{})
 	if err != nil {
 		return err
@@ -94,10 +94,10 @@ func (g *Gist) Get() error {
 	return nil
 }
 
-func (g *Gist) GetStars() error {
+func (g *Gist) ListStarred() error {
 	var items Items
 
-	// Get items from gist.github.com
+	// List items from gist.github.com
 	gists, resp, err := g.Client.Gists.ListStarred(&github.GistListOptions{})
 	if err != nil {
 		return err
@@ -277,12 +277,12 @@ func (g *Gist) Sync(fname string) error {
 	spn := util.NewSpinner("Checking...")
 	spn.Start()
 	defer func() {
-		defer spn.Stop()
+		spn.Stop()
 		util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
 	}()
 
 	if len(g.Items) == 0 {
-		err = g.Get()
+		err = g.List()
 		if err != nil {
 			return err
 		}

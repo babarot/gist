@@ -34,9 +34,9 @@ func NewScreen() (s *Screen, err error) {
 	}
 
 	if Conf.Flag.OpenStarredItems {
-		err = gist.GetStars()
+		err = gist.ListStarred()
 	} else {
-		err = gist.Get()
+		err = gist.List()
 	}
 
 	var files api.Files

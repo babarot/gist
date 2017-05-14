@@ -13,6 +13,7 @@ import (
 	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/util"
 	"github.com/fatih/color"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -169,6 +170,10 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 				return
 			}
 		} else {
+			if !util.Exists(arg) {
+				log.Infof("%s: no such file or directory", arg)
+				continue
+			}
 			files = append(files, arg)
 		}
 	}
