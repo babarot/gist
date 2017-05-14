@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 
 	"github.com/b4b4r07/gist/cli"
-	"github.com/b4b4r07/gist/util"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +21,7 @@ func conf(cmd *cobra.Command, args []string) error {
 		dir, _ := cli.GetDefaultDir()
 		tomlfile = filepath.Join(dir, "config.toml")
 	}
-	return util.RunCommand(editor, tomlfile)
+	return cli.Run(editor, tomlfile)
 }
 
 func init() {

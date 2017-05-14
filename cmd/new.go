@@ -97,7 +97,7 @@ func makeFromStdin() (gi gistItem, err error) {
 		return
 	}
 	filename := util.RandomString(20)
-	ext := cli.Conf.Gist.StdinExt
+	ext := cli.Conf.Gist.FileExt
 	if len(ext) > 0 {
 		if !strings.HasPrefix(ext, ".") {
 			ext = "." + ext
@@ -120,7 +120,7 @@ func makeFromEditor() (gi gistItem, err error) {
 	}
 	f, err := util.TempFile(filename)
 	defer os.Remove(f.Name())
-	err = util.RunCommand(cli.Conf.Core.Editor, f.Name())
+	err = cli.Run(cli.Conf.Core.Editor, f.Name())
 	if err != nil {
 		return
 	}

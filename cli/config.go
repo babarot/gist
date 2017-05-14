@@ -23,10 +23,10 @@ type Core struct {
 }
 
 type Gist struct {
-	Token    string `toml:"token"`
-	BaseURL  string `toml:"base_url"`
-	Dir      string `toml:"dir"`
-	StdinExt string `toml:"default_stdin_ext"`
+	Token   string `toml:"token"`
+	BaseURL string `toml:"base_url"`
+	Dir     string `toml:"dir"`
+	FileExt string `toml:"file_ext"`
 }
 
 type Flag struct {
@@ -101,6 +101,7 @@ func (cfg *Config) LoadFile(file string) error {
 	dir := filepath.Join(filepath.Dir(file), "files")
 	os.MkdirAll(dir, 0700)
 	cfg.Gist.Dir = dir
+	cfg.Gist.FileExt = ".patch"
 
 	cfg.Flag.Verbose = true
 	cfg.Flag.OpenURL = false
