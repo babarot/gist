@@ -1,65 +1,42 @@
 package cmd
 
-//
-// import (
-// 	"fmt"
-// 	"log"
-//
-// 	"github.com/b4b4r07/gist/api"
-// 	"github.com/b4b4r07/gist/cli"
-// 	"github.com/b4b4r07/gist/util"
-// 	"github.com/spf13/cobra"
-// )
-//
-// var deleteCmd = &cobra.Command{
-// 	Use:   "delete",
-// 	Short: "Delete gist files",
-// 	Long:  "Delete gist files on the remote",
-// 	RunE:  delete,
-// }
-//
-// func delete(cmd *cobra.Command, args []string) error {
-// 	var err error
-//
-// 	gist, err := api.New(cli.Conf.Gist.Token)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	gfs, err := gist.NewScreen()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	selectedLines, err := util.Filter(gfs.Text)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	var ids []string
-// 	for _, line := range selectedLines {
-// 		if line == "" {
-// 			continue
-// 		}
-// 		line, err := gist.ParseLine(line)
-// 		if err != nil {
-// 			continue
-// 		}
-// 		ids = append(ids, line.ID)
-// 	}
-//
-// 	ids = util.UniqueArray(ids)
-// 	for _, id := range ids {
-// 		err = gist.Delete(id)
-// 		if err != nil {
-// 			log.Printf("[ERROR] %v", err)
-// 		}
-// 		fmt.Printf("Deleted %s\n", id)
-// 	}
-//
-// 	return nil
-// }
-//
-// func init() {
-// 	RootCmd.AddCommand(deleteCmd)
-// }
+import (
+	"fmt"
+	"log"
+
+	"github.com/b4b4r07/gist/cli"
+	"github.com/spf13/cobra"
+)
+
+var deleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "Delete gist files",
+	Long:  "Delete gist files on the remote",
+	RunE:  delete,
+}
+
+func delete(cmd *cobra.Command, args []string) (err error) {
+	screen, err := cli.NewScreen()
+	if err != nil {
+		return err
+	}
+
+	lines, err := screen.Select()
+	if err != nil {
+		return err
+	}
+
+	for _, line := range lines.Uniq() {
+		err = screen.Gist.Delete(line.ID)
+		if err != nil {
+			log.Printf("[ERROR] %v", err)
+		}
+		fmt.Printf("Deleted %s\n", line.ID)
+	}
+
+	return nil
+}
+
+func init() {
+	RootCmd.AddCommand(deleteCmd)
+}

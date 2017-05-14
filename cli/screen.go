@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -30,7 +31,7 @@ func NewScreen() (s *Screen, err error) {
 	// } else {
 	// 	err = g.getItems()
 	// }
-	gist, err := api.New(Conf.Gist.Token)
+	gist, err := api.NewGist(Conf.Gist.Token)
 	if err != nil {
 		return s, err
 	}
@@ -172,6 +173,7 @@ type Line struct {
 	Filename string
 	Desc     string
 	Path     string
+	URL      string
 }
 
 type Lines []Line
@@ -185,7 +187,30 @@ func (s *Screen) parseLine(line string) *Line {
 		Filename: l[1],
 		Desc:     l[2],
 		Path:     filepath.Join(Conf.Gist.Dir, s.id(l[0]), l[1]),
+		URL:      path.Join(Conf.Core.BaseURL, s.id(l[0])),
 	}
+}
+
+func (l *Lines) Filter(fn func(Line) bool) *Lines {
+	lines := make(Lines, 0)
+	for _, line := range *l {
+		if fn(line) {
+			lines = append(lines, line)
+		}
+	}
+	return &lines
+}
+
+func (l *Lines) Uniq() Lines {
+	lines := make(Lines, 0)
+	encountered := map[string]bool{}
+	for _, line := range *l {
+		if !encountered[line.ID] {
+			encountered[line.ID] = true
+			lines = append(lines, line)
+		}
+	}
+	return lines
 }
 
 func (s *Screen) Select() (lines Lines, err error) {

@@ -7,13 +7,9 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
-	// "github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/util"
-	"github.com/briandowns/spinner"
 	"github.com/google/go-github/github"
-	// "github.com/mattn/go-runewidth"
 	"github.com/pkg/errors"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -21,8 +17,7 @@ import (
 )
 
 var (
-	SpinnerSymbol int = 14
-	IDLength      int = 9
+	IDLength int = 9
 )
 
 type (
@@ -38,7 +33,6 @@ type Gist struct {
 }
 
 type Config struct {
-	ShowSpinner       bool
 	ShowIndicator     bool
 	OpenStarredItems  bool
 	NewPrivate        bool
@@ -60,7 +54,7 @@ type File struct {
 
 type Files []File
 
-func New(token string) (*Gist, error) {
+func NewGist(token string) (*Gist, error) {
 	if token == "" {
 		return &Gist{}, errors.New("token is missing")
 	}
@@ -75,7 +69,6 @@ func New(token string) (*Gist, error) {
 		Client: client,
 		Items:  []*github.Gist{},
 		Config: Config{
-			// ShowSpinner:       cli.Conf.Flag.ShowSpinner,
 			// OpenStarredItems:  cli.Conf.Flag.OpenStarredItems,
 			// ShowIndicator:     cli.Conf.Flag.ShowSpinner,
 			// NewPrivate:        cli.Conf.Flag.NewPrivate,
@@ -90,15 +83,6 @@ func New(token string) (*Gist, error) {
 	}, nil
 }
 
-// TODO
-// replacement with pkg/errors
-func errorWrapper(err error) error {
-	if strings.Contains(err.Error(), "tcp") {
-		return errors.New("Try again when you have a better network connection")
-	}
-	return err
-}
-
 func (g *Gist) Get() error {
 	return g.getItems()
 }
@@ -109,8 +93,7 @@ func (g *Gist) getItems() error {
 	// Get items from gist.github.com
 	gists, resp, err := g.Client.Gists.List("", &github.GistListOptions{})
 	if err != nil {
-		return errorWrapper(err)
-		// return err
+		return err
 	}
 	items = append(items, gists...)
 
@@ -138,8 +121,7 @@ func (g *Gist) getStarredItems() error {
 	// Get items from gist.github.com
 	gists, resp, err := g.Client.Gists.ListStarred(&github.GistListOptions{})
 	if err != nil {
-		return errorWrapper(err)
-		// return err
+		return err
 	}
 	items = append(items, gists...)
 
@@ -167,12 +149,9 @@ func getSize() (int, error) {
 }
 
 func (g *Gist) Create(files Files, desc string) (url string, err error) {
-	if g.Config.ShowSpinner {
-		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
-		s.Suffix = " Creating..."
-		s.Start()
-		defer s.Stop()
-	}
+	spn := util.NewSpinner("Creating...")
+	spn.Start()
+	defer spn.Stop()
 
 	public := true
 	if g.Config.NewPrivate {
@@ -222,12 +201,9 @@ func (g *Gist) cloneGist(item *github.Gist) error {
 }
 
 func (g *Gist) Delete(id string) error {
-	if g.Config.ShowSpinner {
-		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
-		s.Suffix = " Deleting..."
-		s.Start()
-		defer s.Stop()
-	}
+	spn := util.NewSpinner("Deleting...")
+	spn.Start()
+	defer spn.Stop()
 	_, err := g.Client.Gists.Delete(id)
 	return err
 }
@@ -337,15 +313,12 @@ func (g *Gist) Sync(fname string) error {
 		msg string
 	)
 
-	if g.Config.ShowSpinner {
-		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
-		s.Suffix = " Checking..."
-		s.Start()
-		defer func() {
-			s.Stop()
-			util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
-		}()
-	}
+	spn := util.NewSpinner("Cheking...")
+	spn.Start()
+	defer func() {
+		defer spn.Stop()
+		util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
+	}()
 
 	if len(g.Items) == 0 {
 		err = g.getItems()
@@ -390,12 +363,9 @@ func (g *Gist) Sync(fname string) error {
 }
 
 func (g *Gist) EditDesc(id, desc string) error {
-	if g.Config.ShowSpinner {
-		s := spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond)
-		s.Suffix = " Editing..."
-		s.Start()
-		defer s.Stop()
-	}
+	spn := util.NewSpinner("Editing...")
+	spn.Start()
+	defer spn.Stop()
 	item := github.Gist{
 		Description: github.String(desc),
 	}

@@ -34,7 +34,7 @@ func new(cmd *cobra.Command, args []string) error {
 	var err error
 	var gi gistItem
 
-	gist, err := api.New(cli.Conf.Gist.Token)
+	gist, err := api.NewGist(cli.Conf.Gist.Token)
 	if err != nil {
 		return err
 	}
