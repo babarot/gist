@@ -34,12 +34,12 @@ func Underline(message, target string) {
 	fmt.Printf("%s %s\n", message, link(target))
 }
 
-func FileContent(fname string) string {
+func FileContent(fname string) (string, error) {
 	data, err := ioutil.ReadFile(fname)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return string(data)
+	return string(data), nil
 }
 
 func Exists(filename string) bool {

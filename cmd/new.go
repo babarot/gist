@@ -129,10 +129,14 @@ func makeFromEditor() (gi gistItem, err error) {
 	if err != nil {
 		return
 	}
+	content, err := util.FileContent(f.Name())
+	if err != nil {
+		return
+	}
 	return gistItem{
 		files: api.Files{api.File{
 			Filename: filename,
-			Content:  util.FileContent(f.Name()),
+			Content:  content,
 		}},
 		desc: desc,
 	}, nil
@@ -184,9 +188,10 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 
 	for _, file := range files {
 		fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
+		content, _ := util.FileContent(file)
 		gistFiles = append(gistFiles, api.File{
 			Filename: filepath.Base(file),
-			Content:  util.FileContent(file),
+			Content:  content,
 		})
 	}
 

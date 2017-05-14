@@ -207,7 +207,11 @@ func getID(file string) string {
 	case 1:
 		return filepath.Base(file)
 	default:
-		return filepath.Base(filepath.Dir(file))
+		id := filepath.Base(filepath.Dir(file))
+		if id == "files" {
+			id = filepath.Base(file)
+		}
+		return id
 	}
 }
 
@@ -224,7 +228,10 @@ func (g *Gist) download(fname string) (done bool, err error) {
 		// for multiple files in one Gist folder
 		for _, f := range item.Files {
 			fpath := filepath.Join(g.Config.ClonePath, *gist.ID, *f.Filename)
-			content := util.FileContent(fpath)
+			content, err := util.FileContent(fpath)
+			if err != nil {
+				continue
+			}
 			// write to the local files if there are some diff
 			if *f.Content != content {
 				ioutil.WriteFile(fpath, []byte(*f.Content), os.ModePerm)
@@ -239,16 +246,17 @@ func (g *Gist) upload(fname string) (done bool, err error) {
 	var (
 		gistID = getID(fname)
 		gist   = func(fname string) github.Gist {
+			content, _ := util.FileContent(fname)
 			return github.Gist{
 				Files: map[github.GistFilename]github.GistFile{
 					github.GistFilename(filepath.Base(fname)): github.GistFile{
-						Content: github.String(util.FileContent(fname)),
+						Content: github.String(content),
 					},
 				},
 			}
 		}(fname)
-		filename = filepath.Base(fname)
-		content  = util.FileContent(fname)
+		filename   = filepath.Base(fname)
+		content, _ = util.FileContent(fname)
 	)
 
 	res, _, err := g.Client.Gists.Get(gistID)
@@ -291,6 +299,10 @@ func (g *Gist) Sync(fname string) error {
 	item := g.Items.Filter(func(i Item) bool {
 		return *i.ID == getID(fname)
 	}).One()
+
+	if item == nil {
+		return errors.New("item is nil")
+	}
 
 	fi, err := os.Stat(fname)
 	if err != nil {
