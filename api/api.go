@@ -29,14 +29,10 @@ type Gist struct {
 }
 
 type Config struct {
-	Token             string
-	ShowIndicator     bool
-	OpenStarredItems  bool
-	NewPrivate        bool
-	Dir               string
-	BaseURL           string
-	Editor            string
-	ShowPrivateSymbol bool
+	Token      string
+	BaseURL    string
+	NewPrivate bool
+	ClonePath  string
 }
 
 type File struct {
@@ -167,7 +163,7 @@ func (g *Gist) Clone(item *github.Gist) error {
 	}
 
 	oldwd, _ := os.Getwd()
-	dir := g.Config.Dir
+	dir := g.Config.ClonePath
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		os.Mkdir(dir, 0700)
 	}
@@ -227,7 +223,7 @@ func (g *Gist) download(fname string) (done bool, err error) {
 		}
 		// for multiple files in one Gist folder
 		for _, f := range item.Files {
-			fpath := filepath.Join(g.Config.Dir, *gist.ID, *f.Filename)
+			fpath := filepath.Join(g.Config.ClonePath, *gist.ID, *f.Filename)
 			content := util.FileContent(fpath)
 			// write to the local files if there are some diff
 			if *f.Content != content {
@@ -278,7 +274,7 @@ func (g *Gist) Sync(fname string) error {
 		msg string
 	)
 
-	spn := util.NewSpinner("Cheking...")
+	spn := util.NewSpinner("Checking...")
 	spn.Start()
 	defer func() {
 		defer spn.Stop()
@@ -329,7 +325,7 @@ func (g *Gist) Sync(fname string) error {
 
 func (g *Gist) ExpandID(shortID string) (longID string, err error) {
 	if len(g.Items) == 0 {
-		return "", errors.New("bad")
+		return "", errors.New("no gist items")
 	}
 	for _, item := range g.Items {
 		longID = *item.ID
@@ -337,7 +333,7 @@ func (g *Gist) ExpandID(shortID string) (longID string, err error) {
 			return longID, nil
 		}
 	}
-	return "", errors.New("bad")
+	return "", errors.New("no matched ID")
 }
 
 var IDLength int = 9
@@ -345,32 +341,3 @@ var IDLength int = 9
 func ShortenID(longID string) string {
 	return runewidth.Truncate(longID, IDLength, "")
 }
-
-// func (g *Gist) EditDesc(id, desc string) error {
-// 	spn := util.NewSpinner("Editing...")
-// 	spn.Start()
-// 	defer spn.Stop()
-// 	item := github.Gist{
-// 		Description: github.String(desc),
-// 	}
-// 	_, _, err := g.Client.Gists.Edit(id, &item)
-// 	return err
-// }
-//
-// func (g *Gist) Edit(fname string) error {
-// 	if err := g.Sync(fname); err != nil {
-// 		return err
-// 	}
-//
-// 	editor := g.Config.Editor
-// 	if editor == "" {
-// 		return errors.New("$EDITOR: not set")
-// 	}
-//
-// 	err := util.RunCommand(editor, fname)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	return g.Sync(fname)
-// }

@@ -20,11 +20,11 @@ type Core struct {
 	SelectCmd string `toml:"selectcmd"`
 	TomlFile  string `toml:"tomlfile"`
 	User      string `toml:"user"`
-	BaseURL   string `toml:"base_url"`
 }
 
 type Gist struct {
 	Token    string `toml:"token"`
+	BaseURL  string `toml:"base_url"`
 	Dir      string `toml:"dir"`
 	StdinExt string `toml:"default_stdin_ext"`
 }
@@ -95,9 +95,9 @@ func (cfg *Config) LoadFile(file string) error {
 	cfg.Core.SelectCmd = "fzf-tmux --multi:fzf --multi:peco"
 	cfg.Core.TomlFile = file
 	cfg.Core.User = os.Getenv("USER")
-	cfg.Core.BaseURL = "https://gist.github.com"
 
 	cfg.Gist.Token = os.Getenv("GITHUB_TOKEN")
+	cfg.Gist.BaseURL = "https://gist.github.com"
 	dir := filepath.Join(filepath.Dir(file), "files")
 	os.MkdirAll(dir, 0700)
 	cfg.Gist.Dir = dir

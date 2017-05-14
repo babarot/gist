@@ -18,7 +18,7 @@ var openCmd = &cobra.Command{
 }
 
 func openURL() error {
-	gistURL := cli.Conf.Core.BaseURL
+	gistURL := cli.Conf.Gist.BaseURL
 	if gistURL == "" {
 		return errors.New("No specified gist base URL")
 	}

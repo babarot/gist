@@ -19,10 +19,8 @@ var IDLength int = api.IDLength
 
 type Screen struct {
 	Gist  *api.Gist
-	Files api.Files
 	Text  string
-	Lines []string // TODO
-	// id    func(string) string
+	Lines []string
 }
 
 func NewScreen() (s *Screen, err error) {
@@ -35,7 +33,6 @@ func NewScreen() (s *Screen, err error) {
 		return s, err
 	}
 
-	// fetch remote files
 	if Conf.Flag.OpenStarredItems {
 		err = gist.GetStars()
 	} else {
@@ -63,96 +60,22 @@ func NewScreen() (s *Screen, err error) {
 		}
 	}
 
-	// id := func(shortID string) string {
-	// 	for _, item := range gist.Items {
-	// 		longID := *item.ID
-	// 		if shortID == shortenID(longID) {
-	// 			return longID
-	// 		}
-	// 	}
-	// 	return ""
-	// }
-
-	var text string
-	var length int
-	max := len(files) - 1
-	prefixes := make([]string, max+1)
-	var previous, current, next string
-	for i, file := range files {
-		if len(file.Filename) > length {
-			length = len(file.Filename)
-		}
-		current = files[i].ID
-		switch {
-		case i == 0:
-			previous = ""
-			next = files[i+1].ID
-		case 0 < i && i < max:
-			previous = files[i-1].ID
-			next = files[i+1].ID
-		case i == max:
-			previous = files[i-1].ID
-			next = ""
-		}
-		prefixes[i] = " "
-		if current == previous {
-			prefixes[i] = "|"
-			if current != next {
-				prefixes[i] = "+"
-			}
-		}
-		if current == next {
-			prefixes[i] = "|"
-			if current != previous {
-				prefixes[i] = "+"
-			}
-		}
-	}
-
-	format := fmt.Sprintf("%%-%ds\t%%-%ds\t%%s\n", IDLength, length)
-	width, _ := getSize()
-	if Conf.Flag.ShowIndicator {
-		format = fmt.Sprintf(" %%s %%-%ds\t%%-%ds\t%%s\n", IDLength, length)
-	}
-	width = width - IDLength - length
-	// TODO
-	if width > 50 {
-		width -= 10
-	}
-	for i, file := range files {
-		filename := file.Filename
-		// filename = "  " + file.Filename
-		if Conf.Flag.ShowPrivateSymbol {
-			if file.Public {
-				filename = "  " + file.Filename
-			} else {
-				filename = "* " + file.Filename
-			}
-		}
-		desc := runewidth.Truncate(strings.Replace(file.Description, "\n", " ", -1), width-3, "...")
-		if Conf.Flag.ShowIndicator {
-			text += fmt.Sprintf(format, prefixes[i], file.ShortID, filename, desc)
-		} else {
-			text += fmt.Sprintf(format, file.ShortID, filename, desc)
-		}
-	}
-
+	lines := makeLines(files)
 	return &Screen{
 		Gist:  gist,
-		Files: files,
-		Text:  text,
-		// id:    id,
+		Text:  strings.Join(lines, "\n"),
+		Lines: lines,
 	}, nil
 }
 
 type Line struct {
-	Line     string
-	ID       string
-	ShortID  string
-	Filename string
-	Desc     string
-	Path     string
-	URL      string
+	Line        string
+	ID          string
+	ShortID     string
+	Filename    string
+	Description string
+	Path        string
+	URL         string
 }
 
 type Lines []Line
@@ -181,14 +104,19 @@ func (s *Screen) parseLine(line string) (*Line, error) {
 		return &Line{}, err
 	}
 
+	baseURL := Conf.Gist.BaseURL
+	if baseURL == "" {
+		baseURL = "https://gist.github.com"
+	}
+
 	return &Line{
-		Line:     line,
-		ID:       longID,
-		ShortID:  shortID,
-		Filename: filename,
-		Desc:     desc,
-		Path:     filepath.Join(Conf.Gist.Dir, longID, filename),
-		URL:      path.Join(Conf.Core.BaseURL, longID),
+		Line:        line,
+		ID:          longID,
+		ShortID:     shortID,
+		Filename:    filename,
+		Description: desc,
+		Path:        filepath.Join(Conf.Gist.Dir, longID, filename),
+		URL:         path.Join(baseURL, longID),
 	}, nil
 }
 
@@ -259,4 +187,72 @@ func (s *Screen) Select() (lines Lines, err error) {
 func getSize() (int, error) {
 	w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
 	return w, err
+}
+
+func makeLines(files api.Files) (lines []string) {
+	var line string
+	var length int
+	max := len(files) - 1
+	prefixes := make([]string, max+1)
+	var previous, current, next string
+	for i, file := range files {
+		if len(file.Filename) > length {
+			length = len(file.Filename)
+		}
+		current = files[i].ID
+		switch {
+		case i == 0:
+			previous = ""
+			next = files[i+1].ID
+		case 0 < i && i < max:
+			previous = files[i-1].ID
+			next = files[i+1].ID
+		case i == max:
+			previous = files[i-1].ID
+			next = ""
+		}
+		prefixes[i] = " "
+		if current == previous {
+			prefixes[i] = "|"
+			if current != next {
+				prefixes[i] = "+"
+			}
+		}
+		if current == next {
+			prefixes[i] = "|"
+			if current != previous {
+				prefixes[i] = "+"
+			}
+		}
+	}
+
+	format := fmt.Sprintf("%%-%ds\t%%-%ds\t%%s", IDLength, length)
+	width, _ := getSize()
+	if Conf.Flag.ShowIndicator {
+		format = fmt.Sprintf(" %%s %%-%ds\t%%-%ds\t%%s", IDLength, length)
+	}
+	width = width - IDLength - length
+	// TODO
+	if width > 50 {
+		width -= 10
+	}
+
+	for i, file := range files {
+		filename := file.Filename
+		if Conf.Flag.ShowPrivateSymbol {
+			if file.Public {
+				filename = "  " + file.Filename
+			} else {
+				filename = "* " + file.Filename
+			}
+		}
+		desc := runewidth.Truncate(strings.Replace(file.Description, "\n", " ", -1), width-3, "...")
+		if Conf.Flag.ShowIndicator {
+			line = fmt.Sprintf(format, prefixes[i], file.ShortID, filename, desc)
+		} else {
+			line = fmt.Sprintf(format, file.ShortID, filename, desc)
+		}
+		lines = append(lines, line)
+	}
+	return lines
 }

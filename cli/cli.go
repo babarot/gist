@@ -8,13 +8,10 @@ import (
 
 func NewGist() (*api.Gist, error) {
 	return api.NewGist(api.Config{
-		Token:            Conf.Gist.Token,
-		OpenStarredItems: Conf.Flag.OpenStarredItems,
-		ShowIndicator:    Conf.Flag.ShowIndicator,
-		NewPrivate:       Conf.Flag.NewPrivate,
-		Dir:              Conf.Gist.Dir,
-		BaseURL:          Conf.Core.BaseURL,
-		Editor:           Conf.Core.Editor,
+		Token:      Conf.Gist.Token,
+		BaseURL:    Conf.Gist.BaseURL,
+		NewPrivate: Conf.Flag.NewPrivate,
+		ClonePath:  Conf.Gist.Dir,
 	})
 }
 
@@ -23,7 +20,7 @@ func Edit(g *api.Gist, fname string) error {
 		return err
 	}
 
-	editor := g.Config.Editor
+	editor := Conf.Core.Editor
 	if editor == "" {
 		return errors.New("$EDITOR: not set")
 	}
