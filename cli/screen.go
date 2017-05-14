@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -11,13 +12,17 @@ import (
 	"github.com/b4b4r07/gist/api"
 	"github.com/b4b4r07/gist/util"
 	"github.com/mattn/go-runewidth"
+	"golang.org/x/crypto/ssh/terminal"
 )
+
+var IDLength int = api.IDLength
 
 type Screen struct {
 	Gist  *api.Gist
 	Files api.Files
 	Text  string
-	id    func(string) string
+	Lines []string // TODO
+	// id    func(string) string
 }
 
 func NewScreen() (s *Screen, err error) {
@@ -25,23 +30,23 @@ func NewScreen() (s *Screen, err error) {
 	spn.Start()
 	defer spn.Stop()
 
-	// // fetch remote files
-	// if g.Config.OpenStarredItems {
-	// 	err = g.getStarredItems()
-	// } else {
-	// 	err = g.getItems()
-	// }
-	gist, err := api.NewGist(Conf.Gist.Token)
+	gist, err := NewGist()
 	if err != nil {
 		return s, err
 	}
 
-	if err := gist.Get(); err != nil {
-		return s, err
+	// fetch remote files
+	if Conf.Flag.OpenStarredItems {
+		err = gist.GetStars()
+	} else {
+		err = gist.Get()
 	}
 
 	var files api.Files
 	for _, item := range gist.Items {
+		if err := gist.Clone(item); err != nil {
+			continue
+		}
 		desc := ""
 		if item.Description != nil {
 			desc = *item.Description
@@ -49,7 +54,7 @@ func NewScreen() (s *Screen, err error) {
 		for _, file := range item.Files {
 			files = append(files, api.File{
 				ID:          *item.ID,
-				ShortID:     shortenID(*item.ID),
+				ShortID:     api.ShortenID(*item.ID),
 				Filename:    *file.Filename,
 				Path:        filepath.Join(*item.ID, *file.Filename),
 				Description: desc,
@@ -58,111 +63,85 @@ func NewScreen() (s *Screen, err error) {
 		}
 	}
 
-	id := func(id string) string {
-		for _, item := range gist.Items {
-			if id == shortenID(*item.ID) {
-				return *item.ID
+	// id := func(shortID string) string {
+	// 	for _, item := range gist.Items {
+	// 		longID := *item.ID
+	// 		if shortID == shortenID(longID) {
+	// 			return longID
+	// 		}
+	// 	}
+	// 	return ""
+	// }
+
+	var text string
+	var length int
+	max := len(files) - 1
+	prefixes := make([]string, max+1)
+	var previous, current, next string
+	for i, file := range files {
+		if len(file.Filename) > length {
+			length = len(file.Filename)
+		}
+		current = files[i].ID
+		switch {
+		case i == 0:
+			previous = ""
+			next = files[i+1].ID
+		case 0 < i && i < max:
+			previous = files[i-1].ID
+			next = files[i+1].ID
+		case i == max:
+			previous = files[i-1].ID
+			next = ""
+		}
+		prefixes[i] = " "
+		if current == previous {
+			prefixes[i] = "|"
+			if current != next {
+				prefixes[i] = "+"
 			}
 		}
-		return ""
+		if current == next {
+			prefixes[i] = "|"
+			if current != previous {
+				prefixes[i] = "+"
+			}
+		}
 	}
 
-	// var files Files
-	// for _, item := range g.Items {
-	// 	if err := g.cloneGist(item); err != nil {
-	// 		continue
-	// 	}
-	// 	desc := ""
-	// 	if item.Description != nil {
-	// 		desc = *item.Description
-	// 	}
-	// 	for _, f := range item.Files {
-	// 		files = append(files, File{
-	// 			ID:          *item.ID,
-	// 			ShortID:     shortenID(*item.ID),
-	// 			Filename:    *f.Filename,
-	// 			Path:        filepath.Join(*item.ID, *f.Filename),
-	// 			Description: desc,
-	// 			Public:      *item.Public,
-	// 		})
-	// 	}
-	// }
-	//
-	// var text string
-	// var length int
-	// max := len(files) - 1
-	// prefixes := make([]string, max+1)
-	// var previous, current, next string
-	// for i, file := range files {
-	// 	if len(file.Filename) > length {
-	// 		length = len(file.Filename)
-	// 	}
-	// 	current = files[i].ID
-	// 	switch {
-	// 	case i == 0:
-	// 		previous = ""
-	// 		next = files[i+1].ID
-	// 	case 0 < i && i < max:
-	// 		previous = files[i-1].ID
-	// 		next = files[i+1].ID
-	// 	case i == max:
-	// 		previous = files[i-1].ID
-	// 		next = ""
-	// 	}
-	// 	prefixes[i] = " "
-	// 	if current == previous {
-	// 		prefixes[i] = "|"
-	// 		if current != next {
-	// 			prefixes[i] = "+"
-	// 		}
-	// 	}
-	// 	if current == next {
-	// 		prefixes[i] = "|"
-	// 		if current != previous {
-	// 			prefixes[i] = "+"
-	// 		}
-	// 	}
-	// }
-	//
-	// format := fmt.Sprintf("%%-%ds\t%%-%ds\t%%s\n", IDLength, length)
-	// width, _ := getSize()
-	// if g.Config.ShowIndicator {
-	// 	format = fmt.Sprintf(" %%s %%-%ds\t%%-%ds\t%%s\n", IDLength, length)
-	// }
-	// width = width - IDLength - length
-	// // TODO
-	// if width > 50 {
-	// 	width -= 10
-	// }
-	// for i, file := range files {
-	// 	filename := file.Filename
-	// 	if g.Config.ShowPrivateSymbol {
-	// 		if file.Public {
-	// 			filename = "  " + file.Filename
-	// 		} else {
-	// 			filename = "* " + file.Filename
-	// 		}
-	// 	}
-	// 	desc := runewidth.Truncate(strings.Replace(file.Description, "\n", " ", -1), width-3, "...")
-	// 	if g.Config.ShowIndicator {
-	// 		text += fmt.Sprintf(format, prefixes[i], file.ShortID, filename, desc)
-	// 	} else {
-	// 		text += fmt.Sprintf(format, file.ShortID, filename, desc)
-	// 	}
-	// }
-
-	text := ""
-	for _, file := range files {
+	format := fmt.Sprintf("%%-%ds\t%%-%ds\t%%s\n", IDLength, length)
+	width, _ := getSize()
+	if Conf.Flag.ShowIndicator {
+		format = fmt.Sprintf(" %%s %%-%ds\t%%-%ds\t%%s\n", IDLength, length)
+	}
+	width = width - IDLength - length
+	// TODO
+	if width > 50 {
+		width -= 10
+	}
+	for i, file := range files {
 		filename := file.Filename
-		desc := runewidth.Truncate(strings.Replace(file.Description, "\n", " ", -1), 80, "...")
-		text += fmt.Sprintf("%s\t%s\t%s\n", file.ShortID, filename, desc)
+		// filename = "  " + file.Filename
+		if Conf.Flag.ShowPrivateSymbol {
+			if file.Public {
+				filename = "  " + file.Filename
+			} else {
+				filename = "* " + file.Filename
+			}
+		}
+		desc := runewidth.Truncate(strings.Replace(file.Description, "\n", " ", -1), width-3, "...")
+		if Conf.Flag.ShowIndicator {
+			text += fmt.Sprintf(format, prefixes[i], file.ShortID, filename, desc)
+		} else {
+			text += fmt.Sprintf(format, file.ShortID, filename, desc)
+		}
 	}
 
 	return &Screen{
 		Gist:  gist,
 		Files: files,
 		Text:  text,
-		id:    id,
+		// id:    id,
 	}, nil
 }
 
@@ -178,17 +157,39 @@ type Line struct {
 
 type Lines []Line
 
-func (s *Screen) parseLine(line string) *Line {
+func (s *Screen) parseLine(line string) (*Line, error) {
+	trimDirSymbol := func(id string) string {
+		id = strings.TrimSpace(id)
+		id = strings.TrimLeft(id, " | ")
+		id = strings.TrimLeft(id, " + ")
+		return id
+	}
+	trimPrivateSymbol := func(filename string) string {
+		filename = strings.TrimSpace(filename)
+		filename = strings.TrimLeft(filename, "* ")
+		return filename
+	}
 	l := strings.Split(line, "\t")
+	var (
+		shortID  = trimDirSymbol(l[0])
+		filename = trimPrivateSymbol(l[1])
+		desc     = l[2]
+	)
+
+	longID, err := s.Gist.ExpandID(shortID)
+	if err != nil {
+		return &Line{}, err
+	}
+
 	return &Line{
 		Line:     line,
-		ID:       s.id(l[0]),
-		ShortID:  l[0],
-		Filename: l[1],
-		Desc:     l[2],
-		Path:     filepath.Join(Conf.Gist.Dir, s.id(l[0]), l[1]),
-		URL:      path.Join(Conf.Core.BaseURL, s.id(l[0])),
-	}
+		ID:       longID,
+		ShortID:  shortID,
+		Filename: filename,
+		Desc:     desc,
+		Path:     filepath.Join(Conf.Gist.Dir, longID, filename),
+		URL:      path.Join(Conf.Core.BaseURL, longID),
+	}, nil
 }
 
 func (l *Lines) Filter(fn func(Line) bool) *Lines {
@@ -240,7 +241,10 @@ func (s *Screen) Select() (lines Lines, err error) {
 		if line == "" {
 			continue
 		}
-		parsedLine := s.parseLine(line)
+		parsedLine, err := s.parseLine(line)
+		if err != nil {
+			continue
+		}
 		lines = append(lines, *parsedLine)
 	}
 
@@ -252,8 +256,7 @@ func (s *Screen) Select() (lines Lines, err error) {
 	return
 }
 
-var IDLength int = 9
-
-func shortenID(id string) string {
-	return runewidth.Truncate(id, IDLength, "")
+func getSize() (int, error) {
+	w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
+	return w, err
 }

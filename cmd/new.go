@@ -34,7 +34,7 @@ func new(cmd *cobra.Command, args []string) error {
 	var err error
 	var gi gistItem
 
-	gist, err := api.NewGist(cli.Conf.Gist.Token)
+	gist, err := cli.NewGist()
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,6 @@ func new(cmd *cobra.Command, args []string) error {
 	case len(args) == 0:
 		gi, err = makeFromEditor()
 	}
-
 	if err != nil {
 		return err
 	}

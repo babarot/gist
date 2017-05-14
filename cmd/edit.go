@@ -1,11 +1,6 @@
 package cmd
 
 import (
-	// "path"
-	"fmt"
-	// "path/filepath"
-
-	// "github.com/b4b4r07/gist/api"
 	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/util"
 	"github.com/spf13/cobra"
@@ -32,7 +27,6 @@ func edit(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, line := range lines {
-		fmt.Printf("%#v\n", line)
 		err = cli.Edit(screen.Gist, line.Path)
 		if err != nil {
 			return err

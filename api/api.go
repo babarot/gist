@@ -10,14 +10,10 @@ import (
 
 	"github.com/b4b4r07/gist/util"
 	"github.com/google/go-github/github"
+	"github.com/mattn/go-runewidth"
 	"github.com/pkg/errors"
 
-	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/oauth2"
-)
-
-var (
-	IDLength int = 9
 )
 
 type (
@@ -33,6 +29,7 @@ type Gist struct {
 }
 
 type Config struct {
+	Token             string
 	ShowIndicator     bool
 	OpenStarredItems  bool
 	NewPrivate        bool
@@ -54,13 +51,13 @@ type File struct {
 
 type Files []File
 
-func NewGist(token string) (*Gist, error) {
-	if token == "" {
+func NewGist(cfg Config) (*Gist, error) {
+	if cfg.Token == "" {
 		return &Gist{}, errors.New("token is missing")
 	}
 
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
+		&oauth2.Token{AccessToken: cfg.Token},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 	client := github.NewClient(tc)
@@ -68,26 +65,12 @@ func NewGist(token string) (*Gist, error) {
 	return &Gist{
 		Client: client,
 		Items:  []*github.Gist{},
-		Config: Config{
-			// OpenStarredItems:  cli.Conf.Flag.OpenStarredItems,
-			// ShowIndicator:     cli.Conf.Flag.ShowSpinner,
-			// NewPrivate:        cli.Conf.Flag.NewPrivate,
-			// Dir:               cli.Conf.Gist.Dir,
-			// BaseURL:           cli.Conf.Core.BaseURL,
-			// Editor:            cli.Conf.Core.Editor,
-			// ShowPrivateSymbol: cli.Conf.Screen.ShowPrivateSymbol,
-			Dir:     "/Users/b4b4r07/.config/gist/files",
-			BaseURL: "https://gist.github.com",
-			Editor:  "vim",
-		},
+		Config: cfg,
+		Files:  Files{},
 	}, nil
 }
 
 func (g *Gist) Get() error {
-	return g.getItems()
-}
-
-func (g *Gist) getItems() error {
 	var items Items
 
 	// Get items from gist.github.com
@@ -115,7 +98,7 @@ func (g *Gist) getItems() error {
 	return nil
 }
 
-func (g *Gist) getStarredItems() error {
+func (g *Gist) GetStars() error {
 	var items Items
 
 	// Get items from gist.github.com
@@ -141,11 +124,6 @@ func (g *Gist) getStarredItems() error {
 		return errors.New("no items")
 	}
 	return nil
-}
-
-func getSize() (int, error) {
-	w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
-	return w, err
 }
 
 func (g *Gist) Create(files Files, desc string) (url string, err error) {
@@ -175,7 +153,7 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 	if resp == nil {
 		return url, errors.New("Try again when you have a better network connection")
 	}
-	err = g.cloneGist(item)
+	err = g.Clone(item)
 	if err != nil {
 		return url, err
 	}
@@ -183,7 +161,7 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 	return url, errors.Wrap(err, "Failed to create")
 }
 
-func (g *Gist) cloneGist(item *github.Gist) error {
+func (g *Gist) Clone(item *github.Gist) error {
 	if util.Exists(*item.ID) {
 		return nil
 	}
@@ -206,16 +184,6 @@ func (g *Gist) Delete(id string) error {
 	defer spn.Stop()
 	_, err := g.Client.Gists.Delete(id)
 	return err
-}
-
-func (f *Files) Filter(fn func(File) bool) *Files {
-	files := make(Files, 0)
-	for _, file := range *f {
-		if fn(file) {
-			files = append(files, file)
-		}
-	}
-	return &files
 }
 
 func (i *Items) Filter(fn func(Item) bool) *Items {
@@ -271,21 +239,18 @@ func (g *Gist) download(fname string) (done bool, err error) {
 	return done, nil
 }
 
-func makeGist(fname string) github.Gist {
-	body := util.FileContent(fname)
-	return github.Gist{
-		Files: map[github.GistFilename]github.GistFile{
-			github.GistFilename(filepath.Base(fname)): github.GistFile{
-				Content: github.String(body),
-			},
-		},
-	}
-}
-
 func (g *Gist) upload(fname string) (done bool, err error) {
 	var (
-		gistID   = getID(fname)
-		gist     = makeGist(fname)
+		gistID = getID(fname)
+		gist   = func(fname string) github.Gist {
+			return github.Gist{
+				Files: map[github.GistFilename]github.GistFile{
+					github.GistFilename(filepath.Base(fname)): github.GistFile{
+						Content: github.String(util.FileContent(fname)),
+					},
+				},
+			}
+		}(fname)
 		filename = filepath.Base(fname)
 		content  = util.FileContent(fname)
 	)
@@ -321,7 +286,7 @@ func (g *Gist) Sync(fname string) error {
 	}()
 
 	if len(g.Items) == 0 {
-		err = g.getItems()
+		err = g.Get()
 		if err != nil {
 			return err
 		}
@@ -362,96 +327,50 @@ func (g *Gist) Sync(fname string) error {
 	return nil
 }
 
-func (g *Gist) EditDesc(id, desc string) error {
-	spn := util.NewSpinner("Editing...")
-	spn.Start()
-	defer spn.Stop()
-	item := github.Gist{
-		Description: github.String(desc),
+func (g *Gist) ExpandID(shortID string) (longID string, err error) {
+	if len(g.Items) == 0 {
+		return "", errors.New("bad")
 	}
-	_, _, err := g.Client.Gists.Edit(id, &item)
-	return err
-}
-
-func (g *Gist) Edit(fname string) error {
-	if err := g.Sync(fname); err != nil {
-		return err
-	}
-
-	editor := g.Config.Editor
-	if editor == "" {
-		return errors.New("$EDITOR: not set")
-	}
-
-	err := util.RunCommand(editor, fname)
-	if err != nil {
-		return err
-	}
-
-	return g.Sync(fname)
-}
-
-func (g *Gist) GetItem(id string) Item {
-	return g.Items.Filter(func(i Item) bool {
-		return *i.ID == id
-	}).One()
-}
-
-func (g *Gist) expandID(shortID string) (longID string, err error) {
-	if len(g.Files) == 0 {
-		return "", errors.New("no gist items")
-	}
-	for _, file := range g.Files {
-		if shortID == file.ShortID {
-			longID = file.ID
+	for _, item := range g.Items {
+		longID = *item.ID
+		if shortID == ShortenID(longID) {
+			return longID, nil
 		}
 	}
-	if longID == "" {
-		err = errors.New("no matched id in fetched items")
-	}
-	return longID, err
+	return "", errors.New("bad")
 }
 
-func (g *Gist) ParseLine(line string) (*File, error) {
-	lineItems := []string{
-		"id", "filename", "description",
-		// Example Line:
-		//   89fbb2c227    bashpipe.go    Execute Piped Shell Commands in Go
-	}
+var IDLength int = 9
 
-	l := strings.Split(line, "\t")
-	if len(l) != len(lineItems) {
-		return &File{}, errors.New("Failed to parse the selected line")
-	}
-
-	trimDirSymbol := func(id string) string {
-		id = strings.TrimSpace(id)
-		id = strings.TrimLeft(id, " | ")
-		id = strings.TrimLeft(id, " + ")
-		return id
-	}
-	trimPrivateSymbol := func(filename string) string {
-		filename = strings.TrimSpace(filename)
-		filename = strings.TrimLeft(filename, "* ")
-		return filename
-	}
-
-	var (
-		id          = trimDirSymbol(l[0])
-		filename    = trimPrivateSymbol(l[1])
-		description = l[2]
-	)
-
-	id, err := g.expandID(id)
-	if err != nil {
-		return &File{}, err
-	}
-
-	return &File{
-		ID:          id,
-		Filename:    filename,
-		Path:        filepath.Join(id, filename),
-		Description: description,
-		Content:     "", // no need
-	}, nil
+func ShortenID(longID string) string {
+	return runewidth.Truncate(longID, IDLength, "")
 }
+
+// func (g *Gist) EditDesc(id, desc string) error {
+// 	spn := util.NewSpinner("Editing...")
+// 	spn.Start()
+// 	defer spn.Stop()
+// 	item := github.Gist{
+// 		Description: github.String(desc),
+// 	}
+// 	_, _, err := g.Client.Gists.Edit(id, &item)
+// 	return err
+// }
+//
+// func (g *Gist) Edit(fname string) error {
+// 	if err := g.Sync(fname); err != nil {
+// 		return err
+// 	}
+//
+// 	editor := g.Config.Editor
+// 	if editor == "" {
+// 		return errors.New("$EDITOR: not set")
+// 	}
+//
+// 	err := util.RunCommand(editor, fname)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	return g.Sync(fname)
+// }
