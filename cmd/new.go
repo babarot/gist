@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/atotto/clipboard"
-	"github.com/b4b4r07/gist/config"
-	"github.com/b4b4r07/gist/gist"
+	"github.com/b4b4r07/gist/api"
+	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/util"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -26,7 +26,7 @@ var newCmd = &cobra.Command{
 }
 
 type gistItem struct {
-	files gist.Files
+	files api.Files
 	desc  string
 }
 
@@ -34,14 +34,14 @@ func new(cmd *cobra.Command, args []string) error {
 	var err error
 	var gi gistItem
 
-	gist_, err := gist.New(config.Conf.Gist.Token)
+	gist, err := cli.NewGist()
 	if err != nil {
 		return err
 	}
 
 	// Make Gist from various conditions
 	switch {
-	case config.Conf.Flag.FromClipboard:
+	case cli.Conf.Flag.FromClipboard:
 		gi, err = makeFromClipboard()
 	case !terminal.IsTerminal(0):
 		gi, err = makeFromStdin()
@@ -50,18 +50,17 @@ func new(cmd *cobra.Command, args []string) error {
 	case len(args) == 0:
 		gi, err = makeFromEditor()
 	}
-
 	if err != nil {
 		return err
 	}
 
-	url, err := gist_.Create(gi.files, gi.desc)
+	url, err := gist.Create(gi.files, gi.desc)
 	if err != nil {
 		return err
 	}
 	util.Underline("Created", url)
 
-	if config.Conf.Flag.OpenURL {
+	if cli.Conf.Flag.OpenURL {
 		util.Open(url)
 	}
 	return nil
@@ -84,7 +83,7 @@ func makeFromClipboard() (gi gistItem, err error) {
 		return
 	}
 	return gistItem{
-		files: gist.Files{gist.File{
+		files: api.Files{api.File{
 			Filename: filename,
 			Content:  content,
 		}},
@@ -98,7 +97,7 @@ func makeFromStdin() (gi gistItem, err error) {
 		return
 	}
 	filename := util.RandomString(20)
-	ext := config.Conf.Gist.StdinExt
+	ext := cli.Conf.Gist.FileExt
 	if len(ext) > 0 {
 		if !strings.HasPrefix(ext, ".") {
 			ext = "." + ext
@@ -106,7 +105,7 @@ func makeFromStdin() (gi gistItem, err error) {
 		filename = filename + ext
 	}
 	return gistItem{
-		files: gist.Files{gist.File{
+		files: api.Files{api.File{
 			Filename: filename,
 			Content:  string(body),
 		}},
@@ -121,7 +120,7 @@ func makeFromEditor() (gi gistItem, err error) {
 	}
 	f, err := util.TempFile(filename)
 	defer os.Remove(f.Name())
-	err = util.RunCommand(config.Conf.Core.Editor, f.Name())
+	err = cli.Run(cli.Conf.Core.Editor, f.Name())
 	if err != nil {
 		return
 	}
@@ -130,7 +129,7 @@ func makeFromEditor() (gi gistItem, err error) {
 		return
 	}
 	return gistItem{
-		files: gist.Files{gist.File{
+		files: api.Files{api.File{
 			Filename: filename,
 			Content:  util.FileContent(f.Name()),
 		}},
@@ -140,7 +139,7 @@ func makeFromEditor() (gi gistItem, err error) {
 
 func makeFromArguments(args []string) (gi gistItem, err error) {
 	var (
-		gistFiles gist.Files
+		gistFiles api.Files
 		files     []string
 	)
 
@@ -180,7 +179,7 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 
 	for _, file := range files {
 		fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
-		gistFiles = append(gistFiles, gist.File{
+		gistFiles = append(gistFiles, api.File{
 			Filename: filepath.Base(file),
 			Content:  util.FileContent(file),
 		})
@@ -199,7 +198,7 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 
 func init() {
 	RootCmd.AddCommand(newCmd)
-	newCmd.Flags().BoolVarP(&config.Conf.Flag.OpenURL, "open", "o", false, "Open with the default browser")
-	newCmd.Flags().BoolVarP(&config.Conf.Flag.NewPrivate, "private", "p", false, "Create as private gist")
-	newCmd.Flags().BoolVarP(&config.Conf.Flag.FromClipboard, "from-clipboard", "c", false, "Create gist from clipboard")
+	newCmd.Flags().BoolVarP(&cli.Conf.Flag.OpenURL, "open", "o", false, "Open with the default browser")
+	newCmd.Flags().BoolVarP(&cli.Conf.Flag.NewPrivate, "private", "p", false, "Create as private gist")
+	newCmd.Flags().BoolVarP(&cli.Conf.Flag.FromClipboard, "from-clipboard", "c", false, "Create gist from clipboard")
 }
