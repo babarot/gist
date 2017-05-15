@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -69,8 +70,10 @@ func NewGist(cfg Config) (*Gist, error) {
 func (g *Gist) List() error {
 	var items Items
 
+	ctx := context.Background()
+
 	// List items from gist.github.com
-	gists, resp, err := g.Client.Gists.List("", &github.GistListOptions{})
+	gists, resp, err := g.Client.Gists.List(ctx, "", &github.GistListOptions{})
 	if err != nil {
 		return err
 	}
@@ -78,7 +81,7 @@ func (g *Gist) List() error {
 
 	// pagenation
 	for i := 2; i <= resp.LastPage; i++ {
-		gists, _, err := g.Client.Gists.List("", &github.GistListOptions{
+		gists, _, err := g.Client.Gists.List(ctx, "", &github.GistListOptions{
 			ListOptions: github.ListOptions{Page: i},
 		})
 		if err != nil {
@@ -97,8 +100,9 @@ func (g *Gist) List() error {
 func (g *Gist) ListStarred() error {
 	var items Items
 
+	ctx := context.Background()
 	// List items from gist.github.com
-	gists, resp, err := g.Client.Gists.ListStarred(&github.GistListOptions{})
+	gists, resp, err := g.Client.Gists.ListStarred(ctx, &github.GistListOptions{})
 	if err != nil {
 		return err
 	}
@@ -106,7 +110,7 @@ func (g *Gist) ListStarred() error {
 
 	// pagenation
 	for i := 2; i <= resp.LastPage; i++ {
-		gists, _, err := g.Client.Gists.ListStarred(&github.GistListOptions{
+		gists, _, err := g.Client.Gists.ListStarred(ctx, &github.GistListOptions{
 			ListOptions: github.ListOptions{Page: i},
 		})
 		if err != nil {
@@ -141,7 +145,8 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 			Content:  &content,
 		}
 	}
-	item, resp, err := g.Client.Gists.Create(&github.Gist{
+	ctx := context.Background()
+	item, resp, err := g.Client.Gists.Create(ctx, &github.Gist{
 		Files:       gistFiles,
 		Public:      &public,
 		Description: &desc,
@@ -178,7 +183,7 @@ func (g *Gist) Delete(id string) error {
 	spn := util.NewSpinner("Deleting...")
 	spn.Start()
 	defer spn.Stop()
-	_, err := g.Client.Gists.Delete(id)
+	_, err := g.Client.Gists.Delete(context.Background(), id)
 	return err
 }
 
@@ -217,7 +222,7 @@ func (g *Gist) download(fname string) (done bool, err error) {
 	})
 
 	for _, gist := range *gists {
-		item, _, err := g.Client.Gists.Get(*gist.ID)
+		item, _, err := g.Client.Gists.Get(context.Background(), *gist.ID)
 		if err != nil {
 			return done, err
 		}
@@ -251,14 +256,15 @@ func (g *Gist) upload(fname string) (done bool, err error) {
 		content  = util.FileContent(fname)
 	)
 
-	res, _, err := g.Client.Gists.Get(gistID)
+	ctx := context.Background()
+	res, _, err := g.Client.Gists.Get(ctx, gistID)
 	if err != nil {
 		return done, err
 	}
 
 	name := github.GistFilename(filename)
 	if *res.Files[name].Content != content {
-		_, _, err := g.Client.Gists.Edit(gistID, &gist)
+		_, _, err := g.Client.Gists.Edit(ctx, gistID, &gist)
 		if err != nil {
 			return done, err
 		}
