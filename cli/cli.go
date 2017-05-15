@@ -16,8 +16,8 @@ func NewGist() (*api.Gist, error) {
 	})
 }
 
-func Edit(g *api.Gist, fname string) error {
-	if err := g.Sync(fname); err != nil {
+func Edit(gist *api.Gist, fname string) error {
+	if err := gist.Sync(fname); err != nil {
 		return err
 	}
 
@@ -30,7 +30,7 @@ func Edit(g *api.Gist, fname string) error {
 		return err
 	}
 
-	return g.Sync(fname)
+	return gist.Sync(fname)
 }
 
 func Sync(g *api.Gist, fname string) error {
