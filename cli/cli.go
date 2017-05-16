@@ -33,19 +33,17 @@ func Edit(gist *api.Gist, fname string) error {
 	return gist.Sync(fname)
 }
 
-func Sync(g *api.Gist, fname string) error {
-	kind, content, err := g.Compare(fname)
+func Sync(gist *api.Gist, fname string) error {
+	kind, content, err := gist.Compare(fname)
 	if err != nil {
 		return err
 	}
-	// TODO
-	_ = content
 	switch kind {
 	case "local":
-		err = g.UpdateRemote(fname, content)
+		err = gist.UpdateRemote(fname, content)
 		fmt.Printf("Uploaded\t%s\n", fname)
 	case "remote":
-		err = g.UpdateLocal(fname, content)
+		err = gist.UpdateLocal(fname, content)
 		fmt.Printf("Downloaded\t%s\n", fname)
 	case "equal":
 		fmt.Printf("Not changed\t%s\n", fname)
@@ -53,6 +51,5 @@ func Sync(g *api.Gist, fname string) error {
 		// Locally but not remote
 	default:
 	}
-
 	return err
 }
