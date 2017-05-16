@@ -119,20 +119,45 @@ func makeFromEditor() (gi gistItem, err error) {
 	if err != nil {
 		return
 	}
+
+	filename, title, asBlog := func(filename string) (string, string, bool) {
+		if !cli.Conf.Flag.BlogMode {
+			return filename, "", false
+		}
+		switch filepath.Ext(filename) {
+		case "", ".md", ".mkd", ".markdown":
+			return filename + ".md", "# " + filename, true
+		default:
+			return filename, filename, false
+		}
+	}(filename)
+
 	f, err := util.TempFile(filename)
 	defer os.Remove(f.Name())
+	if asBlog {
+		f.Write([]byte(title))
+		f.Sync()
+	}
+
 	err = cli.Run(cli.Conf.Core.Editor, f.Name())
 	if err != nil {
 		return
 	}
+
+	content := util.FileContent(f.Name())
+	if content == title {
+		return gi, errors.New("no contents")
+	}
+
 	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
 	if err != nil {
 		return
 	}
+
 	return gistItem{
 		files: api.Files{api.File{
 			Filename: filename,
-			Content:  util.FileContent(f.Name()),
+			Content:  content,
 		}},
 		desc: desc,
 	}, nil

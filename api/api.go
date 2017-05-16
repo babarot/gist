@@ -151,6 +151,9 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 		Public:      &public,
 		Description: &desc,
 	})
+	if item == nil {
+		panic("item is nil")
+	}
 	if resp == nil {
 		return url, errors.New("Try again when you have a better network connection")
 	}
