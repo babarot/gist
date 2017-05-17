@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -53,11 +54,20 @@ func NewScreen() (s *Screen, err error) {
 				ID:          *item.ID,
 				ShortID:     api.ShortenID(*item.ID),
 				Filename:    *file.Filename,
-				Path:        filepath.Join(*item.ID, *file.Filename),
+				Path:        filepath.Join(Conf.Gist.Dir, *item.ID, *file.Filename),
 				Description: desc,
 				Public:      *item.Public,
 			})
 		}
+	}
+
+	f, err := os.Create(filepath.Join(Conf.Gist.Dir, "cache.json"))
+	if err != nil {
+		return
+	}
+	err = json.NewEncoder(f).Encode(&files)
+	if err != nil {
+		return
 	}
 
 	lines := makeLines(files)

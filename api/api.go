@@ -37,13 +37,13 @@ type Config struct {
 }
 
 type File struct {
-	ID          string
-	ShortID     string
-	Filename    string
-	Path        string
-	Content     string
-	Description string
-	Public      bool
+	ID          string `json:"id"`
+	ShortID     string `json:"short_id"`
+	Filename    string `json:"filename"`
+	Path        string `json:"path"`
+	Content     string `json:"-"`
+	Description string `json:"description"`
+	Public      bool   `json:"-"`
 }
 
 type Files []File
