@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/b4b4r07/go-colon"
+	"github.com/kballard/go-shellquote"
 )
 
 func expandPath(s string) string {
@@ -46,11 +46,18 @@ func runFilter(command string, r io.Reader, w io.Writer) error {
 	return cmd.Run()
 }
 
+func escape(command string, args []string) string {
+	for _, arg := range args {
+		command = shellquote.Join(command, arg)
+	}
+	return command
+}
+
 func Run(command string, args ...string) error {
 	if command == "" {
 		return errors.New("command not found")
 	}
-	command += " " + strings.Join(args, " ")
+	command = escape(command, args)
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd", "/c", command)
