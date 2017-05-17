@@ -308,7 +308,8 @@ func (g *Gist) Compare(fname string) (kind, content string, err error) {
 		return
 	}
 
-	gist, _, err := g.Client.Gists.Get(*item.ID)
+	ctx := context.Background()
+	gist, _, err := g.Client.Gists.Get(ctx, *item.ID)
 	if err != nil {
 		return
 	}
@@ -357,7 +358,8 @@ func (g *Gist) UpdateRemote(fname, content string) error {
 		}(fname)
 		id = getID(fname)
 	)
-	_, _, err := g.Client.Gists.Edit(id, &gist)
+	ctx := context.Background()
+	_, _, err := g.Client.Gists.Edit(ctx, id, &gist)
 	return err
 }
 

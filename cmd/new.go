@@ -144,7 +144,7 @@ func makeFromEditor() (gi gistItem, err error) {
 		return
 	}
 
-	content := util.FileContent(f.Name())
+	content, _ := util.FileContent(f.Name())
 	if content == title {
 		return gi, errors.New("no contents")
 	}

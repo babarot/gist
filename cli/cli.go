@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/b4b4r07/gist/api"
 )
@@ -16,6 +15,11 @@ func NewGist() (*api.Gist, error) {
 	})
 }
 
+// TODO
+var (
+	ErrConfigEditor = errors.New("config editor not set")
+)
+
 func Edit(gist *api.Gist, fname string) error {
 	if err := gist.Sync(fname); err != nil {
 		return err
@@ -23,7 +27,7 @@ func Edit(gist *api.Gist, fname string) error {
 
 	editor := Conf.Core.Editor
 	if editor == "" {
-		return errors.New("$EDITOR: not set")
+		return ErrConfigEditor
 	}
 
 	if err := Run(editor, fname); err != nil {
@@ -41,12 +45,9 @@ func Sync(gist *api.Gist, fname string) error {
 	switch kind {
 	case "local":
 		err = gist.UpdateRemote(fname, content)
-		fmt.Printf("Uploaded\t%s\n", fname)
 	case "remote":
 		err = gist.UpdateLocal(fname, content)
-		fmt.Printf("Downloaded\t%s\n", fname)
 	case "equal":
-		fmt.Printf("Not changed\t%s\n", fname)
 	case "":
 		// Locally but not remote
 	default:
