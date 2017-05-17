@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -13,7 +14,6 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/mattn/go-runewidth"
 	"github.com/pkg/errors"
-
 	"golang.org/x/oauth2"
 )
 
@@ -215,7 +215,11 @@ func getID(file string) string {
 	case 1:
 		return filepath.Base(file)
 	default:
-		return filepath.Base(filepath.Dir(file))
+		id := filepath.Base(filepath.Dir(file))
+		if id == "files" {
+			id = filepath.Base(file)
+		}
+		return id
 	}
 }
 
@@ -232,7 +236,10 @@ func (g *Gist) download(fname string) (done bool, err error) {
 		// for multiple files in one Gist folder
 		for _, f := range item.Files {
 			fpath := filepath.Join(g.Config.ClonePath, *gist.ID, *f.Filename)
-			content := util.FileContent(fpath)
+			content, err := util.FileContent(fpath)
+			if err != nil {
+				continue
+			}
 			// write to the local files if there are some diff
 			if *f.Content != content {
 				ioutil.WriteFile(fpath, []byte(*f.Content), os.ModePerm)
@@ -247,16 +254,17 @@ func (g *Gist) upload(fname string) (done bool, err error) {
 	var (
 		gistID = getID(fname)
 		gist   = func(fname string) github.Gist {
+			content, _ := util.FileContent(fname)
 			return github.Gist{
 				Files: map[github.GistFilename]github.GistFile{
 					github.GistFilename(filepath.Base(fname)): github.GistFile{
-						Content: github.String(util.FileContent(fname)),
+						Content: github.String(content),
 					},
 				},
 			}
 		}(fname)
-		filename = filepath.Base(fname)
-		content  = util.FileContent(fname)
+		filename   = filepath.Base(fname)
+		content, _ = util.FileContent(fname)
 	)
 
 	ctx := context.Background()
@@ -277,33 +285,46 @@ func (g *Gist) upload(fname string) (done bool, err error) {
 	return done, nil
 }
 
-func (g *Gist) Sync(fname string) error {
-	var (
-		err error
-		msg string
-	)
-
-	spn := util.NewSpinner("Checking...")
-	spn.Start()
-	defer func() {
-		spn.Stop()
-		util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
-	}()
-
+func (g *Gist) Compare(fname string) (kind, content string, err error) {
 	if len(g.Items) == 0 {
 		err = g.List()
 		if err != nil {
-			return err
+			return
 		}
+	}
+
+	fi, err := os.Stat(fname)
+	if err != nil {
+		err = errors.Wrapf(err, "%s: no such file or directory", fname)
+		return
 	}
 
 	item := g.Items.Filter(func(i Item) bool {
 		return *i.ID == getID(fname)
 	}).One()
+	if item == nil {
+		err = errors.New("item is nil")
+		err = nil
+		return
+	}
 
-	fi, err := os.Stat(fname)
+	ctx := context.Background()
+	gist, _, err := g.Client.Gists.Get(ctx, *item.ID)
 	if err != nil {
-		return errors.Wrapf(err, "%s: no such file or directory", fname)
+		return
+	}
+	var (
+		remoteContent, localContent string
+	)
+	localContent, _ = util.FileContent(fname)
+	for _, file := range gist.Files {
+		if *file.Filename != filepath.Base(fname) {
+			return "", "", fmt.Errorf("%s: not found on cloud", filepath.Base(fname))
+		}
+		remoteContent = *file.Content
+	}
+	if remoteContent == localContent {
+		return "equal", "", nil
 	}
 
 	local := fi.ModTime().UTC()
@@ -311,25 +332,65 @@ func (g *Gist) Sync(fname string) error {
 
 	switch {
 	case local.After(remote):
-		done, err := g.upload(fname)
-		if err != nil {
-			return err
-		}
-		if done {
-			msg = "Uploaded"
-		}
+		return "local", localContent, nil
 	case remote.After(local):
-		done, err := g.download(fname)
-		if err != nil {
-			return err
-		}
-		if done {
-			msg = "Downloaded"
-		}
+		return "remote", remoteContent, nil
 	default:
 	}
 
-	return nil
+	return "equal", "", nil
+}
+
+func (g *Gist) UpdateLocal(fname, content string) error {
+	return ioutil.WriteFile(fname, []byte(content), os.ModePerm)
+}
+
+func (g *Gist) UpdateRemote(fname, content string) error {
+	var (
+		gist = func(fname string) github.Gist {
+			return github.Gist{
+				Files: map[github.GistFilename]github.GistFile{
+					github.GistFilename(filepath.Base(fname)): github.GistFile{
+						Content: github.String(content),
+					},
+				},
+			}
+		}(fname)
+		id = getID(fname)
+	)
+	ctx := context.Background()
+	_, _, err := g.Client.Gists.Edit(ctx, id, &gist)
+	return err
+}
+
+func (g *Gist) Sync(fname string) (err error) {
+	var msg string
+	spn := util.NewSpinner("Checking...")
+	spn.Start()
+	defer func() {
+		spn.Stop()
+		util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
+	}()
+
+	kind, content, err := g.Compare(fname)
+	if err != nil {
+		return err
+	}
+	switch kind {
+	case "local":
+		err = g.UpdateRemote(fname, content)
+		msg = "Uploaded"
+	case "remote":
+		err = g.UpdateLocal(fname, content)
+		msg = "Downloaded"
+	case "equal":
+		// Do nothing
+	case "":
+		// Locally but not remote
+	default:
+	}
+
+	return err
 }
 
 func (g *Gist) ExpandID(shortID string) (longID string, err error) {

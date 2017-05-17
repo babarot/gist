@@ -144,7 +144,7 @@ func makeFromEditor() (gi gistItem, err error) {
 		return
 	}
 
-	content := util.FileContent(f.Name())
+	content, _ := util.FileContent(f.Name())
 	if content == title {
 		return gi, errors.New("no contents")
 	}
@@ -209,9 +209,10 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 
 	for _, file := range files {
 		fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
+		content, _ := util.FileContent(file)
 		gistFiles = append(gistFiles, api.File{
 			Filename: filepath.Base(file),
-			Content:  util.FileContent(file),
+			Content:  content,
 		})
 	}
 

@@ -25,7 +25,10 @@ func copy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	line := lines[0]
-	content := util.FileContent(line.Path)
+	content, err := util.FileContent(line.Path)
+	if err != nil {
+		return err
+	}
 
 	return clipboard.WriteAll(content)
 }

@@ -12,7 +12,7 @@ import (
 
 	"github.com/b4b4r07/gist/api"
 	"github.com/b4b4r07/gist/util"
-	"github.com/mattn/go-runewidth"
+	runewidth "github.com/mattn/go-runewidth"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -69,6 +69,9 @@ func NewScreen() (s *Screen, err error) {
 	if err != nil {
 		return
 	}
+
+	// sync files in background
+	syncFiles(gist)
 
 	lines := makeLines(files)
 	return &Screen{

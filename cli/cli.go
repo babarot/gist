@@ -15,6 +15,11 @@ func NewGist() (*api.Gist, error) {
 	})
 }
 
+// TODO
+var (
+	ErrConfigEditor = errors.New("config editor not set")
+)
+
 func Edit(gist *api.Gist, fname string) error {
 	if err := gist.Sync(fname); err != nil {
 		return err
@@ -22,7 +27,7 @@ func Edit(gist *api.Gist, fname string) error {
 
 	editor := Conf.Core.Editor
 	if editor == "" {
-		return errors.New("$EDITOR: not set")
+		return ErrConfigEditor
 	}
 
 	if err := Run(editor, fname); err != nil {
@@ -30,4 +35,22 @@ func Edit(gist *api.Gist, fname string) error {
 	}
 
 	return gist.Sync(fname)
+}
+
+func Sync(gist *api.Gist, fname string) error {
+	kind, content, err := gist.Compare(fname)
+	if err != nil {
+		return err
+	}
+	switch kind {
+	case "local":
+		err = gist.UpdateRemote(fname, content)
+	case "remote":
+		err = gist.UpdateLocal(fname, content)
+	case "equal":
+	case "":
+		// Locally but not remote
+	default:
+	}
+	return err
 }
