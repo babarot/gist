@@ -40,7 +40,8 @@ func syncFiles(gist *api.Gist) {
 		go func(file string) {
 			defer wg.Done()
 			if err := Sync(gist, file); err != nil {
-				// do nothing for now
+				// ignore error
+				os.Remove(file)
 			}
 		}(file)
 	}

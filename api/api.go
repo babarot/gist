@@ -303,8 +303,7 @@ func (g *Gist) Compare(fname string) (kind, content string, err error) {
 		return *i.ID == getID(fname)
 	}).One()
 	if item == nil {
-		err = errors.New("item is nil")
-		err = nil
+		err = fmt.Errorf("%s: not found in gist", getID(fname))
 		return
 	}
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/b4b4r07/gist/cli"
 	"github.com/spf13/cobra"
@@ -31,6 +32,8 @@ func delete(cmd *cobra.Command, args []string) (err error) {
 		if err != nil {
 			log.Printf("[ERROR] %v", err)
 		}
+		// remove from local
+		_ = os.Remove(line.Path)
 		fmt.Printf("Deleted %s\n", line.ID)
 	}
 
