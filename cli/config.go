@@ -36,6 +36,7 @@ type Flag struct {
 	OpenBaseURL       bool `toml:"open_base_url"`
 	ShowIndicator     bool `toml:"show_indicator"`
 	ShowPrivateSymbol bool `toml:"show_private_symbol"`
+	BlogMode          bool `toml:"blog_mode"`
 
 	// TODO
 	Sort string `toml:"sort"`
