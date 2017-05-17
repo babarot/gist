@@ -1,10 +1,22 @@
-memo = "388e980745c499f84a89f4abf35f9c125bad65a5b421fac514676acd0db7074d"
+memo = "9f98476a934b613cc2746ca578f69909ef9817e81bcf3d40a23fc73e2bd57a2d"
+
+[[projects]]
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
-  name = "github.com/BurntSushi/toml"
+  name = "github.com/Songmu/strrand"
   packages = ["."]
-  revision = "99064174e013895bbd9b025c31100bd1d9b590ca"
+  revision = "a1c6df8c2041a7dd2ccab2c6f8b7942ea0bb25aa"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/atotto/clipboard"
+  packages = ["."]
+  revision = "bb272b845f1112e10117e3e45ce39f690c0001ad"
 
 [[projects]]
   branch = "master"
@@ -25,28 +37,28 @@ memo = "388e980745c499f84a89f4abf35f9c125bad65a5b421fac514676acd0db7074d"
   revision = "41eea22f717c616615e1e59aa06cf831f9901f35"
 
 [[projects]]
-  branch = "master"
   name = "github.com/fatih/color"
   packages = ["."]
-  revision = "bf82308e8c8546dc2b945157173eb8a959ae9505"
+  revision = "9131ab34cf20d2f6d83fdc67168a5430d1c7dc23"
+  version = "v1.4.1"
 
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
-  revision = "2bba0603135d7d7f5cb73b2125beeda19c09f4ef"
+  revision = "fec3b39b059c0f88fa6b20f5ed012b1aa203a8b4"
 
 [[projects]]
   branch = "master"
   name = "github.com/google/go-github"
   packages = ["github"]
-  revision = "56add9d4071bb1a06003a1239ebbc1500692b55d"
+  revision = "4b7b445665c8ce4f3c10c753b1884e2c4f09e323"
 
 [[projects]]
   branch = "master"
   name = "github.com/google/go-querystring"
   packages = ["query"]
-  revision = "9235644dd9e52eeae6fa48efd539fdc351a0af53"
+  revision = "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
 
 [[projects]]
   branch = "master"
@@ -56,66 +68,90 @@ memo = "388e980745c499f84a89f4abf35f9c125bad65a5b421fac514676acd0db7074d"
 
 [[projects]]
   branch = "master"
+  name = "github.com/kballard/go-shellquote"
+  packages = ["."]
+  revision = "d8ec1a69a250a17bb0e419c386eac1f3711dc142"
+
+[[projects]]
   name = "github.com/mattn/go-colorable"
   packages = ["."]
-  revision = "6c903ff4aa50920ca86087a280590b36b3152b9c"
+  revision = "d228849504861217f796da67fae4f6e347643f15"
+  version = "v0.0.7"
 
 [[projects]]
-  branch = "master"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
-  revision = "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8"
+  revision = "fc9e8d8ef48496124e79ae0df75490096eccf6fe"
+  version = "v0.0.2"
 
 [[projects]]
-  branch = "master"
+  name = "github.com/mattn/go-runewidth"
+  packages = ["."]
+  revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
+  version = "v0.0.2"
+
+[[projects]]
   name = "github.com/mattn/go-shellwords"
   packages = ["."]
-  revision = "753a2322a99f87c0eff284980e77f53041555bc6"
+  revision = "02e3cf038dcea8290e44424da473dd12be796a8a"
+  version = "v1.0.3"
 
 [[projects]]
   branch = "master"
   name = "github.com/pkg/browser"
   packages = ["."]
-  revision = "8189194c9f158043d6d45a0b939a47a924ea4b13"
+  revision = "c90ca0c84f15f81c982e32665bffd8d7aac8f097"
 
 [[projects]]
   branch = "master"
   name = "github.com/pkg/errors"
   packages = ["."]
-  revision = "839d9e913e063e28dfd0e6c7b7512793e0a48be9"
+  revision = "c605e284fe17294bda444b34710735b29d1a9d90"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "ba1b36c82c5e05c4f912a88eab0dcd91a171688f"
+  version = "v0.11.5"
 
 [[projects]]
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "1dd5ff2e11b6dca62fdcb275eb804b94607d8b06"
+  revision = "4cdb38c072b86bf795d2c81de50784d9fdd6eb77"
 
 [[projects]]
   branch = "master"
   name = "github.com/spf13/pflag"
   packages = ["."]
-  revision = "51268031d79952516489a9f8aa34e9709b98d946"
+  revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "0fe963104e9d1877082f8fb38f816fcd97eb1d10"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "a6577fac2d73be281a500b310739095313165611"
+  revision = "34057069f4ab13dc4433c68d368737ebeafcccdc"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/oauth2"
   packages = [".","internal"]
-  revision = "4784bb855e56a530f1ce5d788959359ed6cb4a16"
+  revision = "ad516a297a9f2a74ecc244861b298c94bdd28b9d"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "a646d33e2ee3172a661fc09bca23bb4889a41bc8"
+  revision = "98b5b1e7e80eb60271c8dc4eba6521ec2c3e811e"
 
 [[projects]]
   name = "google.golang.org/appengine"
-  packages = ["internal","internal/base","internal/datastore","internal/log","internal/remote_api","internal/urlfetch","urlfetch"]
+  packages = [".","internal","internal/app_identity","internal/base","internal/datastore","internal/log","internal/modules","internal/remote_api","internal/urlfetch","urlfetch"]
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
   version = "v1.0.0"
