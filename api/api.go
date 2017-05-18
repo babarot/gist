@@ -12,7 +12,7 @@ import (
 
 	"github.com/b4b4r07/gist/util"
 	"github.com/google/go-github/github"
-	"github.com/mattn/go-runewidth"
+	runewidth "github.com/mattn/go-runewidth"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
@@ -43,7 +43,7 @@ type File struct {
 	Path        string `json:"path"`
 	Content     string `json:"-"`
 	Description string `json:"description"`
-	Public      bool   `json:"-"`
+	Public      bool   `json:"public"`
 }
 
 type Files []File

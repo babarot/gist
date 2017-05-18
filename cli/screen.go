@@ -34,46 +34,34 @@ func NewScreen() (s *Screen, err error) {
 		return s, err
 	}
 
-	if Conf.Flag.OpenStarredItems {
-		err = gist.ListStarred()
-	} else {
-		err = gist.List()
-	}
-
+	cache := filepath.Join(Conf.Gist.Dir, "cache.json")
 	var files api.Files
-	for _, item := range gist.Items {
-		if err := gist.Clone(item); err != nil {
-			continue
+	if Conf.Gist.UseCache {
+		if !util.Exists(cache) {
+			files, err := filesFromAPI(gist)
+			if err != nil {
+				return s, err
+			}
+			err = makeCache(files)
 		}
-		desc := ""
-		if item.Description != nil {
-			desc = *item.Description
+		files, err = filesFromCache(cache)
+		if err != nil {
+			return s, err
 		}
-		for _, file := range item.Files {
-			files = append(files, api.File{
-				ID:          *item.ID,
-				ShortID:     api.ShortenID(*item.ID),
-				Filename:    *file.Filename,
-				Path:        filepath.Join(Conf.Gist.Dir, *item.ID, *file.Filename),
-				Description: desc,
-				Public:      *item.Public,
-			})
+	} else {
+		// sync files in background
+		syncFiles(gist)
+		files, err = filesFromAPI(gist)
+		if err != nil {
+			return s, err
+		}
+		err = makeCache(files)
+		if err != nil {
+			return s, err
 		}
 	}
 
-	f, err := os.Create(filepath.Join(Conf.Gist.Dir, "cache.json"))
-	if err != nil {
-		return
-	}
-	err = json.NewEncoder(f).Encode(&files)
-	if err != nil {
-		return
-	}
-
-	// sync files in background
-	syncFiles(gist)
-
-	lines := makeLines(files)
+	lines := renderLines(files)
 	return &Screen{
 		Gist:  gist,
 		Text:  strings.Join(lines, "\n"),
@@ -82,13 +70,13 @@ func NewScreen() (s *Screen, err error) {
 }
 
 type Line struct {
-	Line        string
 	ID          string
 	ShortID     string
-	Filename    string
 	Description string
+	Filename    string
 	Path        string
 	URL         string
+	Public      bool
 }
 
 type Lines []Line
@@ -110,11 +98,27 @@ func (s *Screen) parseLine(line string) (*Line, error) {
 		shortID  = trimDirSymbol(l[0])
 		filename = trimPrivateSymbol(l[1])
 		desc     = l[2]
+
+		longID string
+		err    error
 	)
 
-	longID, err := s.Gist.ExpandID(shortID)
+	longID, err = s.Gist.ExpandID(shortID)
 	if err != nil {
-		return &Line{}, err
+		cache := filepath.Join(Conf.Gist.Dir, "cache.json")
+		if Conf.Gist.UseCache && util.Exists(cache) {
+			files, err := filesFromCache(cache)
+			if err != nil {
+				return &Line{}, err
+			}
+			for _, file := range files {
+				if file.ShortID == shortID {
+					longID = file.ID
+				}
+			}
+		} else {
+			return &Line{}, err
+		}
 	}
 
 	baseURL := Conf.Gist.BaseURL
@@ -123,7 +127,6 @@ func (s *Screen) parseLine(line string) (*Line, error) {
 	}
 
 	return &Line{
-		Line:        line,
 		ID:          longID,
 		ShortID:     shortID,
 		Filename:    filename,
@@ -184,6 +187,7 @@ func (s *Screen) Select() (lines Lines, err error) {
 		}
 		parsedLine, err := s.parseLine(line)
 		if err != nil {
+			// TODO: log
 			continue
 		}
 		lines = append(lines, *parsedLine)
@@ -202,7 +206,7 @@ func getSize() (int, error) {
 	return w, err
 }
 
-func makeLines(files api.Files) (lines []string) {
+func renderLines(files api.Files) (lines []string) {
 	var line string
 	var length int
 	max := len(files) - 1
@@ -270,4 +274,58 @@ func makeLines(files api.Files) (lines []string) {
 		lines = append(lines, line)
 	}
 	return lines
+}
+
+func filesFromAPI(gist *api.Gist) (files api.Files, err error) {
+	if Conf.Flag.OpenStarredItems {
+		err = gist.ListStarred()
+	} else {
+		err = gist.List()
+	}
+	if err != nil {
+		return
+	}
+
+	for _, item := range gist.Items {
+		if err := gist.Clone(item); err != nil {
+			continue
+		}
+		desc := ""
+		if item.Description != nil {
+			desc = *item.Description
+		}
+		for _, file := range item.Files {
+			files = append(files, api.File{
+				ID:          *item.ID,
+				ShortID:     api.ShortenID(*item.ID),
+				Description: desc,
+				Filename:    *file.Filename,
+				Path:        filepath.Join(Conf.Gist.Dir, *item.ID, *file.Filename),
+				Public:      *item.Public,
+			})
+		}
+	}
+	return files, nil
+}
+
+func makeCache(files api.Files) error {
+	cache := filepath.Join(Conf.Gist.Dir, "cache.json")
+	f, err := os.Create(cache)
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(f).Encode(&files)
+}
+
+func filesFromCache(cache string) (files api.Files, err error) {
+	f, err := os.Open(cache)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	err = json.NewDecoder(f).Decode(&files)
+	if err != nil {
+		return
+	}
+	return
 }

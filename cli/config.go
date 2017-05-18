@@ -10,26 +10,27 @@ import (
 )
 
 type Config struct {
-	Core Core
-	Gist Gist
-	Flag Flag
+	Core CoreConfig `toml:"core"`
+	Gist GistConfig `toml:"gist"`
+	Flag FlagConfig `toml:"flag"`
 }
 
-type Core struct {
+type CoreConfig struct {
 	Editor    string `toml:"editor"`
 	SelectCmd string `toml:"selectcmd"`
 	TomlFile  string `toml:"tomlfile"`
 	User      string `toml:"user"`
 }
 
-type Gist struct {
-	Token   string `toml:"token"`
-	BaseURL string `toml:"base_url"`
-	Dir     string `toml:"dir"`
-	FileExt string `toml:"file_ext"`
+type GistConfig struct {
+	Token    string `toml:"token"`
+	BaseURL  string `toml:"base_url"`
+	Dir      string `toml:"dir"`
+	FileExt  string `toml:"file_ext"`
+	UseCache bool   `toml:"use_cache"`
 }
 
-type Flag struct {
+type FlagConfig struct {
 	Verbose           bool `toml:"verbose"`
 	OpenURL           bool `toml:"open_url"`
 	NewPrivate        bool `toml:"new_private"`
