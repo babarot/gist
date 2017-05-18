@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/b4b4r07/gist/api"
 	"github.com/b4b4r07/gist/util"
@@ -22,6 +23,14 @@ type Screen struct {
 	Gist  *api.Gist
 	Text  string
 	Lines []string
+
+	cache cache
+}
+
+type cache struct {
+	path string
+	ttl  time.Duration
+	use  bool
 }
 
 func NewScreen() (s *Screen, err error) {
@@ -34,17 +43,23 @@ func NewScreen() (s *Screen, err error) {
 		return s, err
 	}
 
-	cache := filepath.Join(Conf.Gist.Dir, "cache.json")
+	// for screen cache
+	c := cache{
+		path: filepath.Join(Conf.Gist.Dir, "cache.json"),
+		ttl:  Conf.Gist.CacheTTL * time.Minute,
+		use:  Conf.Gist.UseCache,
+	}
+
 	var files api.Files
-	if Conf.Gist.UseCache {
-		if !util.Exists(cache) {
+	if c.use && !c.expired() {
+		if !util.Exists(c.path) {
 			files, err := filesFromAPI(gist)
 			if err != nil {
 				return s, err
 			}
-			err = makeCache(files)
+			err = c.makeCache(files)
 		}
-		files, err = filesFromCache(cache)
+		files, err = c.filesFromCache()
 		if err != nil {
 			return s, err
 		}
@@ -55,7 +70,7 @@ func NewScreen() (s *Screen, err error) {
 		if err != nil {
 			return s, err
 		}
-		err = makeCache(files)
+		err = c.makeCache(files)
 		if err != nil {
 			return s, err
 		}
@@ -66,6 +81,7 @@ func NewScreen() (s *Screen, err error) {
 		Gist:  gist,
 		Text:  strings.Join(lines, "\n"),
 		Lines: lines,
+		cache: c,
 	}, nil
 }
 
@@ -105,9 +121,8 @@ func (s *Screen) parseLine(line string) (*Line, error) {
 
 	longID, err = s.Gist.ExpandID(shortID)
 	if err != nil {
-		cache := filepath.Join(Conf.Gist.Dir, "cache.json")
-		if Conf.Gist.UseCache && util.Exists(cache) {
-			files, err := filesFromCache(cache)
+		if Conf.Gist.UseCache && util.Exists(s.cache.path) {
+			files, err := s.cache.filesFromCache()
 			if err != nil {
 				return &Line{}, err
 			}
@@ -308,17 +323,16 @@ func filesFromAPI(gist *api.Gist) (files api.Files, err error) {
 	return files, nil
 }
 
-func makeCache(files api.Files) error {
-	cache := filepath.Join(Conf.Gist.Dir, "cache.json")
-	f, err := os.Create(cache)
+func (c *cache) makeCache(files api.Files) error {
+	f, err := os.Create(c.path)
 	if err != nil {
 		return err
 	}
 	return json.NewEncoder(f).Encode(&files)
 }
 
-func filesFromCache(cache string) (files api.Files, err error) {
-	f, err := os.Open(cache)
+func (c *cache) filesFromCache() (files api.Files, err error) {
+	f, err := os.Open(c.path)
 	if err != nil {
 		return
 	}
@@ -328,4 +342,13 @@ func filesFromCache(cache string) (files api.Files, err error) {
 		return
 	}
 	return
+}
+
+func (c *cache) expired() bool {
+	fi, err := os.Stat(c.path)
+	if err != nil {
+		return true
+	}
+	life := fi.ModTime().Add(c.ttl)
+	return life.Before(time.Now())
 }

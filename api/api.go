@@ -295,7 +295,13 @@ func (g *Gist) Compare(fname string) (kind, content string, err error) {
 
 	fi, err := os.Stat(fname)
 	if err != nil {
-		err = errors.Wrapf(err, "%s: no such file or directory", fname)
+		// TODO:
+		// case -> there is a dir but file has already deleted
+		item := g.Items.Filter(func(i Item) bool {
+			return *i.ID == getID(fname)
+		}).One()
+		err = g.Clone(item)
+		// err = errors.Wrapf(err, "%s: no such file or directory", fname)
 		return
 	}
 

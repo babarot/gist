@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -23,11 +24,12 @@ type CoreConfig struct {
 }
 
 type GistConfig struct {
-	Token    string `toml:"token"`
-	BaseURL  string `toml:"base_url"`
-	Dir      string `toml:"dir"`
-	FileExt  string `toml:"file_ext"`
-	UseCache bool   `toml:"use_cache"`
+	Token    string        `toml:"token"`
+	BaseURL  string        `toml:"base_url"`
+	Dir      string        `toml:"dir"`
+	FileExt  string        `toml:"file_ext"`
+	UseCache bool          `toml:"use_cache"`
+	CacheTTL time.Duration `toml:"cache_ttl"`
 }
 
 type FlagConfig struct {
@@ -104,6 +106,8 @@ func (cfg *Config) LoadFile(file string) error {
 	os.MkdirAll(dir, 0700)
 	cfg.Gist.Dir = dir
 	cfg.Gist.FileExt = ".patch"
+	cfg.Gist.UseCache = true
+	cfg.Gist.CacheTTL = 60 * 24
 
 	cfg.Flag.Verbose = true
 	cfg.Flag.OpenURL = false
