@@ -53,20 +53,20 @@ func NewScreen() (s *Screen, err error) {
 	var files api.Files
 	if c.use && !c.expired() {
 		if !util.Exists(c.path) {
-			files, err := filesFromAPI(gist)
+			files, err := getFiles(gist)
 			if err != nil {
 				return s, err
 			}
 			err = c.makeCache(files)
 		}
-		files, err = c.filesFromCache()
+		files, err = c.getFiles()
 		if err != nil {
 			return s, err
 		}
 	} else {
 		// sync files in background
 		syncFiles(gist)
-		files, err = filesFromAPI(gist)
+		files, err = getFiles(gist)
 		if err != nil {
 			return s, err
 		}
@@ -122,7 +122,7 @@ func (s *Screen) parseLine(line string) (*Line, error) {
 	longID, err = s.Gist.ExpandID(shortID)
 	if err != nil {
 		if Conf.Gist.UseCache && util.Exists(s.cache.path) {
-			files, err := s.cache.filesFromCache()
+			files, err := s.cache.getFiles()
 			if err != nil {
 				return &Line{}, err
 			}
@@ -291,7 +291,7 @@ func renderLines(files api.Files) (lines []string) {
 	return lines
 }
 
-func filesFromAPI(gist *api.Gist) (files api.Files, err error) {
+func getFiles(gist *api.Gist) (files api.Files, err error) {
 	if Conf.Flag.OpenStarredItems {
 		err = gist.ListStarred()
 	} else {
@@ -331,7 +331,7 @@ func (c *cache) makeCache(files api.Files) error {
 	return json.NewEncoder(f).Encode(&files)
 }
 
-func (c *cache) filesFromCache() (files api.Files, err error) {
+func (c *cache) getFiles() (files api.Files, err error) {
 	f, err := os.Open(c.path)
 	if err != nil {
 		return
@@ -345,6 +345,11 @@ func (c *cache) filesFromCache() (files api.Files, err error) {
 }
 
 func (c *cache) expired() bool {
+	if c.ttl == 0 {
+		// if ttl is not set or equals zero,
+		// it's regard as not caching
+		return false
+	}
 	fi, err := os.Stat(c.path)
 	if err != nil {
 		return true
