@@ -126,7 +126,7 @@ func (g *Gist) ListStarred() error {
 	return nil
 }
 
-func (g *Gist) Create(files Files, desc string) (url string, err error) {
+func (g *Gist) Create(files Files, desc string) (item *github.Gist, err error) {
 	spn := util.NewSpinner("Creating...")
 	spn.Start()
 	defer spn.Stop()
@@ -155,14 +155,10 @@ func (g *Gist) Create(files Files, desc string) (url string, err error) {
 		panic("item is nil")
 	}
 	if resp == nil {
-		return url, errors.New("Try again when you have a better network connection")
+		return item, errors.New("Try again when you have a better network connection")
 	}
 	err = g.Clone(item)
-	if err != nil {
-		return url, err
-	}
-	url = *item.HTMLURL
-	return url, errors.Wrap(err, "Failed to create")
+	return item, err
 }
 
 func (g *Gist) Clone(item *github.Gist) error {

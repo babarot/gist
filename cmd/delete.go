@@ -27,7 +27,12 @@ func delete(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	for _, line := range lines.Uniq() {
+	lines = lines.Uniq()
+	if len(lines) > 0 {
+		cli.NewCache().Remove()
+	}
+
+	for _, line := range lines {
 		err = screen.Gist.Delete(line.ID)
 		if err != nil {
 			log.Printf("[ERROR] %v", err)

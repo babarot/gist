@@ -2,14 +2,12 @@ package cli
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/b4b4r07/gist/api"
 	"github.com/b4b4r07/gist/util"
@@ -23,14 +21,7 @@ type Screen struct {
 	Gist  *api.Gist
 	Text  string
 	Lines []string
-
-	cache cache
-}
-
-type cache struct {
-	path string
-	ttl  time.Duration
-	use  bool
+	Cache Cache
 }
 
 func NewScreen() (s *Screen, err error) {
@@ -44,22 +35,18 @@ func NewScreen() (s *Screen, err error) {
 	}
 
 	// for screen cache
-	c := cache{
-		path: filepath.Join(Conf.Gist.Dir, "cache.json"),
-		ttl:  Conf.Gist.CacheTTL * time.Minute,
-		use:  Conf.Gist.UseCache,
-	}
+	cache := NewCache()
 
 	var files api.Files
-	if c.use && !c.expired() {
-		if !util.Exists(c.path) {
+	if cache.Use && !cache.Expired() {
+		if !util.Exists(cache.Path) {
 			files, err := getFiles(gist)
 			if err != nil {
 				return s, err
 			}
-			err = c.makeCache(files)
+			err = cache.Create(files)
 		}
-		files, err = c.getFiles()
+		files, err = cache.GetFiles()
 		if err != nil {
 			return s, err
 		}
@@ -70,7 +57,7 @@ func NewScreen() (s *Screen, err error) {
 		if err != nil {
 			return s, err
 		}
-		err = c.makeCache(files)
+		err = cache.Create(files)
 		if err != nil {
 			return s, err
 		}
@@ -81,7 +68,7 @@ func NewScreen() (s *Screen, err error) {
 		Gist:  gist,
 		Text:  strings.Join(lines, "\n"),
 		Lines: lines,
-		cache: c,
+		Cache: *cache,
 	}, nil
 }
 
@@ -121,8 +108,8 @@ func (s *Screen) parseLine(line string) (*Line, error) {
 
 	longID, err = s.Gist.ExpandID(shortID)
 	if err != nil {
-		if Conf.Gist.UseCache && util.Exists(s.cache.path) {
-			files, err := s.cache.getFiles()
+		if Conf.Gist.UseCache && util.Exists(s.Cache.Path) {
+			files, err := s.Cache.GetFiles()
 			if err != nil {
 				return &Line{}, err
 			}
@@ -321,39 +308,4 @@ func getFiles(gist *api.Gist) (files api.Files, err error) {
 		}
 	}
 	return files, nil
-}
-
-func (c *cache) makeCache(files api.Files) error {
-	f, err := os.Create(c.path)
-	if err != nil {
-		return err
-	}
-	return json.NewEncoder(f).Encode(&files)
-}
-
-func (c *cache) getFiles() (files api.Files, err error) {
-	f, err := os.Open(c.path)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	err = json.NewDecoder(f).Decode(&files)
-	if err != nil {
-		return
-	}
-	return
-}
-
-func (c *cache) expired() bool {
-	if c.ttl == 0 {
-		// if ttl is not set or equals zero,
-		// it's regard as not caching
-		return false
-	}
-	fi, err := os.Stat(c.path)
-	if err != nil {
-		return true
-	}
-	life := fi.ModTime().Add(c.ttl)
-	return life.Before(time.Now())
 }

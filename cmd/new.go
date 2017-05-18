@@ -55,14 +55,33 @@ func new(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	url, err := gist.Create(gi.files, gi.desc)
+	item, err := gist.Create(gi.files, gi.desc)
 	if err != nil {
 		return err
 	}
-	util.Underline("Created", url)
 
+	if cli.Conf.Gist.UseCache {
+		cache := cli.NewCache()
+		files, err := cache.GetFiles()
+		if err != nil {
+			return err
+		}
+		for _, file := range gi.files {
+			// append to the top of slice (unshift)
+			files, files[0] = append(files[0:1], files[0:]...), api.File{
+				ID:          *item.ID,
+				ShortID:     api.ShortenID(*item.ID),
+				Filename:    file.Filename,
+				Description: *item.Description,
+				Public:      *item.Public,
+			}
+		}
+		cache.Create(files)
+	}
+
+	util.Underline("Created", *item.HTMLURL)
 	if cli.Conf.Flag.OpenURL {
-		util.Open(url)
+		util.Open(*item.HTMLURL)
 	}
 	return nil
 }
