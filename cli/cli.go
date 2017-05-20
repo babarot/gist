@@ -36,21 +36,3 @@ func Edit(gist *api.Gist, fname string) error {
 
 	return gist.Sync(fname)
 }
-
-func Sync(gist *api.Gist, fname string) error {
-	kind, content, err := gist.Compare(fname)
-	if err != nil {
-		return err
-	}
-	switch kind {
-	case "local":
-		err = gist.UpdateRemote(fname, content)
-	case "remote":
-		err = gist.UpdateLocal(fname, content)
-	case "equal":
-	case "":
-		// Locally but not remote
-	default:
-	}
-	return err
-}

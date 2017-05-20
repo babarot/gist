@@ -17,6 +17,8 @@ import (
 
 var IDLength int = api.IDLength
 
+type Files api.Files
+
 type Screen struct {
 	Gist  *api.Gist
 	Text  string
@@ -37,37 +39,26 @@ func NewScreen() (s *Screen, err error) {
 	// for screen cache
 	cache := NewCache()
 
-	var files api.Files
-	if cache.Use && !cache.Expired() {
-		if !util.Exists(cache.Path) {
-			files, err := getFiles(gist)
-			if err != nil {
-				return s, err
-			}
-			err = cache.Create(files)
-		}
-		files, err = cache.GetFiles()
+	var files Files
+	if cache.Available() {
+		files, err = cache.Load()
 		if err != nil {
 			return s, err
 		}
 	} else {
+		files, err = Load(gist)
+		if err != nil {
+			return s, err
+		}
 		// sync files in background
-		syncFiles(gist)
-		files, err = getFiles(gist)
-		if err != nil {
-			return s, err
-		}
-		err = cache.Create(files)
-		if err != nil {
-			return s, err
-		}
+		lfs, _ := getLocalFiles()
+		gist.SyncAll(lfs)
+		cache.Create(files)
 	}
 
-	lines := renderLines(files)
 	return &Screen{
 		Gist:  gist,
-		Text:  strings.Join(lines, "\n"),
-		Lines: lines,
+		Lines: renderLines(files),
 		Cache: *cache,
 	}, nil
 }
@@ -109,7 +100,7 @@ func (s *Screen) parseLine(line string) (*Line, error) {
 	longID, err = s.Gist.ExpandID(shortID)
 	if err != nil {
 		if Conf.Gist.UseCache && util.Exists(s.Cache.Path) {
-			files, err := s.Cache.GetFiles()
+			files, err := s.Cache.Load()
 			if err != nil {
 				return &Line{}, err
 			}
@@ -161,7 +152,7 @@ func (l *Lines) Uniq() Lines {
 }
 
 func (s *Screen) Select() (lines Lines, err error) {
-	if s.Text == "" {
+	if len(s.Lines) == 0 {
 		err = errors.New("no text to display")
 		return
 	}
@@ -171,8 +162,9 @@ func (s *Screen) Select() (lines Lines, err error) {
 		return
 	}
 
+	text := strings.NewReader(strings.Join(s.Lines, "\n"))
 	var buf bytes.Buffer
-	err = runFilter(selectcmd, strings.NewReader(s.Text), &buf)
+	err = runFilter(selectcmd, text, &buf)
 	if err != nil {
 		return
 	}
@@ -208,7 +200,7 @@ func getSize() (int, error) {
 	return w, err
 }
 
-func renderLines(files api.Files) (lines []string) {
+func renderLines(files Files) (lines []string) {
 	var line string
 	var length int
 	max := len(files) - 1
@@ -278,7 +270,7 @@ func renderLines(files api.Files) (lines []string) {
 	return lines
 }
 
-func getFiles(gist *api.Gist) (files api.Files, err error) {
+func Load(gist *api.Gist) (files Files, err error) {
 	if Conf.Flag.OpenStarredItems {
 		err = gist.ListStarred()
 	} else {
@@ -308,4 +300,20 @@ func getFiles(gist *api.Gist) (files api.Files, err error) {
 		}
 	}
 	return files, nil
+}
+
+func getLocalFiles() (files []string, err error) {
+	err = filepath.Walk(Conf.Gist.Dir, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			// skip recursive
+			if strings.HasPrefix(filepath.Base(path), ".") {
+				return filepath.SkipDir
+			}
+			// skip
+			return nil
+		}
+		files = append(files, path)
+		return nil
+	})
+	return files, err
 }

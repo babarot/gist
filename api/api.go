@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/b4b4r07/gist/util"
 	"github.com/google/go-github/github"
@@ -364,25 +365,17 @@ func (g *Gist) UpdateRemote(fname, content string) error {
 	return err
 }
 
-func (g *Gist) Sync(fname string) (err error) {
-	var msg string
-	spn := util.NewSpinner("Checking...")
-	spn.Start()
-	defer func() {
-		spn.Stop()
-		util.Underline(msg, path.Join(g.Config.BaseURL, getID(fname)))
-	}()
-
-	kind, content, err := g.Compare(fname)
+func (g *Gist) sync(file string) (msg string, err error) {
+	kind, content, err := g.Compare(file)
 	if err != nil {
-		return err
+		return "", err
 	}
 	switch kind {
 	case "local":
-		err = g.UpdateRemote(fname, content)
+		err = g.UpdateRemote(file, content)
 		msg = "Uploaded"
 	case "remote":
-		err = g.UpdateLocal(fname, content)
+		err = g.UpdateLocal(file, content)
 		msg = "Downloaded"
 	case "equal":
 		// Do nothing
@@ -390,8 +383,32 @@ func (g *Gist) Sync(fname string) (err error) {
 		// Locally but not remote
 	default:
 	}
+	return msg, err
+}
 
+func (g *Gist) Sync(file string) (err error) {
+	var msg string
+	spn := util.NewSpinner("Checking...")
+	spn.Start()
+	defer func() {
+		spn.Stop()
+		util.Underline(msg, path.Join(g.Config.BaseURL, getID(file)))
+	}()
+	msg, err = g.sync(file)
 	return err
+}
+
+func (g *Gist) SyncAll(files []string) {
+	var wg sync.WaitGroup
+	for _, file := range files {
+		wg.Add(1)
+		go func(file string) {
+			defer wg.Done()
+			// ignore error for now
+			g.sync(file)
+		}(file)
+	}
+	wg.Wait()
 }
 
 func (g *Gist) ExpandID(shortID string) (longID string, err error) {

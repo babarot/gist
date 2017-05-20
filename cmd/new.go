@@ -62,7 +62,7 @@ func new(cmd *cobra.Command, args []string) error {
 
 	if cli.Conf.Gist.UseCache {
 		cache := cli.NewCache()
-		files, err := cache.GetFiles()
+		files, err := cache.Load()
 		if err != nil {
 			return err
 		}
