@@ -56,6 +56,7 @@ func (c *Cache) Load() (files Files, err error) {
 	}
 	defer f.Close()
 	err = json.NewDecoder(f).Decode(&files)
+	c.pseudoRun()
 	return
 }
 
@@ -76,4 +77,8 @@ func (c *Cache) Expired() bool {
 
 func (c *Cache) Available() bool {
 	return c.Use && c.Ready && !c.Expired()
+}
+
+func (c *Cache) pseudoRun() {
+	time.Sleep(300 * time.Millisecond)
 }
