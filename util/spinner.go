@@ -1,6 +1,7 @@
 package util
 
 import (
+	"os"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -24,6 +25,7 @@ func NewSpinner(text string) *Spinner {
 }
 
 func (s *Spinner) Start() {
+	s.Spinner.Writer = os.Stderr
 	if len(s.Text) > 0 {
 		s.Suffix = " " + s.Text
 	}

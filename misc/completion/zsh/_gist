@@ -11,6 +11,7 @@ _gist () {
     'delete:Delete gist files'
     'config:Config the setting file'
     'copy:Copy contents from gist files'
+    'get:Get gist content'
     'help:Show help for any command'
     )
 
@@ -49,9 +50,11 @@ _gist () {
                 '(-)*: :_files' \
                 && return 0
             ;;
-        (delete) ;;
-        (config) ;;
-        (copy) ;;
+        (delete|config|copy|get)
+            _arguments \
+                '(- :)'{-h,--help}'[Show this help and exit]' \
+                && return 0
+            ;;
         (help)
             _values 'help message' ${_1st_arguments[@]%:*} && return 0
             ;;
