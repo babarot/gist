@@ -222,17 +222,31 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 		}
 	}
 
-	if len(files) == 0 {
+	switch len(files) {
+	case 0:
 		return gi, errors.New("no files to be able create")
-	}
-
-	for _, file := range files {
-		fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
-		content, _ := util.FileContent(file)
+	case 1:
+		file := files[0]
+		util.ScanDefaultString = file
+		file, err = util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
+		if err != nil {
+			return
+		}
+		content, _ := util.FileContent(files[0]) // Use original file: files[0]
 		gistFiles = append(gistFiles, api.File{
 			Filename: filepath.Base(file),
 			Content:  content,
 		})
+		util.ScanDefaultString = "" // reset deafult string
+	default:
+		for _, file := range files {
+			fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
+			content, _ := util.FileContent(file)
+			gistFiles = append(gistFiles, api.File{
+				Filename: filepath.Base(file),
+				Content:  content,
+			})
+		}
 	}
 
 	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
