@@ -4,14 +4,13 @@ import (
 	"fmt"
 
 	"github.com/b4b4r07/gist/cli"
-	"github.com/b4b4r07/gist/util"
 	"github.com/spf13/cobra"
 )
 
 var getCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Get gist content",
-	Long:  "Get gist content",
+	Short: "Manipulate gist with the command passed in the argument",
+	Long:  "Manipulate gist with the command passed in the argument",
 	RunE:  get,
 }
 
@@ -27,11 +26,13 @@ func get(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, line := range lines {
-		content, err := util.FileContent(line.Path)
-		if err != nil {
+		if len(args) == 0 {
+			fmt.Println(line.Path)
 			continue
 		}
-		fmt.Printf(content)
+		if err := cli.Run(args[0], line.Path); err != nil {
+			return err
+		}
 	}
 
 	return nil
