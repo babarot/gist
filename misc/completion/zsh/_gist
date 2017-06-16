@@ -10,8 +10,7 @@ _gist () {
     'new:Create a new gist'
     'delete:Delete gist files'
     'config:Config the setting file'
-    'copy:Copy contents from gist files'
-    'get:Get gist content'
+    'get:Manipulate gist with the command passed in the argument'
     'run:Run the gist snippet as a script'
     'help:Show help for any command'
     )
@@ -55,7 +54,7 @@ _gist () {
                 '(-)*: :_files' \
                 && return 0
             ;;
-        (delete|config|copy|get)
+        (delete|config|get)
             _arguments \
                 '(- :)'{-h,--help}'[Show this help and exit]' \
                 && return 0
