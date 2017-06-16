@@ -12,7 +12,10 @@ import (
 
 const Version = "0.1.4"
 
-var showVersion bool
+var (
+	showVersion bool
+	cacheClear  bool
+)
 
 var RootCmd = &cobra.Command{
 	Use:           "gist",
@@ -23,6 +26,10 @@ var RootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if showVersion {
 			fmt.Printf("version %s/%s\n", Version, runtime.Version())
+			return
+		}
+		if cacheClear {
+			cli.NewCache().Clear()
 			return
 		}
 		cmd.Usage()
@@ -40,6 +47,7 @@ func Execute() {
 func init() {
 	initConf()
 	RootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "show the version and exit")
+	RootCmd.Flags().BoolVarP(&cacheClear, "cache-clear", "c", false, "clear cache")
 }
 
 func initConf() {

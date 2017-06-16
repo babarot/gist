@@ -76,7 +76,7 @@ func new(cmd *cobra.Command, args []string) error {
 				Public:      *item.Public,
 			}
 		}
-		cache.Create(files)
+		cache.Cache(files)
 	}
 
 	util.Underline("Created", *item.HTMLURL)

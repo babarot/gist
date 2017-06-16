@@ -40,7 +40,7 @@ func NewScreen() (s *Screen, err error) {
 	cache := NewCache()
 
 	var files Files
-	if cache.Available() {
+	if cache.Available() && !Conf.Flag.StarredItems {
 		files, err = cache.Load()
 		if err != nil {
 			return s, err
@@ -53,7 +53,9 @@ func NewScreen() (s *Screen, err error) {
 		// sync files in background
 		lfs, _ := getLocalFiles()
 		gist.SyncAll(lfs)
-		cache.Create(files)
+		if !Conf.Flag.StarredItems {
+			cache.Cache(files)
+		}
 	}
 
 	return &Screen{
@@ -271,7 +273,7 @@ func renderLines(files Files) (lines []string) {
 }
 
 func Load(gist *api.Gist) (files Files, err error) {
-	if Conf.Flag.OpenStarredItems {
+	if Conf.Flag.StarredItems {
 		err = gist.ListStarred()
 	} else {
 		err = gist.List()

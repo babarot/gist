@@ -29,7 +29,7 @@ func delete(cmd *cobra.Command, args []string) (err error) {
 
 	lines = lines.Uniq()
 	if len(lines) > 0 {
-		cli.NewCache().Remove()
+		cli.NewCache().Clear()
 	}
 
 	for _, line := range lines {

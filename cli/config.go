@@ -40,14 +40,10 @@ type FlagConfig struct {
 	ShowIndicator     bool `toml:"show_indicator"`
 	ShowPrivateSymbol bool `toml:"show_private_symbol"`
 	BlogMode          bool `toml:"blog_mode"`
+	StarredItems      bool `toml:"starred"`
 
-	// TODO
-	Sort string `toml:"sort"`
-	Only string `toml:"only"`
-
-	EditDesc         bool
-	OpenStarredItems bool
-	FromClipboard    bool
+	EditDesc      bool
+	FromClipboard bool
 }
 
 var Conf Config
@@ -115,6 +111,7 @@ func (cfg *Config) LoadFile(file string) error {
 	cfg.Flag.OpenBaseURL = false
 	cfg.Flag.ShowIndicator = true
 	cfg.Flag.ShowPrivateSymbol = false
+	cfg.Flag.StarredItems = false
 
 	return toml.NewEncoder(f).Encode(cfg)
 }

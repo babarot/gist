@@ -34,15 +34,6 @@ func openURL() error {
 	if user != "" {
 		u.Path = path.Join(u.Path, user)
 	}
-
-	if cli.Conf.Flag.Sort == "updated" {
-		q.Set("direction", "desc")
-		q.Set("sort", "updated")
-	}
-	if cli.Conf.Flag.Only == "secret" || cli.Conf.Flag.Only == "private" {
-		u.Path = path.Join(u.Path, "secret")
-	}
-
 	u.RawQuery = q.Encode()
 
 	return util.Open(u.String())
@@ -69,8 +60,6 @@ func open(cmd *cobra.Command, args []string) (err error) {
 
 func init() {
 	RootCmd.AddCommand(openCmd)
-	openCmd.Flags().StringVarP(&cli.Conf.Flag.Sort, "sort", "", "created", "Sort by the argument")
-	openCmd.Flags().StringVarP(&cli.Conf.Flag.Only, "only", "", "", "Open only for the condition")
 	openCmd.Flags().BoolVarP(&cli.Conf.Flag.OpenBaseURL, "no-select", "", false, "Open only gist base URL without selecting")
-	openCmd.Flags().BoolVarP(&cli.Conf.Flag.OpenStarredItems, "starred", "s", false, "Open your starred gist")
+	openCmd.Flags().BoolVarP(&cli.Conf.Flag.StarredItems, "starred", "s", false, "Open your starred gist")
 }

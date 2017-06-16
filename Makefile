@@ -37,6 +37,7 @@ release:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags='-X main.version=$(VERSION)' -o bin/$(BIN)$(SUFFIX_EXE)
 	mv bin/$(BIN)$(SUFFIX_EXE) $(DIST)/$(RELDIR)/
 	cp README.md $(DIST)/$(RELDIR)/
+	cp ./misc/completion/zsh/_gist $(DIST)/$(RELDIR)/
 	tar czf $(DIST)/$(ARCNAME).tar.gz -C $(DIST) $(RELDIR)
 	rm -rf $(DIST)/$(RELDIR)/
 	go clean

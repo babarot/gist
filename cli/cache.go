@@ -37,11 +37,11 @@ func NewCache() *Cache {
 	}
 }
 
-func (c *Cache) Remove() error {
+func (c *Cache) Clear() error {
 	return os.Remove(c.Path)
 }
 
-func (c *Cache) Create(files Files) error {
+func (c *Cache) Cache(files Files) error {
 	f, err := os.Create(c.Path)
 	if err != nil {
 		return err
@@ -80,5 +80,5 @@ func (c *Cache) Available() bool {
 }
 
 func (c *Cache) pseudoRun() {
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(150 * time.Millisecond)
 }

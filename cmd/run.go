@@ -48,4 +48,5 @@ func run(cmd *cobra.Command, args []string) error {
 
 func init() {
 	RootCmd.AddCommand(runCmd)
+	runCmd.Flags().BoolVarP(&cli.Conf.Flag.StarredItems, "starred", "s", false, "Open your starred gist")
 }
