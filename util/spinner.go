@@ -26,6 +26,7 @@ func NewSpinner(text string) *Spinner {
 
 func (s *Spinner) Start() {
 	s.Spinner.Writer = os.Stderr
+	s.Spinner.Prefix = "\r"
 	if len(s.Text) > 0 {
 		s.Suffix = " " + s.Text
 	}
