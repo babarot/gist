@@ -9,7 +9,6 @@ os:
   - osx
 before_install:
   - go get github.com/golang/dep/...
-  - go get github.com/mitchellh/gox
   - go get github.com/tcnksm/ghr
 install:
   - $GOPATH/bin/dep ensure
@@ -19,5 +18,5 @@ branches:
   only:
     - master
 after_success:
-  - gox -output "dist/{{.OS}}_{{.Arch}}_{{.Dir}}"
-  - ghr --username b4b4r07 --token $GITHUB_TOKEN --replace $(grep 'Version =' cmd/root.go | sed -E 's/.*"(.+)"$$/\1/') dist/
+  - make cross
+  - ghr --username b4b4r07 --token $GITHUB_TOKEN --replace $(make version) dist/
