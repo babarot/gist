@@ -7,12 +7,7 @@ import (
 )
 
 func NewGist() (*api.Gist, error) {
-	return api.NewGist(api.Config{
-		Token:      Conf.Gist.Token,
-		BaseURL:    Conf.Gist.BaseURL,
-		NewPrivate: Conf.Flag.NewPrivate,
-		ClonePath:  Conf.Gist.Dir,
-	})
+	return api.NewGist(Conf.Gist.Token)
 }
 
 // TODO

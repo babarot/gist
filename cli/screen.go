@@ -283,7 +283,7 @@ func Load(gist *api.Gist) (files Files, err error) {
 	}
 
 	for _, item := range gist.Items {
-		if err := gist.Clone(item); err != nil {
+		if err := gist.Clone(Conf.Gist.Dir, item); err != nil {
 			continue
 		}
 		desc := ""

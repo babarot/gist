@@ -55,7 +55,7 @@ func new(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	item, err := gist.Create(gi.files, gi.desc)
+	item, err := gist.Create(gi.files, gi.desc, cli.Conf.Flag.NewPrivate)
 	if err != nil {
 		return err
 	}
