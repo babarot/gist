@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/b4b4r07/gist/cli"
 	"github.com/spf13/cobra"
 )
@@ -26,19 +24,10 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, line := range lines {
-		fi, err := os.Stat(line.Path)
-		if err != nil {
+		if err := cli.Runnable(line.Path); err != nil {
 			continue
 		}
-		var (
-			origPerm = fi.Mode().Perm()
-			execPerm = os.FileMode(0755).Perm()
-		)
-		if origPerm != execPerm {
-			os.Chmod(line.Path, execPerm)
-			defer os.Chmod(line.Path, origPerm)
-		}
-		if err := cli.Run(line.Path); err != nil {
+		if err := cli.Run(line.Path, args...); err != nil {
 			continue
 		}
 	}

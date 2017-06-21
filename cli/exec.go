@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/b4b4r07/go-colon"
+	colon "github.com/b4b4r07/go-colon"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -68,4 +68,20 @@ func Run(command string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	return cmd.Run()
+}
+
+func Runnable(file string) error {
+	fi, err := os.Stat(file)
+	if err != nil {
+		return err
+	}
+	var (
+		origPerm = fi.Mode().Perm()
+		execPerm = os.FileMode(0755).Perm()
+	)
+	if origPerm != execPerm {
+		os.Chmod(file, execPerm)
+		defer os.Chmod(file, origPerm)
+	}
+	return nil
 }
