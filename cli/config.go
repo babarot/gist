@@ -11,9 +11,10 @@ import (
 )
 
 type Config struct {
-	Core CoreConfig `toml:"core"`
-	Gist GistConfig `toml:"gist"`
-	Flag FlagConfig `toml:"flag"`
+	Core   CoreConfig   `toml:"core"`
+	Gist   GistConfig   `toml:"gist"`
+	Flag   FlagConfig   `toml:"flag"`
+	Screen ScreenConfig `toml:"screen"`
 }
 
 type CoreConfig struct {
@@ -44,6 +45,10 @@ type FlagConfig struct {
 
 	EditDesc      bool
 	FromClipboard bool
+}
+
+type ScreenConfig struct {
+	Columns []string `toml:"columns"`
 }
 
 var Conf Config

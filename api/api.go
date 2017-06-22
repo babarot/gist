@@ -1,8 +1,11 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	tt "text/template"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -111,10 +114,48 @@ func (g *Gist) Delete(id string) error {
 	return err
 }
 
-func (items *Items) Render() []string {
+func (items *Items) Render(columns []string) []string {
 	var lines []string
+	max := 0
 	for _, item := range *items {
-		lines = append(lines, item.ID)
+		for _, file := range item.Files {
+			if len(file.Filename) > max {
+				max = len(file.Filename)
+			}
+		}
+	}
+	for _, item := range *items {
+		var line string
+		var tmpl *tt.Template
+		if len(columns) == 0 {
+			// default
+			columns = []string{"{{.ID}}"}
+		}
+		fnfmt := fmt.Sprintf("%%-%ds", max)
+		for _, file := range item.Files {
+			format := columns[0]
+			for _, v := range columns[1:] {
+				format += "\t" + v
+			}
+			t, err := tt.New("format").Parse(format)
+			if err != nil {
+				return []string{}
+			}
+			tmpl = t
+			if tmpl != nil {
+				var b bytes.Buffer
+				err := tmpl.Execute(&b, map[string]interface{}{
+					"ID":          item.ID,
+					"Description": item.Description,
+					"Filename":    fmt.Sprintf(fnfmt, file.Filename),
+				})
+				if err != nil {
+					return []string{}
+				}
+				line = b.String()
+			}
+			lines = append(lines, line)
+		}
 	}
 	return lines
 }

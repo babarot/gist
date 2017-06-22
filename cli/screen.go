@@ -27,7 +27,7 @@ func NewScreen() (s *Screen, err error) {
 	if err != nil {
 		return
 	}
-	lines := items.Render()
+	lines := items.Render(Conf.Screen.Columns)
 
 	// for screen cache
 	// cache := NewCache()
@@ -97,12 +97,25 @@ func (s *Screen) Select() (items gist.Items, err error) {
 }
 
 func (s *Screen) parse(line string) (gist.Item, error) {
+	l := strings.Split(line, "\t")
+	idx := func() int {
+		for i, v := range Conf.Screen.Columns {
+			if v == "{{.ID}}" {
+				return i
+			}
+		}
+		return -1
+	}()
+	if idx == -1 {
+		// default
+		idx = 0
+	}
 	for _, item := range s.Items {
-		if item.ID == line {
+		if item.ID == l[idx] {
 			return item, nil
 		}
 	}
-	return gist.Item{}, nil
+	return gist.Item{}, errors.New("not found")
 }
 
 /*
