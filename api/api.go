@@ -8,49 +8,30 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type Gist struct {
+	Client *github.Client
+	Items  Items
+}
+
 type (
 	Items []*github.Gist
 	Item  *github.Gist
 )
 
-type Gist struct {
-	Client *github.Client
-	Items  Items
-	Files  []File
-}
-
-type File struct {
-	ID          string `json:"id"`
-	ShortID     string `json:"short_id"`
-	Filename    string `json:"filename"`
-	Path        string `json:"path"`
-	Content     string `json:"-"`
-	Description string `json:"description"`
-	Public      bool   `json:"public"`
-}
-
-type Files []File
-
 func NewGist(token string) (*Gist, error) {
 	if token == "" {
 		return &Gist{}, errors.New("token is missing")
 	}
-
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 	client := github.NewClient(tc)
-
-	return &Gist{
-		Client: client,
-		Items:  []*github.Gist{},
-		Files:  Files{},
-	}, nil
+	return &Gist{Client: client}, nil
 }
 
 func (g *Gist) List() (err error) {
-	var items Items
+	var items []*github.Gist
 	ctx := context.Background()
 
 	gists, resp, err := g.Client.Gists.List(ctx, "", &github.GistListOptions{})
@@ -59,7 +40,6 @@ func (g *Gist) List() (err error) {
 	}
 	items = append(items, gists...)
 
-	// pagenation
 	for i := 2; i <= resp.LastPage; i++ {
 		gists, _, err := g.Client.Gists.List(ctx, "", &github.GistListOptions{
 			ListOptions: github.ListOptions{Page: i},
@@ -79,7 +59,7 @@ func (g *Gist) List() (err error) {
 }
 
 func (g *Gist) ListStarred() (err error) {
-	var items Items
+	var items []*github.Gist
 	ctx := context.Background()
 	gists, resp, err := g.Client.Gists.ListStarred(ctx, &github.GistListOptions{})
 	if err != nil {
@@ -87,7 +67,6 @@ func (g *Gist) ListStarred() (err error) {
 	}
 	items = append(items, gists...)
 
-	// pagenation
 	for i := 2; i <= resp.LastPage; i++ {
 		gists, _, err := g.Client.Gists.ListStarred(ctx, &github.GistListOptions{
 			ListOptions: github.ListOptions{Page: i},
@@ -106,25 +85,23 @@ func (g *Gist) ListStarred() (err error) {
 	return
 }
 
-func (g *Gist) Create(files Files, desc string, public bool) (item *github.Gist, err error) {
-	// spn := util.NewSpinner("Creating...")
-	// spn.Start()
-	// defer spn.Stop()
-
-	gistFiles := make(map[github.GistFilename]github.GistFile, len(files))
-	for _, file := range files {
-		filename := file.Filename
-		content := file.Content
-		fname := github.GistFilename(filename)
-		gistFiles[fname] = github.GistFile{
-			Filename: &filename,
-			Content:  &content,
-		}
-	}
+func (g *Gist) Create(files map[github.GistFilename]github.GistFile, desc string, public bool) (item *github.Gist, err error) {
+	// gistFiles := make(map[github.GistFilename]github.GistFile, len(items))
+	// for _, item := range items {
+	// 	var (
+	// 		filename = item.Filename
+	// 		content  = item.Content
+	// 		file     = github.GistFilename(filename)
+	// 	)
+	// 	gistFiles[file] = github.GistFile{
+	// 		Filename: &filename,
+	// 		Content:  &content,
+	// 	}
+	// }
 	item, resp, err := g.Client.Gists.Create(context.Background(), &github.Gist{
-		Files:       gistFiles,
-		Public:      &public,
+		Files:       files,
 		Description: &desc,
+		Public:      &public,
 	})
 	if item == nil {
 		err = errors.New("Gist item is nil")
@@ -138,9 +115,6 @@ func (g *Gist) Create(files Files, desc string, public bool) (item *github.Gist,
 }
 
 func (g *Gist) Delete(id string) error {
-	// spn := util.NewSpinner("Deleting...")
-	// spn.Start()
-	// defer spn.Stop()
 	_, err := g.Client.Gists.Delete(context.Background(), id)
 	return err
 }

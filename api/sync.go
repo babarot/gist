@@ -13,68 +13,6 @@ import (
 	"github.com/google/go-github/github"
 )
 
-// func (g *Gist) download(fname string) (done bool, err error) {
-// 	gists := g.Items.Filter(func(i Item) bool {
-// 		return *i.ID == getID(fname)
-// 	})
-//
-// 	for _, gist := range *gists {
-// 		item, _, err := g.Client.Gists.Get(context.Background(), *gist.ID)
-// 		if err != nil {
-// 			return done, err
-// 		}
-// 		// for multiple files in one Gist folder
-// 		for _, f := range item.Files {
-// 			fpath := filepath.Join(g.Config.ClonePath, *gist.ID, *f.Filename)
-// 			content, err := util.FileContent(fpath)
-// 			if err != nil {
-// 				continue
-// 			}
-// 			// write to the local files if there are some diff
-// 			if *f.Content != content {
-// 				ioutil.WriteFile(fpath, []byte(*f.Content), os.ModePerm)
-// 				done = true
-// 			}
-// 		}
-// 	}
-// 	return done, nil
-// }
-//
-// func (g *Gist) upload(fname string) (done bool, err error) {
-// 	var (
-// 		gistID = getID(fname)
-// 		gist   = func(fname string) github.Gist {
-// 			content, _ := util.FileContent(fname)
-// 			return github.Gist{
-// 				Files: map[github.GistFilename]github.GistFile{
-// 					github.GistFilename(filepath.Base(fname)): github.GistFile{
-// 						Content: github.String(content),
-// 					},
-// 				},
-// 			}
-// 		}(fname)
-// 		filename   = filepath.Base(fname)
-// 		content, _ = util.FileContent(fname)
-// 	)
-//
-// 	ctx := context.Background()
-// 	res, _, err := g.Client.Gists.Get(ctx, gistID)
-// 	if err != nil {
-// 		return done, err
-// 	}
-//
-// 	name := github.GistFilename(filename)
-// 	if *res.Files[name].Content != content {
-// 		_, _, err := g.Client.Gists.Edit(ctx, gistID, &gist)
-// 		if err != nil {
-// 			return done, err
-// 		}
-// 		done = true
-// 	}
-//
-// 	return done, nil
-// }
-
 func (g *Gist) Compare(fname string) (kind, content string, err error) {
 	if len(g.Items) == 0 {
 		err = g.List()
