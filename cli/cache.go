@@ -1,5 +1,6 @@
 package cli
 
+/*
 import (
 	"encoding/json"
 	"os"
@@ -82,3 +83,4 @@ func (c *Cache) Available() bool {
 func (c *Cache) pseudoRun() {
 	time.Sleep(150 * time.Millisecond)
 }
+*/

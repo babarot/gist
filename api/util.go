@@ -28,23 +28,23 @@ func (g *Gist) Clone(dir string, item *github.Gist) error {
 	return exec.Command("git", "clone", *item.GitPullURL).Start()
 }
 
-func (i *Items) Filter(fn func(Item) bool) *Items {
-	items := make(Items, 0)
-	for _, item := range *i {
-		if fn(item) {
-			items = append(items, item)
-		}
-	}
-	return &items
-}
-
-func (i *Items) One() Item {
-	var item Item
-	if len(*i) > 0 {
-		return (*i)[0]
-	}
-	return item
-}
+// func (i *Items) Filter(fn func(Item) bool) *Items {
+// 	items := make(Items, 0)
+// 	for _, item := range *i {
+// 		if fn(item) {
+// 			items = append(items, item)
+// 		}
+// 	}
+// 	return &items
+// }
+//
+// func (i *Items) One() Item {
+// 	var item Item
+// 	if len(*i) > 0 {
+// 		return (*i)[0]
+// 	}
+// 	return item
+// }
 
 func getID(file string) string {
 	switch strings.Count(file, "/") {

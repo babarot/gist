@@ -16,18 +16,19 @@ var (
 )
 
 func Edit(gist *api.Gist, fname string) error {
-	if err := gist.Sync(fname); err != nil {
-		return err
-	}
-
-	editor := Conf.Core.Editor
-	if editor == "" {
-		return ErrConfigEditor
-	}
-
-	if err := Run(editor, fname); err != nil {
-		return err
-	}
-
-	return gist.Sync(fname)
+	return nil
+	// if err := gist.Sync(fname); err != nil {
+	// 	return err
+	// }
+	//
+	// editor := Conf.Core.Editor
+	// if editor == "" {
+	// 	return ErrConfigEditor
+	// }
+	//
+	// if err := Run(editor, fname); err != nil {
+	// 	return err
+	// }
+	//
+	// return gist.Sync(fname)
 }

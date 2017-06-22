@@ -8,14 +8,24 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type Gist struct {
-	Client *github.Client
-	Items  Items
-}
-
 type (
-	Items []*github.Gist
-	Item  *github.Gist
+	Gist struct {
+		Client *github.Client
+		Items  []*github.Gist
+	}
+	Item struct {
+		ID          string
+		ShortID     string
+		Description string
+		Public      bool
+		Files       []File
+	}
+	Items []Item
+	File  struct {
+		Filename string
+		Content  string
+	}
+	Files []File
 )
 
 func NewGist(token string) (*Gist, error) {
@@ -30,15 +40,14 @@ func NewGist(token string) (*Gist, error) {
 	return &Gist{Client: client}, nil
 }
 
-func (g *Gist) List() (err error) {
-	var items []*github.Gist
+func (g *Gist) List() (items Items, err error) {
 	ctx := context.Background()
-
 	gists, resp, err := g.Client.Gists.List(ctx, "", &github.GistListOptions{})
 	if err != nil {
 		return
 	}
-	items = append(items, gists...)
+	var gs []*github.Gist
+	gs = append(gs, gists...)
 
 	for i := 2; i <= resp.LastPage; i++ {
 		gists, _, err := g.Client.Gists.List(ctx, "", &github.GistListOptions{
@@ -47,57 +56,40 @@ func (g *Gist) List() (err error) {
 		if err != nil {
 			continue
 		}
-		items = append(items, gists...)
+		gs = append(gs, gists...)
 	}
 
-	if len(items) == 0 {
-		err = errors.New("no items")
-		return
-	}
-	g.Items = items
-	return
-}
-
-func (g *Gist) ListStarred() (err error) {
-	var items []*github.Gist
-	ctx := context.Background()
-	gists, resp, err := g.Client.Gists.ListStarred(ctx, &github.GistListOptions{})
-	if err != nil {
-		return
-	}
-	items = append(items, gists...)
-
-	for i := 2; i <= resp.LastPage; i++ {
-		gists, _, err := g.Client.Gists.ListStarred(ctx, &github.GistListOptions{
-			ListOptions: github.ListOptions{Page: i},
-		})
-		if err != nil {
-			continue
+	for _, g := range gs {
+		var files Files
+		for _, file := range g.Files {
+			files = append(files, File{
+				Filename: *file.Filename,
+			})
 		}
-		items = append(items, gists...)
+		items = append(items, Item{
+			ID:      *g.ID,
+			ShortID: *g.ID,
+			Files:   files,
+			Description: func() (desc string) {
+				if g.Description != nil {
+					desc = *g.Description
+				}
+				return
+			}(),
+			Public: *g.Public,
+		})
 	}
-
-	if len(items) == 0 {
-		err = errors.New("no items")
-		return
-	}
-	g.Items = items
 	return
 }
 
-func (g *Gist) Create(files map[github.GistFilename]github.GistFile, desc string, public bool) (item *github.Gist, err error) {
-	// gistFiles := make(map[github.GistFilename]github.GistFile, len(items))
-	// for _, item := range items {
-	// 	var (
-	// 		filename = item.Filename
-	// 		content  = item.Content
-	// 		file     = github.GistFilename(filename)
-	// 	)
-	// 	gistFiles[file] = github.GistFile{
-	// 		Filename: &filename,
-	// 		Content:  &content,
-	// 	}
-	// }
+func (g *Gist) ListStarred() (items []*github.Gist, err error) {
+	return
+}
+
+func (g *Gist) Create(
+	files map[github.GistFilename]github.GistFile,
+	desc string,
+	public bool) (item *github.Gist, err error) {
 	item, resp, err := g.Client.Gists.Create(context.Background(), &github.Gist{
 		Files:       files,
 		Description: &desc,
@@ -117,4 +109,12 @@ func (g *Gist) Create(files map[github.GistFilename]github.GistFile, desc string
 func (g *Gist) Delete(id string) error {
 	_, err := g.Client.Gists.Delete(context.Background(), id)
 	return err
+}
+
+func (items *Items) Render() []string {
+	var lines []string
+	for _, item := range *items {
+		lines = append(lines, item.ID)
+	}
+	return lines
 }

@@ -3,68 +3,109 @@ package cli
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"os"
-	"path"
-	"path/filepath"
 	"strings"
 
-	"github.com/b4b4r07/gist/api"
-	"github.com/b4b4r07/gist/util"
-	runewidth "github.com/mattn/go-runewidth"
-	"golang.org/x/crypto/ssh/terminal"
+	gist "github.com/b4b4r07/gist/api"
 )
 
-var IDLength int = api.IDLength
-
-type Files api.Files
-
-type Screen struct {
-	Gist  *api.Gist
-	Text  string
+type (
+	Screen struct {
+		Items gist.Items
+		Lines []string
+	}
 	Lines []string
-	Cache Cache
-}
+	// Line  string
+	// Lines []Line
+)
 
 func NewScreen() (s *Screen, err error) {
-	spn := util.NewSpinner("Fetching...")
-	spn.Start()
-	defer spn.Stop()
-
-	gist, err := NewGist()
+	gist, err := gist.NewGist(Conf.Gist.Token)
 	if err != nil {
-		return s, err
+		return
 	}
+	items, err := gist.List()
+	if err != nil {
+		return
+	}
+	lines := items.Render()
 
 	// for screen cache
-	cache := NewCache()
+	// cache := NewCache()
 
-	var files Files
-	if cache.Available() && !Conf.Flag.StarredItems {
-		files, err = cache.Load()
-		if err != nil {
-			return s, err
-		}
-	} else {
-		files, err = Load(gist)
-		if err != nil {
-			return s, err
-		}
-		// sync files in background
-		lfs, _ := getLocalFiles()
-		gist.SyncAll(lfs)
-		if !Conf.Flag.StarredItems {
-			cache.Cache(files)
-		}
-	}
+	// var files Files
+	// if cache.Available() && !Conf.Flag.StarredItems {
+	// 	files, err = cache.Load()
+	// 	if err != nil {
+	// 		return s, err
+	// 	}
+	// } else {
+	// 	files, err = Load(gist)
+	// 	if err != nil {
+	// 		return s, err
+	// 	}
+	// 	// sync files in background
+	// 	lfs, _ := getLocalFiles()
+	// 	gist.SyncAll(lfs)
+	// 	if !Conf.Flag.StarredItems {
+	// 		cache.Cache(files)
+	// 	}
+	// }
 
 	return &Screen{
-		Gist:  gist,
-		Lines: renderLines(files),
-		Cache: *cache,
+		Items: items,
+		Lines: lines,
 	}, nil
 }
 
+func (s *Screen) Select() (items gist.Items, err error) {
+	if len(s.Lines) == 0 {
+		err = errors.New("no text to display")
+		return
+	}
+	selectcmd := Conf.Core.SelectCmd
+	if selectcmd == "" {
+		err = errors.New("no selectcmd specified")
+		return
+	}
+
+	text := strings.NewReader(strings.Join(s.Lines, "\n"))
+	var buf bytes.Buffer
+	err = runFilter(selectcmd, text, &buf)
+	if err != nil {
+		return
+	}
+
+	if buf.Len() == 0 {
+		err = errors.New("no lines selected")
+		return
+	}
+
+	selectedLines := strings.Split(buf.String(), "\n")
+	for _, line := range selectedLines {
+		if line == "" {
+			continue
+		}
+		item, err := s.parse(line)
+		if err != nil {
+			// TODO: log
+			continue
+		}
+		items = append(items, item)
+	}
+
+	return
+}
+
+func (s *Screen) parse(line string) (gist.Item, error) {
+	for _, item := range s.Items {
+		if item.ID == line {
+			return item, nil
+		}
+	}
+	return gist.Item{}, nil
+}
+
+/*
 type Line struct {
 	ID          string
 	ShortID     string
@@ -151,50 +192,6 @@ func (l *Lines) Uniq() Lines {
 		}
 	}
 	return lines
-}
-
-func (s *Screen) Select() (lines Lines, err error) {
-	if len(s.Lines) == 0 {
-		err = errors.New("no text to display")
-		return
-	}
-	selectcmd := Conf.Core.SelectCmd
-	if selectcmd == "" {
-		err = errors.New("no selectcmd specified")
-		return
-	}
-
-	text := strings.NewReader(strings.Join(s.Lines, "\n"))
-	var buf bytes.Buffer
-	err = runFilter(selectcmd, text, &buf)
-	if err != nil {
-		return
-	}
-
-	if buf.Len() == 0 {
-		err = errors.New("no lines selected")
-		return
-	}
-
-	selectedLines := strings.Split(buf.String(), "\n")
-	for _, line := range selectedLines {
-		if line == "" {
-			continue
-		}
-		parsedLine, err := s.parseLine(line)
-		if err != nil {
-			// TODO: log
-			continue
-		}
-		lines = append(lines, *parsedLine)
-	}
-
-	if len(lines) == 0 {
-		err = errors.New("no lines selected")
-		return
-	}
-
-	return
 }
 
 func getSize() (int, error) {
@@ -319,3 +316,4 @@ func getLocalFiles() (files []string, err error) {
 	})
 	return files, err
 }
+*/
