@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/b4b4r07/gist/cli"
+	"github.com/b4b4r07/gist/cli/gist"
 	"github.com/spf13/cobra"
 )
 
@@ -19,27 +19,36 @@ var deleteCmd = &cobra.Command{
 func delete(cmd *cobra.Command, args []string) (err error) {
 	screen, err := cli.NewScreen()
 	if err != nil {
-		return err
+		return
 	}
 
-	lines, err := screen.Select()
+	items, err := screen.Select()
 	if err != nil {
-		return err
+		return
 	}
 
-	lines = lines.Uniq()
-	if len(lines) > 0 {
-		cli.NewCache().Clear()
+	// lines = lines.Uniq()
+	// if len(lines) > 0 {
+	// 	cli.NewCache().Clear()
+	// }
+
+	client, err := gist.NewClient(cli.Conf.Gist.Token)
+	if err != nil {
+		return
 	}
 
-	for _, line := range lines {
-		err = screen.Gist.Delete(line.ID)
+	for _, item := range items {
+		err := client.Delete(item.ID)
 		if err != nil {
-			log.Printf("[ERROR] %v", err)
+			continue
 		}
 		// remove from local
-		_ = os.Remove(line.Path)
-		fmt.Printf("Deleted %s\n", line.ID)
+		path, err := cli.GetPath(item.ID)
+		if err != nil {
+			continue
+		}
+		_ = os.Remove(path)
+		fmt.Printf("Deleted %s\n", item.ID)
 	}
 
 	return nil

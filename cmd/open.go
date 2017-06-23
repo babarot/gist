@@ -18,12 +18,12 @@ func open(cmd *cobra.Command, args []string) (err error) {
 		return cli.Open(gist.YourURL)
 	}
 
-	s, err := cli.NewScreen()
+	screen, err := cli.NewScreen()
 	if err != nil {
 		return err
 	}
 
-	lines, err := s.Select()
+	lines, err := screen.Select()
 	if err != nil {
 		return err
 	}

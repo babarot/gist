@@ -3,6 +3,8 @@ package cli
 import (
 	"errors"
 	"net/url"
+	"os"
+	"path/filepath"
 
 	"github.com/b4b4r07/gist/api"
 	"github.com/pkg/browser"
@@ -41,4 +43,10 @@ func Open(link string) error {
 		return err
 	}
 	return browser.OpenURL(link)
+}
+
+func GetPath(id string) (path string, err error) {
+	path = filepath.Join(Conf.Gist.Dir, id)
+	_, err = os.Stat(path)
+	return
 }

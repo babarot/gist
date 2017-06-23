@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	tt "text/template"
 
 	"github.com/b4b4r07/gist/api"
@@ -24,7 +25,6 @@ type (
 		Description string
 		Public      bool
 		Files       []File
-
 		// original field
 		URL string
 	}
@@ -32,6 +32,8 @@ type (
 	File  struct {
 		Filename string
 		Content  string
+		// original field
+		Path string
 	}
 	Files []File
 )
@@ -62,6 +64,8 @@ func convertItem(data api.Item) Item {
 		files = append(files, File{
 			Filename: file.Filename,
 			Content:  file.Content,
+			// original field
+			Path: filepath.Join(data.ID, file.Filename),
 		})
 	}
 	return Item{
@@ -70,7 +74,6 @@ func convertItem(data api.Item) Item {
 		Description: data.Description,
 		Public:      data.Public,
 		Files:       files,
-
 		// original field
 		URL: path.Join(BaseURL, data.ID),
 	}
@@ -128,4 +131,11 @@ func (items *Items) Render(columns []string) []string {
 		}
 	}
 	return lines
+}
+
+func (c *Client) Delete(id string) (err error) {
+	s := NewSpinner("Fetching...")
+	s.Start()
+	defer s.Stop()
+	return c.Gist.Delete(id)
 }
