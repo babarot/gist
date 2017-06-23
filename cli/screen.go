@@ -23,9 +23,19 @@ func NewScreen() (s *Screen, err error) {
 	if err != nil {
 		return
 	}
-	items, err := client.List()
-	if err != nil {
-		return
+	var items gist.Items
+	cache := NewCache()
+	if cache.Available() && !Conf.Flag.StarredItems {
+		items, err = cache.Load()
+		if err != nil {
+			return s, err
+		}
+	} else {
+		items, err = client.List()
+		if err != nil {
+			return s, err
+		}
+		cache.Cache(items)
 	}
 	s = &Screen{}
 	s.Items = items

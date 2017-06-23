@@ -118,5 +118,11 @@ func (cfg *Config) LoadFile(file string) error {
 	cfg.Flag.ShowPrivateSymbol = false
 	cfg.Flag.StarredItems = false
 
+	cfg.Screen.Columns = []string{
+		"{{.ShortID}}",
+		"{{.PrivateMark}} {{.Filename}}",
+		"{{.Description}}",
+	}
+
 	return toml.NewEncoder(f).Encode(cfg)
 }

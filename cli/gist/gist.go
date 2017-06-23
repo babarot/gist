@@ -20,20 +20,20 @@ type (
 		gist api.Gist
 	}
 	Item struct {
-		ID          string
-		ShortID     string
-		Description string
-		Public      bool
-		Files       []File
+		ID          string `json:"id"`
+		ShortID     string `json:"short_id"`
+		Description string `json:"description"`
+		Public      bool   `json:"public"`
+		Files       []File `json:"files"`
 		// original field
-		URL string
+		URL string `json:"url"`
 	}
 	Items []Item
 	File  struct {
-		Filename string
-		Content  string
+		Filename string `json:"filename"`
+		Content  string `json:"content"`
 		// original field
-		Path string
+		Path string `json:"path"`
 	}
 	Files []File
 )
@@ -121,6 +121,12 @@ func (items *Items) Render(columns []string) []string {
 					"ShortID":     item.ShortID,
 					"Description": item.Description,
 					"Filename":    fmt.Sprintf(fnfmt, file.Filename),
+					"PrivateMark": func() string {
+						if item.Public {
+							return " "
+						}
+						return "*"
+					}(),
 				})
 				if err != nil {
 					return []string{}

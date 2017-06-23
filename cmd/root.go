@@ -29,7 +29,7 @@ var RootCmd = &cobra.Command{
 			return
 		}
 		if cacheClear {
-			// cli.NewCache().Clear()
+			cli.NewCache().Clear()
 			return
 		}
 		cmd.Usage()
