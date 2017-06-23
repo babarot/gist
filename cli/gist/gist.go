@@ -17,7 +17,7 @@ var YourURL = path.Join(BaseURL, os.Getenv("USER"))
 
 type (
 	Client struct {
-		Gist api.Gist
+		gist api.Gist
 	}
 	Item struct {
 		ID          string
@@ -43,14 +43,14 @@ func NewClient(token string) (c *Client, err error) {
 	if err != nil {
 		return
 	}
-	return &Client{Gist: *gist}, nil
+	return &Client{gist: *gist}, nil
 }
 
 func (c *Client) List() (items Items, err error) {
 	s := NewSpinner("Fetching...")
 	s.Start()
 	defer s.Stop()
-	resp, err := c.Gist.List()
+	resp, err := c.gist.List()
 	if err != nil {
 		return
 	}
@@ -137,5 +137,5 @@ func (c *Client) Delete(id string) (err error) {
 	s := NewSpinner("Fetching...")
 	s.Start()
 	defer s.Stop()
-	return c.Gist.Delete(id)
+	return c.gist.Delete(id)
 }
