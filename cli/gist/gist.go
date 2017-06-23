@@ -3,10 +3,16 @@ package gist
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"path"
 	tt "text/template"
 
 	"github.com/b4b4r07/gist/api"
 )
+
+const BaseURL = "https://gist.github.com"
+
+var YourURL = path.Join(BaseURL, os.Getenv("USER"))
 
 type (
 	Client struct {
@@ -18,6 +24,9 @@ type (
 		Description string
 		Public      bool
 		Files       []File
+
+		// original field
+		URL string
 	}
 	Items []Item
 	File  struct {
@@ -36,6 +45,9 @@ func NewClient(token string) (c *Client, err error) {
 }
 
 func (c *Client) List() (items Items, err error) {
+	s := NewSpinner("Fetching...")
+	s.Start()
+	defer s.Stop()
 	resp, err := c.Gist.List()
 	if err != nil {
 		return
@@ -58,6 +70,9 @@ func convertItem(data api.Item) Item {
 		Description: data.Description,
 		Public:      data.Public,
 		Files:       files,
+
+		// original field
+		URL: path.Join(BaseURL, data.ID),
 	}
 }
 

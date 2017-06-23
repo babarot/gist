@@ -7,15 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/b4b4r07/gist/util"
 	"github.com/google/go-github/github"
 	runewidth "github.com/mattn/go-runewidth"
 )
 
 func (g *Gist) Clone(dir string, item *github.Gist) error {
-	if util.Exists(*item.ID) {
-		return nil
-	}
+	// if util.Exists(*item.ID) {
+	// 	return nil
+	// }
 
 	oldwd, _ := os.Getwd()
 	if _, err := os.Stat(dir); os.IsNotExist(err) {

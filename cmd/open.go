@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/b4b4r07/gist/cli"
-	"github.com/k0kubun/pp"
+	"github.com/b4b4r07/gist/cli/gist"
 	"github.com/spf13/cobra"
 )
 
@@ -14,6 +14,10 @@ var openCmd = &cobra.Command{
 }
 
 func open(cmd *cobra.Command, args []string) (err error) {
+	if cli.Conf.Flag.OpenBaseURL {
+		return cli.Open(gist.YourURL)
+	}
+
 	s, err := cli.NewScreen()
 	if err != nil {
 		return err
@@ -24,12 +28,7 @@ func open(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	pp.Println(lines)
-	return nil
-
-	// line := lines[0]
-	//
-	// return util.Open(line.URL)
+	return cli.Open(lines[0].URL)
 }
 
 func init() {

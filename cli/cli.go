@@ -2,8 +2,10 @@ package cli
 
 import (
 	"errors"
+	"net/url"
 
 	"github.com/b4b4r07/gist/api"
+	"github.com/pkg/browser"
 )
 
 func NewGist() (*api.Gist, error) {
@@ -31,4 +33,12 @@ func Edit(gist *api.Gist, fname string) error {
 	// }
 	//
 	// return gist.Sync(fname)
+}
+
+func Open(link string) error {
+	_, err := url.ParseRequestURI(link)
+	if err != nil {
+		return err
+	}
+	return browser.OpenURL(link)
 }
