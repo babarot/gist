@@ -3,19 +3,37 @@ package cli
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
+	tt "text/template"
 
 	gist "github.com/b4b4r07/gist/api"
 )
 
+var IDLength = gist.IDLength
+
 type (
 	Screen struct {
-		Items gist.Items
+		Items Items
 		Lines []string
 	}
 	Lines []string
 	// Line  string
 	// Lines []Line
+
+	Item struct {
+		ID          string
+		ShortID     string
+		Description string
+		Public      bool
+		Files       []File
+	}
+	Items []Item
+	File  struct {
+		Filename string
+		Content  string
+	}
+	Files []File
 )
 
 func NewScreen() (s *Screen, err error) {
@@ -23,10 +41,11 @@ func NewScreen() (s *Screen, err error) {
 	if err != nil {
 		return
 	}
-	items, err := gist.List()
+	resp, err := gist.List()
 	if err != nil {
 		return
 	}
+	items := convertItems(resp)
 	lines := items.Render(Conf.Screen.Columns)
 
 	// for screen cache
@@ -57,7 +76,7 @@ func NewScreen() (s *Screen, err error) {
 	}, nil
 }
 
-func (s *Screen) Select() (items gist.Items, err error) {
+func (s *Screen) Select() (items Items, err error) {
 	if len(s.Lines) == 0 {
 		err = errors.New("no text to display")
 		return
@@ -87,7 +106,6 @@ func (s *Screen) Select() (items gist.Items, err error) {
 		}
 		item, err := s.parse(line)
 		if err != nil {
-			// TODO: log
 			continue
 		}
 		items = append(items, item)
@@ -96,95 +114,105 @@ func (s *Screen) Select() (items gist.Items, err error) {
 	return
 }
 
-func (s *Screen) parse(line string) (gist.Item, error) {
-	l := strings.Split(line, "\t")
-	idx := func() int {
-		for i, v := range Conf.Screen.Columns {
-			if v == "{{.ID}}" {
-				return i
-			}
+func containsIndex(s string) int {
+	for i, v := range Conf.Screen.Columns {
+		if strings.Contains(v, s) {
+			return i
 		}
-		return -1
-	}()
-	if idx == -1 {
-		// default
-		idx = 0
 	}
+	return -1
+}
+
+func (s *Screen) parse(line string) (Item, error) {
+	l := strings.Split(line, "\t")
+	var (
+		id  = containsIndex("{{.ID}}")
+		sid = containsIndex("{{.ShortID}}")
+	)
 	for _, item := range s.Items {
-		if item.ID == l[idx] {
+		// Strictly do not compare
+		if id >= 0 && len(item.ID) >= IDLength && strings.Contains(l[id], item.ID) {
+			return item, nil
+		}
+		if sid >= 0 && len(item.ShortID) >= IDLength && strings.Contains(l[sid], item.ShortID) {
 			return item, nil
 		}
 	}
-	return gist.Item{}, errors.New("not found")
+	return Item{}, errors.New("not found")
+}
+
+func convertItem(data gist.Item) Item {
+	var files Files
+	for _, file := range data.Files {
+		files = append(files, File{
+			Filename: file.Filename,
+			Content:  file.Content,
+		})
+	}
+	return Item{
+		ID:          data.ID,
+		ShortID:     data.ShortID,
+		Description: data.Description,
+		Public:      data.Public,
+		Files:       files,
+	}
+}
+
+func convertItems(data gist.Items) Items {
+	var items Items
+	for _, d := range data {
+		items = append(items, convertItem(d))
+	}
+	return items
+}
+
+func (items *Items) Render(columns []string) []string {
+	var lines []string
+	max := 0
+	for _, item := range *items {
+		for _, file := range item.Files {
+			if len(file.Filename) > max {
+				max = len(file.Filename)
+			}
+		}
+	}
+	for _, item := range *items {
+		var line string
+		var tmpl *tt.Template
+		if len(columns) == 0 {
+			columns = []string{"{{.ID}}"}
+		}
+		fnfmt := fmt.Sprintf("%%-%ds", max)
+		for _, file := range item.Files {
+			format := columns[0]
+			for _, v := range columns[1:] {
+				format += "\t" + v
+			}
+			t, err := tt.New("format").Parse(format)
+			if err != nil {
+				return []string{}
+			}
+			tmpl = t
+			if tmpl != nil {
+				var b bytes.Buffer
+				err := tmpl.Execute(&b, map[string]interface{}{
+					"ID":          item.ID,
+					"ShortID":     item.ShortID,
+					"Description": item.Description,
+					"Filename":    fmt.Sprintf(fnfmt, file.Filename),
+				})
+				if err != nil {
+					return []string{}
+				}
+				line = b.String()
+			}
+			lines = append(lines, line)
+		}
+	}
+	return lines
 }
 
 /*
-type Line struct {
-	ID          string
-	ShortID     string
-	Description string
-	Filename    string
-	Path        string
-	URL         string
-	Public      bool
-}
-
-type Lines []Line
-
-func (s *Screen) parseLine(line string) (*Line, error) {
-	trimDirSymbol := func(id string) string {
-		id = strings.TrimSpace(id)
-		id = strings.TrimLeft(id, " | ")
-		id = strings.TrimLeft(id, " + ")
-		return id
-	}
-	trimPrivateSymbol := func(filename string) string {
-		filename = strings.TrimSpace(filename)
-		filename = strings.TrimLeft(filename, "* ")
-		return filename
-	}
-	l := strings.Split(line, "\t")
-	var (
-		shortID  = trimDirSymbol(l[0])
-		filename = trimPrivateSymbol(l[1])
-		desc     = l[2]
-
-		longID string
-		err    error
-	)
-
-	longID, err = s.Gist.ExpandID(shortID)
-	if err != nil {
-		if Conf.Gist.UseCache && util.Exists(s.Cache.Path) {
-			files, err := s.Cache.Load()
-			if err != nil {
-				return &Line{}, err
-			}
-			for _, file := range files {
-				if file.ShortID == shortID {
-					longID = file.ID
-				}
-			}
-		} else {
-			return &Line{}, err
-		}
-	}
-
-	baseURL := Conf.Gist.BaseURL
-	if baseURL == "" {
-		baseURL = "https://gist.github.com"
-	}
-
-	return &Line{
-		ID:          longID,
-		ShortID:     shortID,
-		Filename:    filename,
-		Description: desc,
-		Path:        filepath.Join(Conf.Gist.Dir, longID, filename),
-		URL:         path.Join(baseURL, longID),
-	}, nil
-}
-
 func (l *Lines) Filter(fn func(Line) bool) *Lines {
 	lines := make(Lines, 0)
 	for _, line := range *l {

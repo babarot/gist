@@ -74,8 +74,6 @@ func (g *Gist) ExpandID(shortID string) (longID string, err error) {
 	return "", errors.New("no matched ID")
 }
 
-var IDLength int = 9
-
 func ShortenID(longID string) string {
 	return runewidth.Truncate(longID, IDLength, "")
 }
