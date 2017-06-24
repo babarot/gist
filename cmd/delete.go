@@ -28,7 +28,7 @@ func delete(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	// lines = lines.Uniq()
+	items = items.Unique()
 	if len(items) > 0 {
 		cli.NewCache().Clear()
 	}
