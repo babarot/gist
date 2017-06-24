@@ -10,6 +10,7 @@ import (
 
 	"github.com/b4b4r07/gist/api"
 	"github.com/google/go-github/github"
+	runewidth "github.com/mattn/go-runewidth"
 )
 
 const BaseURL = "https://gist.github.com"
@@ -39,6 +40,10 @@ type (
 	Files []File
 )
 
+func ShortenID(id string) string {
+	return runewidth.Truncate(id, api.IDLength, "")
+}
+
 func NewClient(token string) (c *Client, err error) {
 	gist, err := api.NewGist(token)
 	if err != nil {
@@ -59,7 +64,7 @@ func (c *Client) List() (items Items, err error) {
 	return
 }
 
-func (c *Client) Create(files Files, desc string, public bool) (err error) {
+func (c *Client) Create(files Files, desc string, private bool) (item Item, err error) {
 	s := NewSpinner("Creating...")
 	s.Start()
 	defer s.Stop()
@@ -75,8 +80,27 @@ func (c *Client) Create(files Files, desc string, public bool) (err error) {
 			Content:  &content,
 		}
 	}
-	_, err = c.gist.Create(gistFiles, desc, public)
-	return err
+	resp, err := c.gist.Create(gistFiles, desc, private)
+	if err != nil {
+		return
+	}
+	files = Files{}
+	for _, file := range resp.Files {
+		files = append(files, File{
+			Filename: *file.Filename,
+			Content:  *file.Content,
+			Path:     filepath.Join(*resp.ID, *file.Filename),
+		})
+	}
+	item = Item{
+		ID:          *resp.ID,
+		ShortID:     ShortenID(*resp.ID),
+		Description: *resp.Description,
+		Public:      *resp.Public,
+		Files:       files,
+		URL:         *resp.HTMLURL,
+	}
+	return
 }
 
 func (c *Client) Delete(id string) (err error) {

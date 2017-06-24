@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -115,4 +116,12 @@ func Scan(message string, allowEmpty bool) (string, error) {
 		return line, nil
 	}
 	return "", errors.New("canceled")
+}
+
+func FileContent(file string) (content string, err error) {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return
+	}
+	return string(data), err
 }

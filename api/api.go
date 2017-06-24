@@ -93,7 +93,8 @@ func (g *Gist) ListStarred() (items []*github.Gist, err error) {
 func (g *Gist) Create(
 	files map[github.GistFilename]github.GistFile,
 	desc string,
-	public bool) (item *github.Gist, err error) {
+	private bool) (item *github.Gist, err error) {
+	public := !private
 	item, resp, err := g.Client.Gists.Create(context.Background(), &github.Gist{
 		Files:       files,
 		Description: &desc,

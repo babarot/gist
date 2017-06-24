@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"errors"
-	"io/ioutil"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/cli/gist"
@@ -24,60 +25,49 @@ type gistItem struct {
 	desc  string
 }
 
-func new(cmd *cobra.Command, args []string) error {
-	var err error
+func new(cmd *cobra.Command, args []string) (err error) {
 	var gi gistItem
 
 	client, err := gist.NewClient(cli.Conf.Gist.Token)
 	if err != nil {
-		return err
+		return
 	}
 
-	/*
-		// Make Gist from various conditions
-		switch {
-		case cli.Conf.Flag.FromClipboard:
-			gi, err = makeFromClipboard()
-		case !terminal.IsTerminal(0):
-			gi, err = makeFromStdin()
-		case len(args) > 0:
-			gi, err = makeFromArguments(args)
-		case len(args) == 0:
-			gi, err = makeFromEditor()
+	// Make Gist from various conditions
+	switch {
+	// case cli.Conf.Flag.FromClipboard:
+	// 	gi, err = makeFromClipboard()
+	// case !terminal.IsTerminal(0):
+	// 	gi, err = makeFromStdin()
+	case len(args) > 0:
+		gi, err = makeFromArguments(args)
+	case len(args) == 0:
+		gi, err = makeFromEditor()
+	}
+	if err != nil {
+		return
+	}
+
+	item, err := client.Create(gi.files, gi.desc, cli.Conf.Flag.NewPrivate)
+	if err != nil {
+		return
+	}
+
+	if cli.Conf.Gist.UseCache {
+		cache := cli.NewCache()
+		items, err := cache.Load()
+		if err != nil {
+			return err
 		}
-	*/
-	gi, err = makeFromEditor()
-	if err != nil {
-		return err
+		// append to the top of slice (unshift)
+		items, items[0] = append(items[0:1], items[0:]...), item
+		cache.Cache(items)
+	}
+	cli.Underline("Created", item.URL)
+	if cli.Conf.Flag.OpenURL {
+		return cli.Open(item.URL)
 	}
 
-	err = client.Create(gi.files, gi.desc, cli.Conf.Flag.NewPrivate)
-	if err != nil {
-		return err
-	}
-
-	// if cli.Conf.Gist.UseCache {
-	// 	cache := cli.NewCache()
-	// 	files, err := cache.Load()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	for _, file := range gi.files {
-	// 		// append to the top of slice (unshift)
-	// 		files, files[0] = append(files[0:1], files[0:]...), api.File{
-	// 			ID:          *item.ID,
-	// 			ShortID:     api.ShortenID(*item.ID),
-	// 			Filename:    file.Filename,
-	// 			Description: *item.Description,
-	// 			Public:      *item.Public,
-	// 		}
-	// 	}
-	// 	cache.Cache(files)
-	// }
-	// cli.Underline("Created", *item.HTMLURL)
-	// if cli.Conf.Flag.OpenURL {
-	// 	cli.Open(*item.HTMLURL)
-	// }
 	return nil
 }
 
@@ -111,11 +101,7 @@ func makeFromEditor() (gi gistItem, err error) {
 		return
 	}
 
-	data, err := ioutil.ReadFile(f.Name())
-	if err != nil {
-		return
-	}
-	content := string(data)
+	content, _ := cli.FileContent(f.Name())
 	if content == title {
 		return gi, errors.New("no contents")
 	}
@@ -131,6 +117,84 @@ func makeFromEditor() (gi gistItem, err error) {
 			Content:  content,
 		}},
 		desc: desc,
+	}, nil
+}
+
+func makeFromArguments(args []string) (gi gistItem, err error) {
+	var (
+		gistFiles gist.Files
+		files     []string
+	)
+
+	// Check if the path is directory
+	isdir := func(path string) bool {
+		if stat, err := os.Stat(path); err == nil && stat.IsDir() {
+			return true
+		}
+		return false
+	}
+
+	for _, arg := range args {
+		// if the arg is dir, walk within the dir and add them to slice
+		// otherwise (regular file), just add it to slice
+		if isdir(arg) {
+			err = filepath.Walk(arg, func(arg string, info os.FileInfo, err error) error {
+				if strings.HasPrefix(arg, ".") {
+					return nil
+				}
+				if info.IsDir() {
+					return nil
+				}
+				files = append(files, arg)
+				return nil
+			})
+			if err != nil {
+				return
+			}
+		} else {
+			if _, err := os.Stat(arg); err != nil {
+				fmt.Fprintf(os.Stderr, "%s: no such file or directory\n", arg)
+				continue
+			}
+			files = append(files, arg)
+		}
+	}
+
+	switch len(files) {
+	case 0:
+		return gi, errors.New("no files to be able create")
+	case 1:
+		file := files[0]
+		cli.ScanDefaultString = file
+		file, err = cli.Scan(color.YellowString("Filename> "), !cli.ScanAllowEmpty)
+		if err != nil {
+			return
+		}
+		content, _ := cli.FileContent(files[0]) // Use original file: files[0]
+		gistFiles = append(gistFiles, gist.File{
+			Filename: filepath.Base(file),
+			Content:  content,
+		})
+		cli.ScanDefaultString = "" // reset deafult string
+	default:
+		for _, file := range files {
+			fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
+			content, _ := cli.FileContent(file)
+			gistFiles = append(gistFiles, gist.File{
+				Filename: filepath.Base(file),
+				Content:  content,
+			})
+		}
+	}
+
+	desc, err := cli.Scan(color.GreenString("Description> "), cli.ScanAllowEmpty)
+	if err != nil {
+		return
+	}
+
+	return gistItem{
+		files: gistFiles,
+		desc:  desc,
 	}, nil
 }
 
@@ -179,84 +243,6 @@ func makeFromStdin() (gi gistItem, err error) {
 			Content:  string(body),
 		}},
 		desc: "",
-	}, nil
-}
-
-func makeFromArguments(args []string) (gi gistItem, err error) {
-	var (
-		gistFiles api.Files
-		files     []string
-	)
-
-	// Check if the path is directory
-	isdir := func(path string) bool {
-		if stat, err := os.Stat(path); err == nil && stat.IsDir() {
-			return true
-		}
-		return false
-	}
-
-	for _, arg := range args {
-		// if the arg is dir, walk within the dir and add them to slice
-		// otherwise (regular file), just add it to slice
-		if isdir(arg) {
-			err = filepath.Walk(arg, func(arg string, info os.FileInfo, err error) error {
-				if strings.HasPrefix(arg, ".") {
-					return nil
-				}
-				if info.IsDir() {
-					return nil
-				}
-				files = append(files, arg)
-				return nil
-			})
-			if err != nil {
-				return
-			}
-		} else {
-			if !util.Exists(arg) {
-				log.Infof("%s: no such file or directory", arg)
-				continue
-			}
-			files = append(files, arg)
-		}
-	}
-
-	switch len(files) {
-	case 0:
-		return gi, errors.New("no files to be able create")
-	case 1:
-		file := files[0]
-		util.ScanDefaultString = file
-		file, err = util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
-		if err != nil {
-			return
-		}
-		content, _ := util.FileContent(files[0]) // Use original file: files[0]
-		gistFiles = append(gistFiles, api.File{
-			Filename: filepath.Base(file),
-			Content:  content,
-		})
-		util.ScanDefaultString = "" // reset deafult string
-	default:
-		for _, file := range files {
-			fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
-			content, _ := util.FileContent(file)
-			gistFiles = append(gistFiles, api.File{
-				Filename: filepath.Base(file),
-				Content:  content,
-			})
-		}
-	}
-
-	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
-	if err != nil {
-		return
-	}
-
-	return gistItem{
-		files: gistFiles,
-		desc:  desc,
 	}, nil
 }
 */
