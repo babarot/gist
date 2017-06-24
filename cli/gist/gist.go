@@ -9,6 +9,7 @@ import (
 	tt "text/template"
 
 	"github.com/b4b4r07/gist/api"
+	"github.com/google/go-github/github"
 )
 
 const BaseURL = "https://gist.github.com"
@@ -56,6 +57,33 @@ func (c *Client) List() (items Items, err error) {
 	}
 	items = convertItems(resp)
 	return
+}
+
+func (c *Client) Create(files Files, desc string, public bool) (err error) {
+	s := NewSpinner("Creating...")
+	s.Start()
+	defer s.Stop()
+	gistFiles := make(map[github.GistFilename]github.GistFile, len(files))
+	for _, file := range files {
+		var (
+			filename = file.Filename
+			content  = file.Content
+			gistname = github.GistFilename(filename)
+		)
+		gistFiles[gistname] = github.GistFile{
+			Filename: &filename,
+			Content:  &content,
+		}
+	}
+	_, err = c.gist.Create(gistFiles, desc, public)
+	return err
+}
+
+func (c *Client) Delete(id string) (err error) {
+	s := NewSpinner("Deleting...")
+	s.Start()
+	defer s.Stop()
+	return c.gist.Delete(id)
 }
 
 func convertItem(data api.Item) Item {
@@ -137,11 +165,4 @@ func (items *Items) Render(columns []string) []string {
 		}
 	}
 	return lines
-}
-
-func (c *Client) Delete(id string) (err error) {
-	s := NewSpinner("Fetching...")
-	s.Start()
-	defer s.Stop()
-	return c.gist.Delete(id)
 }
