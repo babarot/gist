@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/b4b4r07/gist/cli"
 	"github.com/spf13/cobra"
 )
@@ -18,17 +20,17 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	lines, err := screen.Select()
+	items, err := screen.Select()
 	if err != nil {
 		return err
 	}
 
-	for _, line := range lines {
-		if err := cli.Runnable(line.Path); err != nil {
-			continue
-		}
-		if err := cli.Run(line.Path, args...); err != nil {
-			continue
+	for _, item := range items {
+		for _, file := range item.Files {
+			if err := file.Execute(); err != nil {
+				log.Print(err)
+				continue
+			}
 		}
 	}
 

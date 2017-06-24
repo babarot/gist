@@ -19,6 +19,7 @@ type (
 )
 
 func NewScreen() (s *Screen, err error) {
+	gist.Dir = Conf.Gist.Dir
 	client, err := gist.NewClient(Conf.Gist.Token)
 	if err != nil {
 		return

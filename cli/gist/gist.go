@@ -11,7 +11,10 @@ import (
 
 const BaseURL = "https://gist.github.com"
 
-var YourURL = path.Join(BaseURL, os.Getenv("USER"))
+var (
+	YourURL = path.Join(BaseURL, os.Getenv("USER"))
+	Dir     string
+)
 
 type (
 	Client struct {
@@ -81,7 +84,7 @@ func (c *Client) Create(files Files, desc string, private bool) (item Item, err 
 		files = append(files, File{
 			Filename: *file.Filename,
 			Content:  *file.Content,
-			Path:     filepath.Join(*resp.ID, *file.Filename),
+			Path:     filepath.Join(Dir, *resp.ID, *file.Filename),
 		})
 	}
 	item = Item{

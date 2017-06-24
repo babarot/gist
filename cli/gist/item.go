@@ -3,6 +3,8 @@ package gist
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	tt "text/template"
@@ -18,7 +20,7 @@ func convertItem(data api.Item) Item {
 			Filename: file.Filename,
 			Content:  file.Content,
 			// original field
-			Path: filepath.Join(data.ID, file.Filename),
+			Path: filepath.Join(Dir, data.ID, file.Filename),
 		})
 	}
 	return Item{
@@ -104,6 +106,64 @@ func (i *Items) Unique() Items {
 	return items
 }
 
+func (i *Items) Filter(fn func(Item) bool) *Items {
+	items := make(Items, 0)
+	for _, item := range *i {
+		if fn(item) {
+			items = append(items, item)
+		}
+	}
+	return &items
+}
+
+func (i *Items) One() Item {
+	var item Item
+	if len(*i) > 0 {
+		return (*i)[0]
+	}
+	return item
+}
+
 func ShortenID(id string) string {
 	return runewidth.Truncate(id, api.IDLength, "")
+}
+
+func (f *File) Exists() bool {
+	_, err := os.Stat(f.Path)
+	return err == nil
+}
+
+func (i *Item) Clone(dir string) error {
+	_, err := os.Stat(filepath.Join(dir, i.ID))
+	if err == nil {
+		return nil
+	}
+	oldwd, _ := os.Getwd()
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.Mkdir(dir, 0700)
+	}
+	os.Chdir(dir)
+	defer os.Chdir(oldwd)
+	// TODO: Start()
+	return exec.Command("git", "clone", i.URL).Start()
+}
+
+func (f *File) Execute() error {
+	fi, err := os.Stat(f.Path)
+	if err != nil {
+		return err
+	}
+	var (
+		origPerm = fi.Mode().Perm()
+		execPerm = os.FileMode(0755).Perm()
+	)
+	if origPerm != execPerm {
+		os.Chmod(f.Path, execPerm)
+		defer os.Chmod(f.Path, origPerm)
+	}
+	cmd := exec.Command("sh", "-c", f.Path)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	return cmd.Run()
 }

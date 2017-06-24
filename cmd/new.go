@@ -52,17 +52,21 @@ func new(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		return
 	}
+	item.Clone(cli.Conf.Gist.Dir)
 
 	if cli.Conf.Gist.UseCache {
 		cache := cli.NewCache()
-		items, err := cache.Load()
-		if err != nil {
-			return err
+		if items, err := cache.Load(); err == nil {
+			// append to the top of slice (unshift)
+			if len(items) > 0 {
+				items, items[0] = append(items[0:1], items[0:]...), item
+			} else {
+				items = append(items, item)
+			}
+			cache.Cache(items)
 		}
-		// append to the top of slice (unshift)
-		items, items[0] = append(items[0:1], items[0:]...), item
-		cache.Cache(items)
 	}
+
 	cli.Underline("Created", item.URL)
 	if cli.Conf.Flag.OpenURL {
 		return cli.Open(item.URL)
