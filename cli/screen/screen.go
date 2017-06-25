@@ -1,4 +1,4 @@
-package cli
+package screen
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/b4b4r07/gist/api"
+	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/cli/gist"
 )
 
@@ -16,17 +17,25 @@ type (
 		Items gist.Items
 		Lines []string
 	}
+	Row struct {
+		ID          string
+		ShortID     string
+		Description string
+		Public      bool
+		URL         string
+		File        gist.File
+	}
 )
 
 func NewScreen() (s *Screen, err error) {
-	gist.Dir = Conf.Gist.Dir
-	client, err := gist.NewClient(Conf.Gist.Token)
+	gist.Dir = cli.Conf.Gist.Dir
+	client, err := gist.NewClient(cli.Conf.Gist.Token)
 	if err != nil {
 		return
 	}
 	var items gist.Items
-	cache := NewCache()
-	if cache.Available() && !Conf.Flag.StarredItems {
+	cache := cli.NewCache()
+	if cache.Available() && !cli.Conf.Flag.StarredItems {
 		items, err = cache.Load()
 		if err != nil {
 			return s, err
@@ -40,16 +49,16 @@ func NewScreen() (s *Screen, err error) {
 	}
 	s = &Screen{}
 	s.Items = items
-	s.Lines = items.Render(Conf.Screen.Columns)
+	s.Lines = items.Render(cli.Conf.Screen.Columns)
 	return
 }
 
-func (s *Screen) Select() (items gist.Items, err error) {
+func (s *Screen) Select() (rows []Row, err error) {
 	if len(s.Lines) == 0 {
 		err = errors.New("no text to display")
 		return
 	}
-	selectcmd := Conf.Core.SelectCmd
+	selectcmd := cli.Conf.Core.SelectCmd
 	if selectcmd == "" {
 		err = errors.New("no selectcmd specified")
 		return
@@ -57,7 +66,7 @@ func (s *Screen) Select() (items gist.Items, err error) {
 
 	text := strings.NewReader(strings.Join(s.Lines, "\n"))
 	var buf bytes.Buffer
-	err = runFilter(selectcmd, text, &buf)
+	err = cli.Filter(selectcmd, text, &buf)
 	if err != nil {
 		return
 	}
@@ -72,18 +81,18 @@ func (s *Screen) Select() (items gist.Items, err error) {
 		if line == "" {
 			continue
 		}
-		item, err := s.parse(line)
+		row, err := s.parse(line)
 		if err != nil {
 			continue
 		}
-		items = append(items, item)
+		rows = append(rows, row)
 	}
 
 	return
 }
 
 func containsIndex(s string) int {
-	for i, v := range Conf.Screen.Columns {
+	for i, v := range cli.Conf.Screen.Columns {
 		if strings.Contains(v, s) {
 			return i
 		}
@@ -91,20 +100,28 @@ func containsIndex(s string) int {
 	return -1
 }
 
-func (s *Screen) parse(line string) (gist.Item, error) {
+func (s *Screen) parse(line string) (row Row, err error) {
 	l := strings.Split(line, "\t")
 	var (
 		id  = containsIndex("{{.ID}}")
 		sid = containsIndex("{{.ShortID}}")
 	)
 	for _, item := range s.Items {
+		row = Row{
+			ID:          item.ID,
+			ShortID:     item.ShortID,
+			Description: item.Description,
+			Public:      item.Public,
+			URL:         item.URL,
+			File:        item.Files[0],
+		}
 		// Strictly do not compare
 		if id >= 0 && len(item.ID) >= IDLength && strings.Contains(l[id], item.ID) {
-			return item, nil
+			return
 		}
 		if sid >= 0 && len(item.ShortID) >= IDLength && strings.Contains(l[sid], item.ShortID) {
-			return item, nil
+			return
 		}
 	}
-	return gist.Item{}, errors.New("not found")
+	return Row{}, errors.New("failed to parse selected line")
 }
