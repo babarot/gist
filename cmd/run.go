@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"log"
-
 	"github.com/b4b4r07/gist/cli"
+	"github.com/b4b4r07/gist/cli/config"
 	"github.com/b4b4r07/gist/cli/screen"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +15,7 @@ var runCmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	s, err := screen.NewScreen()
+	s, err := screen.New()
 	if err != nil {
 		return err
 	}
@@ -28,7 +27,7 @@ func run(cmd *cobra.Command, args []string) error {
 
 	for _, row := range rows {
 		if err := row.File.Execute(); err != nil {
-			log.Print(err)
+			cli.ErrorLog(err)
 			continue
 		}
 	}
@@ -38,5 +37,5 @@ func run(cmd *cobra.Command, args []string) error {
 
 func init() {
 	RootCmd.AddCommand(runCmd)
-	runCmd.Flags().BoolVarP(&cli.Conf.Flag.StarredItems, "starred", "s", false, "Open your starred gist")
+	runCmd.Flags().BoolVarP(&config.Conf.Flag.StarredItems, "starred", "s", false, "Open your starred gist")
 }

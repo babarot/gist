@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/b4b4r07/gist/cli"
+	"github.com/b4b4r07/gist/cli/config"
 	"github.com/b4b4r07/gist/cli/gist"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -28,14 +29,14 @@ type gistItem struct {
 func new(cmd *cobra.Command, args []string) (err error) {
 	var gi gistItem
 
-	client, err := gist.NewClient(cli.Conf.Gist.Token)
+	client, err := gist.NewClient(config.Conf.Gist.Token)
 	if err != nil {
 		return
 	}
 
 	// Make Gist from various conditions
 	switch {
-	// case cli.Conf.Flag.FromClipboard:
+	// case config.Conf.Flag.FromClipboard:
 	// 	gi, err = makeFromClipboard()
 	// case !terminal.IsTerminal(0):
 	// 	gi, err = makeFromStdin()
@@ -48,14 +49,14 @@ func new(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	gist.Dir = cli.Conf.Gist.Dir
-	item, err := client.Create(gi.files, gi.desc, cli.Conf.Flag.NewPrivate)
+	gist.Dir = config.Conf.Gist.Dir
+	item, err := client.Create(gi.files, gi.desc, config.Conf.Flag.NewPrivate)
 	if err != nil {
 		return
 	}
-	item.Clone(cli.Conf.Gist.Dir)
+	item.Clone(config.Conf.Gist.Dir)
 
-	if cli.Conf.Gist.UseCache {
+	if config.Conf.Gist.UseCache {
 		cache := cli.NewCache()
 		if items, err := cache.Load(); err == nil {
 			// append to the top of slice (unshift)
@@ -69,7 +70,7 @@ func new(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	cli.Underline("Created", item.URL)
-	if cli.Conf.Flag.OpenURL {
+	if config.Conf.Flag.OpenURL {
 		return cli.Open(item.URL)
 	}
 
@@ -83,7 +84,7 @@ func makeFromEditor() (gi gistItem, err error) {
 	}
 
 	filename, title, asBlog := func(filename string) (string, string, bool) {
-		if !cli.Conf.Flag.BlogMode {
+		if !config.Conf.Flag.BlogMode {
 			return filename, "", false
 		}
 		switch filepath.Ext(filename) {
@@ -101,7 +102,7 @@ func makeFromEditor() (gi gistItem, err error) {
 		f.Sync()
 	}
 
-	err = cli.Run(cli.Conf.Core.Editor, f.Name())
+	err = cli.Run(config.Conf.Core.Editor, f.Name())
 	if err != nil {
 		return
 	}
@@ -235,7 +236,7 @@ func makeFromStdin() (gi gistItem, err error) {
 		return
 	}
 	filename := util.RandomString(20)
-	ext := cli.Conf.Gist.FileExt
+	ext := config.Conf.Gist.FileExt
 	if len(ext) > 0 {
 		if !strings.HasPrefix(ext, ".") {
 			ext = "." + ext
@@ -254,7 +255,7 @@ func makeFromStdin() (gi gistItem, err error) {
 
 func init() {
 	RootCmd.AddCommand(newCmd)
-	newCmd.Flags().BoolVarP(&cli.Conf.Flag.OpenURL, "open", "o", false, "Open with the default browser")
-	newCmd.Flags().BoolVarP(&cli.Conf.Flag.NewPrivate, "private", "p", false, "Create as private gist")
-	newCmd.Flags().BoolVarP(&cli.Conf.Flag.FromClipboard, "from-clipboard", "c", false, "Create gist from clipboard")
+	newCmd.Flags().BoolVarP(&config.Conf.Flag.OpenURL, "open", "o", false, "Open with the default browser")
+	newCmd.Flags().BoolVarP(&config.Conf.Flag.NewPrivate, "private", "p", false, "Create as private gist")
+	newCmd.Flags().BoolVarP(&config.Conf.Flag.FromClipboard, "from-clipboard", "c", false, "Create gist from clipboard")
 }

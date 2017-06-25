@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/b4b4r07/gist/cli"
+	"github.com/b4b4r07/gist/cli/config"
 	"github.com/b4b4r07/gist/cli/gist"
 	"github.com/b4b4r07/gist/cli/screen"
 	"github.com/spf13/cobra"
@@ -19,36 +20,35 @@ var deleteCmd = &cobra.Command{
 }
 
 func delete(cmd *cobra.Command, args []string) (err error) {
-	s, err := screen.NewScreen()
+	s, err := screen.New()
 	if err != nil {
 		return
 	}
 
-	items, err := s.Select()
+	rows, err := s.Select()
 	if err != nil {
 		return
 	}
 
-	// items = items.Unique()
-	if len(items) > 0 {
+	// rows = rows.Unique()
+	if len(rows) > 0 {
 		cli.NewCache().Clear()
 	}
 
-	client, err := gist.NewClient(cli.Conf.Gist.Token)
+	client, err := gist.NewClient(config.Conf.Gist.Token)
 	if err != nil {
 		return
 	}
 
-	for _, item := range items {
-		err = client.Delete(item.ID)
+	for _, row := range rows {
+		err = client.Delete(row.ID)
 		if err != nil {
-			log.Printf("failed to delete from gist: %s\n", item.ID)
+			log.Printf("failed to delete from gist: %s\n", row.ID)
 			continue
 		}
 		// remove from local
-		path, _ := cli.GetPath(item.ID)
-		_ = os.Remove(path)
-		fmt.Printf("Deleted %s\n", item.ID)
+		_ = os.Remove(row.File.Path)
+		fmt.Printf("Deleted %s\n", row.ID)
 	}
 
 	return nil
