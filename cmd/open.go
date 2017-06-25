@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/cli/gist"
+	"github.com/b4b4r07/gist/cli/screen"
 	"github.com/spf13/cobra"
 )
 
@@ -18,12 +19,12 @@ func open(cmd *cobra.Command, args []string) (err error) {
 		return cli.Open(gist.YourURL)
 	}
 
-	screen, err := cli.NewScreen()
+	s, err := screen.NewScreen()
 	if err != nil {
 		return err
 	}
 
-	lines, err := screen.Select()
+	lines, err := s.Select()
 	if err != nil {
 		return err
 	}

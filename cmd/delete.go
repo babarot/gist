@@ -7,6 +7,7 @@ import (
 
 	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/cli/gist"
+	"github.com/b4b4r07/gist/cli/screen"
 	"github.com/spf13/cobra"
 )
 
@@ -18,17 +19,17 @@ var deleteCmd = &cobra.Command{
 }
 
 func delete(cmd *cobra.Command, args []string) (err error) {
-	screen, err := cli.NewScreen()
+	s, err := screen.NewScreen()
 	if err != nil {
 		return
 	}
 
-	items, err := screen.Select()
+	items, err := s.Select()
 	if err != nil {
 		return
 	}
 
-	items = items.Unique()
+	// items = items.Unique()
 	if len(items) > 0 {
 		cli.NewCache().Clear()
 	}

@@ -48,6 +48,7 @@ func new(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
+	gist.Dir = cli.Conf.Gist.Dir
 	item, err := client.Create(gi.files, gi.desc, cli.Conf.Flag.NewPrivate)
 	if err != nil {
 		return
