@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/cli/config"
 	"github.com/b4b4r07/gist/cli/gist"
 	"github.com/b4b4r07/gist/cli/screen"
@@ -32,7 +31,7 @@ func delete(cmd *cobra.Command, args []string) (err error) {
 
 	rows = rows.Unique()
 	if len(rows) > 0 {
-		cli.NewCache().Clear()
+		gist.NewCache().Clear()
 	}
 
 	client, err := gist.NewClient(config.Conf.Gist.Token)

@@ -36,7 +36,7 @@ func New() (s *Screen, err error) {
 		return
 	}
 	var items gist.Items
-	cache := cli.NewCache()
+	cache := gist.NewCache()
 	if cache.Available() && !config.Conf.Flag.StarredItems {
 		items, err = cache.Load()
 		if err != nil {

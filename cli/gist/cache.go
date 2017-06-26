@@ -1,4 +1,4 @@
-package cli
+package gist
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/b4b4r07/gist/cli/config"
-	"github.com/b4b4r07/gist/cli/gist"
 )
 
 var Filename = "cache.json"
@@ -44,7 +43,7 @@ func (c *Cache) Clear() error {
 	return os.Remove(c.Path)
 }
 
-func (c *Cache) Cache(items gist.Items) error {
+func (c *Cache) Cache(items Items) error {
 	f, err := os.Create(c.Path)
 	if err != nil {
 		return err
@@ -52,7 +51,7 @@ func (c *Cache) Cache(items gist.Items) error {
 	return json.NewEncoder(f).Encode(&items)
 }
 
-func (c *Cache) Load() (items gist.Items, err error) {
+func (c *Cache) Load() (items Items, err error) {
 	f, err := os.Open(c.Path)
 	if err != nil {
 		return

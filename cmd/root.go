@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/cli/config"
+	"github.com/b4b4r07/gist/cli/gist"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +30,7 @@ var RootCmd = &cobra.Command{
 			return
 		}
 		if cacheClear {
-			cli.NewCache().Clear()
+			gist.NewCache().Clear()
 			return
 		}
 		cmd.Usage()

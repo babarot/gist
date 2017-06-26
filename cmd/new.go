@@ -58,7 +58,7 @@ func new(cmd *cobra.Command, args []string) (err error) {
 	item.Clone()
 
 	if config.Conf.Gist.UseCache {
-		cache := cli.NewCache()
+		cache := gist.NewCache()
 		if items, err := cache.Load(); err == nil {
 			// append to the top of slice (unshift)
 			if len(items) > 0 {
