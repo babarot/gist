@@ -21,19 +21,19 @@ func edit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	lines, err := screen.Select()
+	rows, err := screen.Select()
 	if err != nil {
 		return err
 	}
 
-	for _, line := range lines {
-		err = cli.Edit(screen.Gist, line.Path)
+	for _, row := range rows {
+		err = cli.Edit(screen.Gist, row.Path)
 		if err != nil {
 			return err
 		}
 		// TODO: edit description
 		if cli.Conf.Flag.OpenURL {
-			_ = util.Open(line.URL)
+			_ = util.Open(row.URL)
 		}
 	}
 

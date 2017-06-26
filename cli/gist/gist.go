@@ -1,8 +1,6 @@
 package gist
 
 import (
-	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/b4b4r07/gist/api"
@@ -12,8 +10,7 @@ import (
 const BaseURL = "https://gist.github.com"
 
 var (
-	YourURL = path.Join(BaseURL, os.Getenv("USER"))
-	Dir     string
+	Dir string
 )
 
 type (
@@ -27,7 +24,8 @@ type (
 		Public      bool   `json:"public"`
 		Files       []File `json:"files"`
 		// original field
-		URL string `json:"url"`
+		URL  string `json:"url"`
+		Path string `json:"path"`
 	}
 	Items []Item
 	File  struct {

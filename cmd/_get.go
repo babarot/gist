@@ -20,17 +20,17 @@ func get(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	lines, err := screen.Select()
+	rows, err := screen.Select()
 	if err != nil {
 		return err
 	}
 
-	for _, line := range lines {
+	for _, row := range rows {
 		if len(args) == 0 {
-			fmt.Println(line.Path)
+			fmt.Println(row.Path)
 			continue
 		}
-		if err := cli.Run(args[0], line.Path); err != nil {
+		if err := cli.Run(args[0], row.Path); err != nil {
 			return err
 		}
 	}

@@ -49,6 +49,7 @@ func New() (s *Screen, err error) {
 		}
 		cache.Cache(items)
 	}
+	items.CloneAll()
 	s = &Screen{}
 	s.Items = items
 	s.Lines = items.Render()

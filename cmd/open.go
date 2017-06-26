@@ -17,7 +17,7 @@ var openCmd = &cobra.Command{
 
 func open(cmd *cobra.Command, args []string) (err error) {
 	if config.Conf.Flag.OpenBaseURL {
-		return cli.Open(gist.YourURL)
+		return cli.Open(gist.BaseURL)
 	}
 
 	s, err := screen.New()
@@ -25,12 +25,12 @@ func open(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	lines, err := s.Select()
+	rows, err := s.Select()
 	if err != nil {
 		return err
 	}
 
-	return cli.Open(lines[0].URL)
+	return cli.Open(rows[0].URL)
 }
 
 func init() {

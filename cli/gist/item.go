@@ -3,10 +3,12 @@ package gist
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"sync"
 	tt "text/template"
 
 	"github.com/b4b4r07/gist/api"
@@ -31,7 +33,12 @@ func convertItem(data api.Item) Item {
 		Public:      data.Public,
 		Files:       files,
 		// original field
-		URL: path.Join(BaseURL, data.ID),
+		URL: func() string {
+			u, _ := url.Parse(BaseURL)
+			u.Path = path.Join(u.Path, data.ID)
+			return u.String()
+		}(),
+		Path: filepath.Join(Dir, data.ID),
 	}
 }
 
@@ -133,24 +140,52 @@ func ShortenID(id string) string {
 	return runewidth.Truncate(id, api.IDLength, "")
 }
 
-func (f *File) Exists() bool {
+func (f *File) Exist() bool {
 	_, err := os.Stat(f.Path)
 	return err == nil
 }
 
-func (i *Item) Clone(dir string) error {
-	_, err := os.Stat(filepath.Join(dir, i.ID))
-	if err == nil {
+func (i *Item) Exist() bool {
+	_, err := os.Stat(i.Path)
+	return err == nil
+}
+
+func (i *Item) Exists() bool {
+	if !i.Exist() {
+		return false
+	}
+	for _, file := range i.Files {
+		if !file.Exist() {
+			return false
+		}
+	}
+	return true
+}
+
+func (i *Item) Clone() error {
+	if i.Exists() {
 		return nil
 	}
-	oldwd, _ := os.Getwd()
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		os.Mkdir(dir, 0700)
+	os.RemoveAll(i.Path)
+	cwd, _ := os.Getwd()
+	os.Chdir(config.Conf.Gist.Dir)
+	defer os.Chdir(cwd)
+	return exec.Command("git", "clone", i.URL).Run()
+}
+
+func (i *Items) CloneAll() {
+	s := NewSpinner("Cloning...")
+	s.Start()
+	defer s.Stop()
+	var wg sync.WaitGroup
+	for _, item := range *i {
+		wg.Add(1)
+		go func(item Item) {
+			defer wg.Done()
+			item.Clone()
+		}(item)
 	}
-	os.Chdir(dir)
-	defer os.Chdir(oldwd)
-	// TODO: Start()
-	return exec.Command("git", "clone", i.URL).Start()
+	wg.Wait()
 }
 
 func (f *File) Execute() error {

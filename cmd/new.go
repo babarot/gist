@@ -54,7 +54,7 @@ func new(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		return
 	}
-	item.Clone(config.Conf.Gist.Dir)
+	item.Clone()
 
 	if config.Conf.Gist.UseCache {
 		cache := cli.NewCache()
