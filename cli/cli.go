@@ -17,11 +17,6 @@ import (
 	"github.com/pkg/browser"
 )
 
-func NewGist() (*api.Gist, error) {
-	return api.NewGist(Conf.Gist.Token)
-}
-
-// TODO
 var (
 	ErrConfigEditor = errors.New("config editor not set")
 )
@@ -50,12 +45,6 @@ func Open(link string) error {
 		return err
 	}
 	return browser.OpenURL(link)
-}
-
-func GetPath(id string) (path string, err error) {
-	path = filepath.Join(Conf.Gist.Dir, id)
-	_, err = os.Stat(path)
-	return
 }
 
 func Underline(message, target string) {

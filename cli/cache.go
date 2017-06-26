@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/b4b4r07/gist/cli/config"
 	"github.com/b4b4r07/gist/cli/gist"
 )
 
@@ -24,7 +25,7 @@ func NewCache() *Cache {
 		ready   bool
 		updated time.Time
 	)
-	path := filepath.Join(Conf.Gist.Dir, Filename)
+	path := filepath.Join(config.Conf.Gist.Dir, Filename)
 	fi, err := os.Stat(path)
 	if err == nil {
 		ready = true
@@ -33,8 +34,8 @@ func NewCache() *Cache {
 	return &Cache{
 		Ready:   ready,
 		Path:    path,
-		TTL:     Conf.Gist.CacheTTL * time.Minute,
-		Use:     Conf.Gist.UseCache,
+		TTL:     config.Conf.Gist.CacheTTL * time.Minute,
+		Use:     config.Conf.Gist.UseCache,
 		Updated: updated,
 	}
 }

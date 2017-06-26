@@ -10,6 +10,7 @@ import (
 	tt "text/template"
 
 	"github.com/b4b4r07/gist/api"
+	"github.com/b4b4r07/gist/cli/config"
 	runewidth "github.com/mattn/go-runewidth"
 )
 
@@ -42,9 +43,13 @@ func convertItems(data api.Items) Items {
 	return items
 }
 
-func (items *Items) Render(columns []string) []string {
-	var lines []string
-	max := 0
+func (items *Items) Render() []string {
+	var (
+		lines []string
+
+		columns = config.Conf.Screen.Columns
+		max     = 0
+	)
 	for _, item := range *items {
 		for _, file := range item.Files {
 			if len(file.Filename) > max {
