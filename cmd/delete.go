@@ -30,7 +30,7 @@ func delete(cmd *cobra.Command, args []string) (err error) {
 		return
 	}
 
-	// rows = rows.Unique()
+	rows = rows.Unique()
 	if len(rows) > 0 {
 		cli.NewCache().Clear()
 	}

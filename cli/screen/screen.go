@@ -26,6 +26,7 @@ type (
 		URL         string
 		File        gist.File
 	}
+	Rows []Row
 )
 
 func New() (s *Screen, err error) {
@@ -50,11 +51,11 @@ func New() (s *Screen, err error) {
 	}
 	s = &Screen{}
 	s.Items = items
-	s.Lines = items.Render(config.Conf.Screen.Columns)
+	s.Lines = items.Render()
 	return
 }
 
-func (s *Screen) Select() (rows []Row, err error) {
+func (s *Screen) Select() (rows Rows, err error) {
 	if len(s.Lines) == 0 {
 		err = errors.New("no text to display")
 		return
@@ -125,4 +126,16 @@ func (s *Screen) parse(line string) (row Row, err error) {
 		}
 	}
 	return Row{}, errors.New("failed to parse selected line")
+}
+
+func (r *Rows) Unique() Rows {
+	rows := make(Rows, 0)
+	encountered := map[string]bool{}
+	for _, row := range *r {
+		if !encountered[row.ID] {
+			encountered[row.ID] = true
+			rows = append(rows, row)
+		}
+	}
+	return rows
 }
