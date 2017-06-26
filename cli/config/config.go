@@ -34,17 +34,12 @@ type GistConfig struct {
 }
 
 type FlagConfig struct {
-	Verbose           bool `toml:"verbose"`
-	OpenURL           bool `toml:"open_url"`
-	NewPrivate        bool `toml:"new_private"`
-	OpenBaseURL       bool `toml:"open_base_url"`
-	ShowIndicator     bool `toml:"show_indicator"`
-	ShowPrivateSymbol bool `toml:"show_private_symbol"`
-	BlogMode          bool `toml:"blog_mode"`
-	StarredItems      bool `toml:"starred"`
+	OpenURL      bool `toml:"open_url"`
+	BlogMode     bool `toml:"blog_mode"`
+	StarredItems bool `toml:"starred"`
 
-	EditDesc      bool
-	FromClipboard bool
+	NewPrivate  bool `toml:"-"`
+	OpenBaseURL bool `toml:"-"`
 }
 
 type ScreenConfig struct {
@@ -108,14 +103,10 @@ func (cfg *Config) LoadFile(file string) error {
 	cfg.Gist.Dir = dir
 	cfg.Gist.FileExt = ".patch"
 	cfg.Gist.UseCache = true
-	cfg.Gist.CacheTTL = 60 * 24
+	cfg.Gist.CacheTTL = time.Hour * 24
 
-	cfg.Flag.Verbose = true
-	cfg.Flag.OpenURL = false
-	cfg.Flag.NewPrivate = false
-	cfg.Flag.OpenBaseURL = false
-	cfg.Flag.ShowIndicator = true
-	cfg.Flag.ShowPrivateSymbol = false
+	cfg.Flag.OpenURL = true
+	cfg.Flag.BlogMode = true
 	cfg.Flag.StarredItems = false
 
 	cfg.Screen.Columns = []string{

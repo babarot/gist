@@ -50,7 +50,6 @@ _gist () {
                 '(- :)'{-h,--help}'[Show this help and exit]' \
                 '(-o --open)'{-o,--open}'[Open with the default browser]' \
                 '(-p --private)'{-p,--private}'[Create as private gist]' \
-                '(-c --from-clipboard)'{-c,--from-clipboard}'[Create gist from clipboard]' \
                 '(-)*: :_files' \
                 && return 0
             ;;

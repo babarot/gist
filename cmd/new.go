@@ -3,9 +3,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/cli/config"
@@ -36,10 +39,8 @@ func new(cmd *cobra.Command, args []string) (err error) {
 
 	// Make Gist from various conditions
 	switch {
-	// case config.Conf.Flag.FromClipboard:
-	// 	gi, err = makeFromClipboard()
-	// case !terminal.IsTerminal(0):
-	// 	gi, err = makeFromStdin()
+	case !terminal.IsTerminal(0):
+		gi, err = makeFromStdin()
 	case len(args) > 0:
 		gi, err = makeFromArguments(args)
 	case len(args) == 0:
@@ -204,38 +205,12 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 	}, nil
 }
 
-/*
-func makeFromClipboard() (gi gistItem, err error) {
-	content, err := clipboard.ReadAll()
-	if err != nil {
-		return
-	}
-	if content == "" {
-		return gi, errors.New("clipboard is empty")
-	}
-	filename, err := util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
-	if err != nil {
-		return
-	}
-	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
-	if err != nil {
-		return
-	}
-	return gistItem{
-		files: api.Files{api.File{
-			Filename: filename,
-			Content:  content,
-		}},
-		desc: desc,
-	}, nil
-}
-
 func makeFromStdin() (gi gistItem, err error) {
 	body, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		return
 	}
-	filename := util.RandomString(20)
+	filename := "gistfile"
 	ext := config.Conf.Gist.FileExt
 	if len(ext) > 0 {
 		if !strings.HasPrefix(ext, ".") {
@@ -244,18 +219,16 @@ func makeFromStdin() (gi gistItem, err error) {
 		filename = filename + ext
 	}
 	return gistItem{
-		files: api.Files{api.File{
+		files: gist.Files{gist.File{
 			Filename: filename,
 			Content:  string(body),
 		}},
 		desc: "",
 	}, nil
 }
-*/
 
 func init() {
 	RootCmd.AddCommand(newCmd)
 	newCmd.Flags().BoolVarP(&config.Conf.Flag.OpenURL, "open", "o", false, "Open with the default browser")
 	newCmd.Flags().BoolVarP(&config.Conf.Flag.NewPrivate, "private", "p", false, "Create as private gist")
-	newCmd.Flags().BoolVarP(&config.Conf.Flag.FromClipboard, "from-clipboard", "c", false, "Create gist from clipboard")
 }
