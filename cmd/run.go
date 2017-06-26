@@ -26,7 +26,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, row := range rows {
-		if err := row.File.Execute(); err != nil {
+		if err := row.File.Run(); err != nil {
 			cli.ErrorLog(err)
 			continue
 		}

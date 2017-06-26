@@ -25,12 +25,13 @@ type CoreConfig struct {
 }
 
 type GistConfig struct {
-	Token    string        `toml:"token"`
-	BaseURL  string        `toml:"base_url"`
-	Dir      string        `toml:"dir"`
-	FileExt  string        `toml:"file_ext"`
-	UseCache bool          `toml:"use_cache"`
-	CacheTTL time.Duration `toml:"cache_ttl"`
+	Token       string        `toml:"token"`
+	BaseURL     string        `toml:"base_url"`
+	Dir         string        `toml:"dir"`
+	FileExt     string        `toml:"file_ext"`
+	UseCache    bool          `toml:"use_cache"`
+	CacheTTL    time.Duration `toml:"cache_ttl"`
+	RunnableExt []string      `toml:"runnable_ext"`
 }
 
 type FlagConfig struct {
@@ -104,6 +105,7 @@ func (cfg *Config) LoadFile(file string) error {
 	cfg.Gist.FileExt = ".patch"
 	cfg.Gist.UseCache = true
 	cfg.Gist.CacheTTL = time.Hour * 24
+	cfg.Gist.RunnableExt = []string{"sh", "rb", "py", "pl", "php"}
 
 	cfg.Flag.OpenURL = true
 	cfg.Flag.BlogMode = true

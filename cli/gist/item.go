@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	tt "text/template"
 
@@ -188,10 +189,36 @@ func (i *Items) CloneAll() {
 	wg.Wait()
 }
 
-func (f *File) Execute() error {
+func inSlice(slice []string, e string) bool {
+	for _, s := range slice {
+		if s == e {
+			return true
+		}
+	}
+	return false
+}
+
+func doMap(vs []string, f func(string) string) []string {
+	vsm := make([]string, len(vs))
+	for i, v := range vs {
+		vsm[i] = f(v)
+	}
+	return vsm
+}
+
+func (f *File) Runnable() bool {
+	return inSlice(doMap(config.Conf.Gist.RunnableExt, func(ext string) string {
+		return strings.TrimPrefix(ext, ".")
+	}), strings.TrimPrefix(filepath.Ext(f.Path), "."))
+}
+
+func (f *File) Run() error {
 	fi, err := os.Stat(f.Path)
 	if err != nil {
 		return err
+	}
+	if !f.Runnable() {
+		return fmt.Errorf("%s: not allowed file ext to run", filepath.Ext(f.Filename))
 	}
 	var (
 		origPerm = fi.Mode().Perm()
