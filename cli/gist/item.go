@@ -198,7 +198,7 @@ func inSlice(slice []string, e string) bool {
 	return false
 }
 
-func doMap(vs []string, f func(string) string) []string {
+func collect(vs []string, f func(string) string) []string {
 	vsm := make([]string, len(vs))
 	for i, v := range vs {
 		vsm[i] = f(v)
@@ -207,7 +207,7 @@ func doMap(vs []string, f func(string) string) []string {
 }
 
 func (f *File) Runnable() bool {
-	return inSlice(doMap(config.Conf.Gist.RunnableExt, func(ext string) string {
+	return inSlice(collect(config.Conf.Gist.RunnableExt, func(ext string) string {
 		return strings.TrimPrefix(ext, ".")
 	}), strings.TrimPrefix(filepath.Ext(f.Path), "."))
 }
@@ -218,7 +218,7 @@ func (f *File) Run() error {
 		return err
 	}
 	if !f.Runnable() {
-		return fmt.Errorf("%s: not allowed file ext to run", filepath.Ext(f.Filename))
+		return fmt.Errorf("%s: not in config.gist.runnable_ext", filepath.Ext(f.Filename))
 	}
 	var (
 		origPerm = fi.Mode().Perm()
