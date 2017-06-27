@@ -52,7 +52,7 @@ func NewClient(token string) (c *Client, err error) {
 }
 
 func (c *Client) List() (items Items, err error) {
-	s := NewSpinner("Fetching...")
+	s := cli.NewSpinner("Fetching...")
 	s.Start()
 	defer s.Stop()
 	resp, err := c.gist.List()
@@ -64,7 +64,7 @@ func (c *Client) List() (items Items, err error) {
 }
 
 func (c *Client) Create(files Files, desc string, private bool) (item Item, err error) {
-	s := NewSpinner("Creating...")
+	s := cli.NewSpinner("Creating...")
 	s.Start()
 	defer s.Stop()
 	gistFiles := make(map[github.GistFilename]github.GistFile, len(files))
@@ -105,7 +105,7 @@ func (c *Client) Create(files Files, desc string, private bool) (item Item, err 
 }
 
 func (c *Client) Delete(id string) (err error) {
-	s := NewSpinner("Deleting...")
+	s := cli.NewSpinner("Deleting...")
 	s.Start()
 	defer s.Stop()
 	return c.gist.Delete(id)
@@ -189,7 +189,7 @@ func (c *Client) updateRemote(file File) (err error) {
 }
 
 func (c *Client) Sync(file File) (err error) {
-	s := NewSpinner("Checking...")
+	s := cli.NewSpinner("Checking...")
 	s.Start()
 	defer s.Stop()
 	kind, newContent, err := c.compare(file)
@@ -204,6 +204,7 @@ func (c *Client) Sync(file File) (err error) {
 }
 
 func (c *Client) Edit(file File) (err error) {
+	content := file.GetContent()
 	if err := c.Sync(file); err != nil {
 		return err
 	}
@@ -213,6 +214,9 @@ func (c *Client) Edit(file File) (err error) {
 	}
 	if err := cli.Run(editor, file.Path); err != nil {
 		return err
+	}
+	if content == file.GetContent() {
+		return nil
 	}
 	return c.Sync(file)
 }

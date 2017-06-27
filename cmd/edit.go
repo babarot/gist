@@ -15,7 +15,7 @@ var editCmd = &cobra.Command{
 }
 
 func edit(cmd *cobra.Command, args []string) (err error) {
-	s, err := screen.New()
+	s, err := screen.Open()
 	if err != nil {
 		return
 	}

@@ -20,7 +20,7 @@ func open(cmd *cobra.Command, args []string) (err error) {
 		return cli.Open(gist.BaseURL)
 	}
 
-	s, err := screen.New()
+	s, err := screen.Open()
 	if err != nil {
 		return err
 	}

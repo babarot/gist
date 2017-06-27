@@ -19,7 +19,7 @@ var deleteCmd = &cobra.Command{
 }
 
 func delete(cmd *cobra.Command, args []string) (err error) {
-	s, err := screen.New()
+	s, err := screen.Open()
 	if err != nil {
 		return
 	}

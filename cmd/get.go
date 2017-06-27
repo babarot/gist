@@ -16,7 +16,7 @@ var getCmd = &cobra.Command{
 }
 
 func get(cmd *cobra.Command, args []string) error {
-	s, err := screen.New()
+	s, err := screen.Open()
 	if err != nil {
 		return err
 	}

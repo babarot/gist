@@ -3,6 +3,7 @@ package gist
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -13,6 +14,7 @@ import (
 	tt "text/template"
 
 	"github.com/b4b4r07/gist/api"
+	"github.com/b4b4r07/gist/cli"
 	"github.com/b4b4r07/gist/cli/config"
 	runewidth "github.com/mattn/go-runewidth"
 )
@@ -176,7 +178,7 @@ func (i *Item) Clone() error {
 }
 
 func (i *Items) CloneAll() {
-	s := NewSpinner("Cloning...")
+	s := cli.NewSpinner("Cloning...")
 	s.Start()
 	defer s.Stop()
 	var wg sync.WaitGroup
@@ -234,4 +236,12 @@ func (f *File) Run(args []string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	return cmd.Run()
+}
+
+func (f *File) GetContent() string {
+	if len(f.Content) > 0 {
+		return f.Content
+	}
+	data, _ := ioutil.ReadFile(f.Path)
+	return string(data)
 }

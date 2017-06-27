@@ -29,7 +29,7 @@ type (
 	Rows []Row
 )
 
-func New() (s *Screen, err error) {
+func Open() (s *Screen, err error) {
 	gist.Dir = config.Conf.Gist.Dir
 	client, err := gist.NewClient(config.Conf.Gist.Token)
 	if err != nil {
