@@ -89,6 +89,7 @@ func (c *Client) Create(files Files, desc string, private bool) (item Item, err 
 			Filename: *file.Filename,
 			Content:  *file.Content,
 			Path:     filepath.Join(Dir, *resp.ID, *file.Filename),
+			ItemID:   *resp.ID,
 		})
 	}
 	item = Item{
@@ -99,6 +100,7 @@ func (c *Client) Create(files Files, desc string, private bool) (item Item, err 
 		Files:       files,
 		URL:         *resp.HTMLURL,
 	}
+	err = item.Clone()
 	return
 }
 
@@ -178,17 +180,15 @@ func (c *Client) updateLocal(file File) (err error) {
 }
 
 func (c *Client) updateRemote(file File) (err error) {
-	gist := github.Gist{
-		Files: map[github.GistFilename]github.GistFile{
-			github.GistFilename(file.Filename): github.GistFile{
-				Content: github.String(file.Content),
-			},
+	files := map[github.GistFilename]github.GistFile{
+		github.GistFilename(file.Filename): github.GistFile{
+			Content: github.String(file.Content),
 		},
 	}
-	return c.gist.Update(file.ItemID, gist)
+	return c.gist.Update(file.ItemID, files)
 }
 
-func (c *Client) sync(file File) (err error) {
+func (c *Client) Sync(file File) (err error) {
 	s := NewSpinner("Checking...")
 	s.Start()
 	defer s.Stop()
@@ -204,7 +204,7 @@ func (c *Client) sync(file File) (err error) {
 }
 
 func (c *Client) Edit(file File) (err error) {
-	if err := c.sync(file); err != nil {
+	if err := c.Sync(file); err != nil {
 		return err
 	}
 	editor := config.Conf.Core.Editor
@@ -214,5 +214,5 @@ func (c *Client) Edit(file File) (err error) {
 	if err := cli.Run(editor, file.Path); err != nil {
 		return err
 	}
-	return c.sync(file)
+	return c.Sync(file)
 }
