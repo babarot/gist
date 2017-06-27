@@ -17,29 +17,30 @@ import (
 	runewidth "github.com/mattn/go-runewidth"
 )
 
-func convertItem(data api.Item) Item {
+func convertItem(item api.Item) Item {
 	var files Files
-	for _, file := range data.Files {
+	for _, file := range item.Files {
 		files = append(files, File{
+			ItemID:   item.ID,
 			Filename: file.Filename,
 			Content:  file.Content,
 			// original field
-			Path: filepath.Join(Dir, data.ID, file.Filename),
+			Path: filepath.Join(Dir, item.ID, file.Filename),
 		})
 	}
 	return Item{
-		ID:          data.ID,
-		ShortID:     data.ShortID,
-		Description: data.Description,
-		Public:      data.Public,
+		ID:          item.ID,
+		ShortID:     item.ShortID,
+		Description: item.Description,
+		Public:      item.Public,
 		Files:       files,
 		// original field
 		URL: func() string {
 			u, _ := url.Parse(BaseURL)
-			u.Path = path.Join(u.Path, data.ID)
+			u.Path = path.Join(u.Path, item.ID)
 			return u.String()
 		}(),
-		Path: filepath.Join(Dir, data.ID),
+		Path: filepath.Join(Dir, item.ID),
 	}
 }
 
@@ -212,7 +213,7 @@ func (f *File) Runnable() bool {
 	}), strings.TrimPrefix(filepath.Ext(f.Path), "."))
 }
 
-func (f *File) Run() error {
+func (f *File) Run(args []string) error {
 	fi, err := os.Stat(f.Path)
 	if err != nil {
 		return err
@@ -228,7 +229,7 @@ func (f *File) Run() error {
 		os.Chmod(f.Path, execPerm)
 		defer os.Chmod(f.Path, origPerm)
 	}
-	cmd := exec.Command("sh", "-c", f.Path)
+	cmd := exec.Command(f.Path, args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin

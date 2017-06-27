@@ -106,12 +106,20 @@ func (g *Gist) Create(
 	if resp == nil {
 		err = errors.New("Try again when you have a better network connection")
 	}
-	// TODO: there is a responsibility on cli side
-	// err = g.Clone(item)
 	return
 }
 
-func (g *Gist) Delete(id string) error {
-	_, err := g.Client.Gists.Delete(context.Background(), id)
-	return err
+func (g *Gist) Delete(id string) (err error) {
+	_, err = g.Client.Gists.Delete(context.Background(), id)
+	return
+}
+
+func (g *Gist) Get(id string) (item *github.Gist, err error) {
+	item, _, err = g.Client.Gists.Get(context.Background(), id)
+	return
+}
+
+func (g *Gist) Update(id string, files map[github.GistFilename]github.GistFile) (err error) {
+	_, _, err = g.Client.Gists.Edit(context.Background(), id, &github.Gist{Files: files})
+	return
 }
