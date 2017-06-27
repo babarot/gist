@@ -1,6 +1,9 @@
 package gist
 
 import (
+	"errors"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/b4b4r07/gist/api"
@@ -106,16 +109,98 @@ func (c *Client) Delete(id string) (err error) {
 	return c.gist.Delete(id)
 }
 
-func (c *Client) Get(id string) {
+type diff int
+
+const (
+	diffNone diff = iota
+	updateLocal
+	updateRemote
+)
+
+func (d diff) String() string {
+	switch d {
+	case diffNone:
+		return "No need to do anything"
+	case updateLocal:
+		return "Need to update remote because local is ahead"
+	case updateRemote:
+		return "Need to update local because remote is ahead"
+	default:
+		return ""
+	}
 }
 
-func (c *Client) compare(file File) {
-	c.Get(file.ItemID)
+func (c *Client) compare(file File) (kind diff, content string, err error) {
+	var (
+		remoteContent, localContent string
+	)
+	fi, err := os.Stat(file.Path)
+	if err != nil {
+		// TODO:
+		// case -> there is a dir but file has already deleted
+		// err = g.Clone(item)
+		// err = errors.Wrapf(err, "%s: no such file or directory", fname)
+		return
+	}
+
+	item, err := c.gist.Get(file.ItemID)
+	if err != nil {
+		return
+	}
+	data, _ := ioutil.ReadFile(file.Path)
+	localContent = string(data)
+	for _, f := range item.Files {
+		if *f.Filename != filepath.Base(file.Filename) {
+			return diffNone, "", errors.New("something")
+		}
+		remoteContent = *f.Content
+	}
+	if remoteContent == localContent {
+		return diffNone, "", nil
+	}
+
+	local := fi.ModTime().UTC()
+	remote := item.UpdatedAt.UTC()
+
+	switch {
+	case local.After(remote):
+		return updateRemote, localContent, nil
+	case remote.After(local):
+		return updateLocal, remoteContent, nil
+	default:
+	}
+
+	return diffNone, "", nil
 }
 
-func (c *Client) sync(file File) error {
-	c.compare(file)
-	return nil
+func (c *Client) updateLocal(file File) (err error) {
+	return ioutil.WriteFile(file.Path, []byte(file.Content), os.ModePerm)
+}
+
+func (c *Client) updateRemote(file File) (err error) {
+	gist := github.Gist{
+		Files: map[github.GistFilename]github.GistFile{
+			github.GistFilename(file.Filename): github.GistFile{
+				Content: github.String(file.Content),
+			},
+		},
+	}
+	return c.gist.Update(file.ItemID, gist)
+}
+
+func (c *Client) sync(file File) (err error) {
+	s := NewSpinner("Checking...")
+	s.Start()
+	defer s.Stop()
+	kind, newContent, err := c.compare(file)
+	file.Content = newContent
+	switch kind {
+	case updateLocal:
+		err = c.updateLocal(file)
+	case updateRemote:
+		err = c.updateRemote(file)
+	}
+	return
 }
 
 func (c *Client) Edit(file File) (err error) {

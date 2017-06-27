@@ -119,3 +119,13 @@ func (g *Gist) Delete(id string) (err error) {
 func (g *Gist) Sync(item Item) (err error) {
 	return
 }
+
+func (g *Gist) Get(id string) (item *github.Gist, err error) {
+	item, _, err = g.Client.Gists.Get(context.Background(), id)
+	return
+}
+
+func (g *Gist) Update(id string, gist github.Gist) (err error) {
+	_, _, err = g.Client.Gists.Edit(context.Background(), id, &gist)
+	return
+}
