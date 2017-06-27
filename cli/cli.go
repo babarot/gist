@@ -11,33 +11,14 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/b4b4r07/gist/api"
 	"github.com/chzyer/readline"
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
 )
 
 var (
-	ErrConfigEditor = errors.New("config editor not set")
+	ErrConfigEditor = errors.New("config.core.editor is not set")
 )
-
-func Edit(gist *api.Gist, fname string) error {
-	return nil
-	// if err := gist.Sync(fname); err != nil {
-	// 	return err
-	// }
-	//
-	// editor := Conf.Core.Editor
-	// if editor == "" {
-	// 	return ErrConfigEditor
-	// }
-	//
-	// if err := Run(editor, fname); err != nil {
-	// 	return err
-	// }
-	//
-	// return gist.Sync(fname)
-}
 
 func Open(link string) error {
 	_, err := url.ParseRequestURI(link)

@@ -111,7 +111,11 @@ func (g *Gist) Create(
 	return
 }
 
-func (g *Gist) Delete(id string) error {
-	_, err := g.Client.Gists.Delete(context.Background(), id)
-	return err
+func (g *Gist) Delete(id string) (err error) {
+	_, err = g.Client.Gists.Delete(context.Background(), id)
+	return
+}
+
+func (g *Gist) Sync(item Item) (err error) {
+	return
 }

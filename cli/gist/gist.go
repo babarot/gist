@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 
 	"github.com/b4b4r07/gist/api"
+	"github.com/b4b4r07/gist/cli"
+	"github.com/b4b4r07/gist/cli/config"
 	"github.com/google/go-github/github"
 )
 
@@ -29,6 +31,7 @@ type (
 	}
 	Items []Item
 	File  struct {
+		ItemID   string `json:"item_id"`
 		Filename string `json:"filename"`
 		Content  string `json:"content"`
 		// original field
@@ -101,4 +104,30 @@ func (c *Client) Delete(id string) (err error) {
 	s.Start()
 	defer s.Stop()
 	return c.gist.Delete(id)
+}
+
+func (c *Client) Get(id string) {
+}
+
+func (c *Client) compare(file File) {
+	c.Get(file.ItemID)
+}
+
+func (c *Client) sync(file File) error {
+	c.compare(file)
+	return nil
+}
+
+func (c *Client) Edit(file File) (err error) {
+	if err := c.sync(file); err != nil {
+		return err
+	}
+	editor := config.Conf.Core.Editor
+	if editor == "" {
+		return cli.ErrConfigEditor
+	}
+	if err := cli.Run(editor, file.Path); err != nil {
+		return err
+	}
+	return c.sync(file)
 }
