@@ -9,18 +9,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/Songmu/strrand"
-  packages = ["."]
-  revision = "a1c6df8c2041a7dd2ccab2c6f8b7942ea0bb25aa"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/atotto/clipboard"
-  packages = ["."]
-  revision = "bb272b845f1112e10117e3e45ce39f690c0001ad"
-
-[[projects]]
-  branch = "master"
   name = "github.com/b4b4r07/go-colon"
   packages = ["."]
   revision = "bc5ae99f1c2b6d202bd43ea8258596f0a09e7378"
@@ -47,7 +35,7 @@
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
-  revision = "e325f446bebc2998605911c0a2650d9920361d4a"
+  revision = "6a1fa9404c0aebf36c879bc50152edcc953910d2"
 
 [[projects]]
   branch = "master"
@@ -105,18 +93,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  revision = "c605e284fe17294bda444b34710735b29d1a9d90"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/sirupsen/logrus"
-  packages = ["."]
-  revision = "acfabf31db8f45a9174f54a0d48ea4d15627af4d"
-
-[[projects]]
-  branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
   revision = "51b7cf57e102be20a09835264c9d92155d602532"
@@ -160,6 +136,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1ba64ebce8c9a3026b2d640a2bbf01df11548b61a6b6dcc123109da0a3883ea7"
+  inputs-digest = "65db20ea3556541cfd625fd9d1a991aa9c942d88f2164f67d374b06378022d85"
   solver-name = "gps-cdcl"
   solver-version = 1
