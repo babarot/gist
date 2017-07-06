@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/b4b4r07/gist/cli"
-	"github.com/b4b4r07/gist/util"
+	"github.com/b4b4r07/gist/cli/config"
+	"github.com/b4b4r07/gist/cli/gist"
+	"github.com/b4b4r07/gist/cli/screen"
 	"github.com/spf13/cobra"
 )
 
@@ -13,35 +14,31 @@ var editCmd = &cobra.Command{
 	RunE:  edit,
 }
 
-func edit(cmd *cobra.Command, args []string) error {
-	var err error
-
-	screen, err := cli.NewScreen()
+func edit(cmd *cobra.Command, args []string) (err error) {
+	s, err := screen.Open()
 	if err != nil {
-		return err
+		return
 	}
 
-	lines, err := screen.Select()
+	rows, err := s.Select()
 	if err != nil {
-		return err
+		return
 	}
 
-	for _, line := range lines {
-		err = cli.Edit(screen.Gist, line.Path)
-		if err != nil {
-			return err
-		}
-		// TODO: edit description
-		if cli.Conf.Flag.OpenURL {
-			_ = util.Open(line.URL)
+	client, err := gist.NewClient(config.Conf.Gist.Token)
+	if err != nil {
+		return
+	}
+
+	for _, row := range rows {
+		if err = client.Edit(row.File); err != nil {
+			return
 		}
 	}
 
-	return nil
+	return
 }
 
 func init() {
 	RootCmd.AddCommand(editCmd)
-	editCmd.Flags().BoolVarP(&cli.Conf.Flag.OpenURL, "open", "o", false, "Open with the default browser")
-	editCmd.Flags().BoolVarP(&cli.Conf.Flag.EditDesc, "description", "d", false, "Edit only the description")
 }

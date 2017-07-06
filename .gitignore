@@ -1,3 +1,4 @@
-bin/gist
 vendor
+bin/gist
+build/gist
 dist

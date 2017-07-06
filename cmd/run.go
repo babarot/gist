@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/b4b4r07/gist/cli"
+	"github.com/b4b4r07/gist/cli/config"
+	"github.com/b4b4r07/gist/cli/screen"
 	"github.com/spf13/cobra"
 )
 
@@ -15,30 +15,19 @@ var runCmd = &cobra.Command{
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	screen, err := cli.NewScreen()
+	s, err := screen.Open()
 	if err != nil {
 		return err
 	}
 
-	lines, err := screen.Select()
+	rows, err := s.Select()
 	if err != nil {
 		return err
 	}
 
-	for _, line := range lines {
-		fi, err := os.Stat(line.Path)
-		if err != nil {
-			continue
-		}
-		var (
-			origPerm = fi.Mode().Perm()
-			execPerm = os.FileMode(0755).Perm()
-		)
-		if origPerm != execPerm {
-			os.Chmod(line.Path, execPerm)
-			defer os.Chmod(line.Path, origPerm)
-		}
-		if err := cli.Run(line.Path); err != nil {
+	for _, row := range rows {
+		if err := row.File.Run(args); err != nil {
+			cli.ErrorLog(err)
 			continue
 		}
 	}
@@ -48,5 +37,5 @@ func run(cmd *cobra.Command, args []string) error {
 
 func init() {
 	RootCmd.AddCommand(runCmd)
-	runCmd.Flags().BoolVarP(&cli.Conf.Flag.StarredItems, "starred", "s", false, "Open your starred gist")
+	runCmd.Flags().BoolVarP(&config.Conf.Flag.StarredItems, "starred", "s", false, "Open your starred gist")
 }

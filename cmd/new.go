@@ -8,15 +8,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/atotto/clipboard"
-	"github.com/b4b4r07/gist/api"
-	"github.com/b4b4r07/gist/cli"
-	"github.com/b4b4r07/gist/util"
-	"github.com/fatih/color"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-
 	"golang.org/x/crypto/ssh/terminal"
+
+	"github.com/b4b4r07/gist/cli"
+	"github.com/b4b4r07/gist/cli/config"
+	"github.com/b4b4r07/gist/cli/gist"
+	"github.com/fatih/color"
+	"github.com/spf13/cobra"
 )
 
 var newCmd = &cobra.Command{
@@ -27,23 +25,20 @@ var newCmd = &cobra.Command{
 }
 
 type gistItem struct {
-	files api.Files
+	files gist.Files
 	desc  string
 }
 
-func new(cmd *cobra.Command, args []string) error {
-	var err error
+func new(cmd *cobra.Command, args []string) (err error) {
 	var gi gistItem
 
-	gist, err := cli.NewGist()
+	client, err := gist.NewClient(config.Conf.Gist.Token)
 	if err != nil {
-		return err
+		return
 	}
 
 	// Make Gist from various conditions
 	switch {
-	case cli.Conf.Flag.FromClipboard:
-		gi, err = makeFromClipboard()
 	case !terminal.IsTerminal(0):
 		gi, err = makeFromStdin()
 	case len(args) > 0:
@@ -52,95 +47,45 @@ func new(cmd *cobra.Command, args []string) error {
 		gi, err = makeFromEditor()
 	}
 	if err != nil {
-		return err
+		return
 	}
 
-	item, err := gist.Create(gi.files, gi.desc)
+	gist.Dir = config.Conf.Gist.Dir
+	item, err := client.Create(gi.files, gi.desc, config.Conf.Flag.NewPrivate)
 	if err != nil {
-		return err
+		return
 	}
+	item.Clone()
 
-	if cli.Conf.Gist.UseCache {
-		cache := cli.NewCache()
-		files, err := cache.Load()
-		if err != nil {
-			return err
-		}
-		for _, file := range gi.files {
+	if config.Conf.Gist.UseCache {
+		cache := gist.NewCache()
+		if items, err := cache.Load(); err == nil {
 			// append to the top of slice (unshift)
-			files, files[0] = append(files[0:1], files[0:]...), api.File{
-				ID:          *item.ID,
-				ShortID:     api.ShortenID(*item.ID),
-				Filename:    file.Filename,
-				Description: *item.Description,
-				Public:      *item.Public,
+			if len(items) > 0 {
+				items, items[0] = append(items[0:1], items[0:]...), item
+			} else {
+				items = append(items, item)
 			}
+			cache.Cache(items)
 		}
-		cache.Cache(files)
 	}
 
-	util.Underline("Created", *item.HTMLURL)
-	if cli.Conf.Flag.OpenURL {
-		util.Open(*item.HTMLURL)
+	cli.Underline("Created", item.URL)
+	if config.Conf.Flag.OpenURL {
+		return cli.Open(item.URL)
 	}
+
 	return nil
 }
 
-func makeFromClipboard() (gi gistItem, err error) {
-	content, err := clipboard.ReadAll()
-	if err != nil {
-		return
-	}
-	if content == "" {
-		return gi, errors.New("clipboard is empty")
-	}
-	filename, err := util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
-	if err != nil {
-		return
-	}
-	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
-	if err != nil {
-		return
-	}
-	return gistItem{
-		files: api.Files{api.File{
-			Filename: filename,
-			Content:  content,
-		}},
-		desc: desc,
-	}, nil
-}
-
-func makeFromStdin() (gi gistItem, err error) {
-	body, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		return
-	}
-	filename := util.RandomString(20)
-	ext := cli.Conf.Gist.FileExt
-	if len(ext) > 0 {
-		if !strings.HasPrefix(ext, ".") {
-			ext = "." + ext
-		}
-		filename = filename + ext
-	}
-	return gistItem{
-		files: api.Files{api.File{
-			Filename: filename,
-			Content:  string(body),
-		}},
-		desc: "",
-	}, nil
-}
-
 func makeFromEditor() (gi gistItem, err error) {
-	filename, err := util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
+	filename, err := cli.Scan(color.YellowString("Filename> "), !cli.ScanAllowEmpty)
 	if err != nil {
 		return
 	}
 
 	filename, title, asBlog := func(filename string) (string, string, bool) {
-		if !cli.Conf.Flag.BlogMode {
+		if !config.Conf.Flag.BlogMode {
 			return filename, "", false
 		}
 		switch filepath.Ext(filename) {
@@ -151,30 +96,30 @@ func makeFromEditor() (gi gistItem, err error) {
 		}
 	}(filename)
 
-	f, err := util.TempFile(filename)
+	f, err := cli.TempFile(filename)
 	defer os.Remove(f.Name())
 	if asBlog {
 		f.Write([]byte(title))
 		f.Sync()
 	}
 
-	err = cli.Run(cli.Conf.Core.Editor, f.Name())
+	err = cli.Run(config.Conf.Core.Editor, f.Name())
 	if err != nil {
 		return
 	}
 
-	content, _ := util.FileContent(f.Name())
+	content, _ := cli.FileContent(f.Name())
 	if content == title {
 		return gi, errors.New("no contents")
 	}
 
-	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
+	desc, err := cli.Scan(color.GreenString("Description> "), cli.ScanAllowEmpty)
 	if err != nil {
 		return
 	}
 
 	return gistItem{
-		files: api.Files{api.File{
+		files: gist.Files{gist.File{
 			Filename: filename,
 			Content:  content,
 		}},
@@ -184,7 +129,7 @@ func makeFromEditor() (gi gistItem, err error) {
 
 func makeFromArguments(args []string) (gi gistItem, err error) {
 	var (
-		gistFiles api.Files
+		gistFiles gist.Files
 		files     []string
 	)
 
@@ -214,8 +159,8 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 				return
 			}
 		} else {
-			if !util.Exists(arg) {
-				log.Infof("%s: no such file or directory", arg)
+			if _, err := os.Stat(arg); err != nil {
+				fmt.Fprintf(os.Stderr, "%s: no such file or directory\n", arg)
 				continue
 			}
 			files = append(files, arg)
@@ -227,29 +172,29 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 		return gi, errors.New("no files to be able create")
 	case 1:
 		file := files[0]
-		util.ScanDefaultString = file
-		file, err = util.Scan(color.YellowString("Filename> "), !util.ScanAllowEmpty)
+		cli.ScanDefaultString = file
+		file, err = cli.Scan(color.YellowString("Filename> "), !cli.ScanAllowEmpty)
 		if err != nil {
 			return
 		}
-		content, _ := util.FileContent(files[0]) // Use original file: files[0]
-		gistFiles = append(gistFiles, api.File{
+		content, _ := cli.FileContent(files[0]) // Use original file: files[0]
+		gistFiles = append(gistFiles, gist.File{
 			Filename: filepath.Base(file),
 			Content:  content,
 		})
-		util.ScanDefaultString = "" // reset deafult string
+		cli.ScanDefaultString = "" // reset deafult string
 	default:
 		for _, file := range files {
 			fmt.Fprintf(color.Output, "%s %s\n", color.YellowString("Filename>"), file)
-			content, _ := util.FileContent(file)
-			gistFiles = append(gistFiles, api.File{
+			content, _ := cli.FileContent(file)
+			gistFiles = append(gistFiles, gist.File{
 				Filename: filepath.Base(file),
 				Content:  content,
 			})
 		}
 	}
 
-	desc, err := util.Scan(color.GreenString("Description> "), util.ScanAllowEmpty)
+	desc, err := cli.Scan(color.GreenString("Description> "), cli.ScanAllowEmpty)
 	if err != nil {
 		return
 	}
@@ -260,9 +205,30 @@ func makeFromArguments(args []string) (gi gistItem, err error) {
 	}, nil
 }
 
+func makeFromStdin() (gi gistItem, err error) {
+	body, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		return
+	}
+	filename := "gistfile"
+	ext := config.Conf.Gist.FileExt
+	if len(ext) > 0 {
+		if !strings.HasPrefix(ext, ".") {
+			ext = "." + ext
+		}
+		filename = filename + ext
+	}
+	return gistItem{
+		files: gist.Files{gist.File{
+			Filename: filename,
+			Content:  string(body),
+		}},
+		desc: "",
+	}, nil
+}
+
 func init() {
 	RootCmd.AddCommand(newCmd)
-	newCmd.Flags().BoolVarP(&cli.Conf.Flag.OpenURL, "open", "o", false, "Open with the default browser")
-	newCmd.Flags().BoolVarP(&cli.Conf.Flag.NewPrivate, "private", "p", false, "Create as private gist")
-	newCmd.Flags().BoolVarP(&cli.Conf.Flag.FromClipboard, "from-clipboard", "c", false, "Create gist from clipboard")
+	newCmd.Flags().BoolVarP(&config.Conf.Flag.OpenURL, "open", "o", false, "Open with the default browser")
+	newCmd.Flags().BoolVarP(&config.Conf.Flag.NewPrivate, "private", "p", false, "Create as private gist")
 }

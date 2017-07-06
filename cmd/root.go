@@ -6,11 +6,12 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/b4b4r07/gist/cli"
+	"github.com/b4b4r07/gist/cli/config"
+	"github.com/b4b4r07/gist/cli/gist"
 	"github.com/spf13/cobra"
 )
 
-const Version = "0.1.5"
+const Version = "0.1.6"
 
 var (
 	showVersion bool
@@ -29,7 +30,7 @@ var RootCmd = &cobra.Command{
 			return
 		}
 		if cacheClear {
-			cli.NewCache().Clear()
+			gist.NewCache().Clear()
 			return
 		}
 		cmd.Usage()
@@ -51,10 +52,10 @@ func init() {
 }
 
 func initConf() {
-	dir, _ := cli.GetDefaultDir()
+	dir, _ := config.GetDefaultDir()
 	toml := filepath.Join(dir, "config.toml")
 
-	err := cli.Conf.LoadFile(toml)
+	err := config.Conf.LoadFile(toml)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

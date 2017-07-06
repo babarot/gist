@@ -1,4 +1,4 @@
-package cli
+package config
 
 import (
 	"fmt"
@@ -11,9 +11,10 @@ import (
 )
 
 type Config struct {
-	Core CoreConfig `toml:"core"`
-	Gist GistConfig `toml:"gist"`
-	Flag FlagConfig `toml:"flag"`
+	Core   CoreConfig   `toml:"core"`
+	Gist   GistConfig   `toml:"gist"`
+	Flag   FlagConfig   `toml:"flag"`
+	Screen ScreenConfig `toml:"screen"`
 }
 
 type CoreConfig struct {
@@ -24,26 +25,26 @@ type CoreConfig struct {
 }
 
 type GistConfig struct {
-	Token    string        `toml:"token"`
-	BaseURL  string        `toml:"base_url"`
-	Dir      string        `toml:"dir"`
-	FileExt  string        `toml:"file_ext"`
-	UseCache bool          `toml:"use_cache"`
-	CacheTTL time.Duration `toml:"cache_ttl"`
+	Token       string        `toml:"token"`
+	BaseURL     string        `toml:"base_url"`
+	Dir         string        `toml:"dir"`
+	FileExt     string        `toml:"file_ext"`
+	UseCache    bool          `toml:"use_cache"`
+	CacheTTL    time.Duration `toml:"cache_ttl"`
+	RunnableExt []string      `toml:"runnable_ext"`
 }
 
 type FlagConfig struct {
-	Verbose           bool `toml:"verbose"`
-	OpenURL           bool `toml:"open_url"`
-	NewPrivate        bool `toml:"new_private"`
-	OpenBaseURL       bool `toml:"open_base_url"`
-	ShowIndicator     bool `toml:"show_indicator"`
-	ShowPrivateSymbol bool `toml:"show_private_symbol"`
-	BlogMode          bool `toml:"blog_mode"`
-	StarredItems      bool `toml:"starred"`
+	OpenURL      bool `toml:"open_url"`
+	BlogMode     bool `toml:"blog_mode"`
+	StarredItems bool `toml:"starred"`
 
-	EditDesc      bool
-	FromClipboard bool
+	NewPrivate  bool `toml:"-"`
+	OpenBaseURL bool `toml:"-"`
+}
+
+type ScreenConfig struct {
+	Columns []string `toml:"columns"`
 }
 
 var Conf Config
@@ -103,15 +104,18 @@ func (cfg *Config) LoadFile(file string) error {
 	cfg.Gist.Dir = dir
 	cfg.Gist.FileExt = ".patch"
 	cfg.Gist.UseCache = true
-	cfg.Gist.CacheTTL = 60 * 24
+	cfg.Gist.CacheTTL = time.Hour * 24
+	cfg.Gist.RunnableExt = []string{"sh", "rb", "py", "pl", "php"}
 
-	cfg.Flag.Verbose = true
-	cfg.Flag.OpenURL = false
-	cfg.Flag.NewPrivate = false
-	cfg.Flag.OpenBaseURL = false
-	cfg.Flag.ShowIndicator = true
-	cfg.Flag.ShowPrivateSymbol = false
+	cfg.Flag.OpenURL = true
+	cfg.Flag.BlogMode = true
 	cfg.Flag.StarredItems = false
+
+	cfg.Screen.Columns = []string{
+		"{{.ShortID}}",
+		"{{.PrivateMark}} {{.Filename}}",
+		"{{.Description}}",
+	}
 
 	return toml.NewEncoder(f).Encode(cfg)
 }

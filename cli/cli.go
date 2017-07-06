@@ -2,37 +2,96 @@ package cli
 
 import (
 	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 
-	"github.com/b4b4r07/gist/api"
+	"github.com/chzyer/readline"
+	"github.com/fatih/color"
+	"github.com/pkg/browser"
 )
 
-func NewGist() (*api.Gist, error) {
-	return api.NewGist(api.Config{
-		Token:      Conf.Gist.Token,
-		BaseURL:    Conf.Gist.BaseURL,
-		NewPrivate: Conf.Flag.NewPrivate,
-		ClonePath:  Conf.Gist.Dir,
-	})
+var (
+	ErrConfigEditor = errors.New("config.core.editor is not set")
+)
+
+func Open(link string) error {
+	_, err := url.ParseRequestURI(link)
+	if err != nil {
+		return err
+	}
+	return browser.OpenURL(link)
 }
 
-// TODO
+func Underline(message, target string) {
+	if message == "" || target == "" {
+		return
+	}
+	link := color.New(color.Underline).SprintFunc()
+	fmt.Printf("%s %s\n", message, link(target))
+}
+
+func TempFile(filename string) (*os.File, error) {
+	return os.Create(filepath.Join(os.TempDir(), filename))
+}
+
 var (
-	ErrConfigEditor = errors.New("config editor not set")
+	ScanDefaultString string
+	ScanAllowEmpty    bool
 )
 
-func Edit(gist *api.Gist, fname string) error {
-	if err := gist.Sync(fname); err != nil {
-		return err
+func Scan(message string, allowEmpty bool) (string, error) {
+	tmp := "/tmp"
+	if runtime.GOOS == "windows" {
+		tmp = os.Getenv("TEMP")
 	}
-
-	editor := Conf.Core.Editor
-	if editor == "" {
-		return ErrConfigEditor
+	l, err := readline.NewEx(&readline.Config{
+		Prompt:            message,
+		HistoryFile:       filepath.Join(tmp, "gist.txt"),
+		InterruptPrompt:   "^C",
+		EOFPrompt:         "exit",
+		HistorySearchFold: true,
+	})
+	if err != nil {
+		return "", err
 	}
+	defer l.Close()
 
-	if err := Run(editor, fname); err != nil {
-		return err
+	var line string
+	for {
+		if ScanDefaultString == "" {
+			line, err = l.Readline()
+		} else {
+			line, err = l.ReadlineWithDefault(ScanDefaultString)
+		}
+		if err == readline.ErrInterrupt {
+			if len(line) <= len(ScanDefaultString) {
+				break
+			} else {
+				continue
+			}
+		} else if err == io.EOF {
+			break
+		}
+
+		line = strings.TrimSpace(line)
+		if line == "" && allowEmpty {
+			continue
+		}
+		return line, nil
 	}
+	return "", errors.New("canceled")
+}
 
-	return gist.Sync(fname)
+func FileContent(file string) (content string, err error) {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return
+	}
+	return string(data), err
 }

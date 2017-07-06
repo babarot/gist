@@ -30,19 +30,15 @@ _gist () {
     case "$words[1]" in
         (open)
             _arguments \
+                '(- :)'{-h,--help}'[Show this help and exit]' \
                 '(--no-select)--no-select[Open only gist base URL without selecting]' \
                 '(--starred -s)'{--starred,-s}'[Open your starred gist]' \
                 && return 0
             ;;
         (run)
             _arguments \
+                '(- :)'{-h,--help}'[Show this help and exit]' \
                 '(--starred -s)'{--starred,-s}'[Open your starred gist]' \
-                && return 0
-            ;;
-        (edit)
-            _arguments \
-                '(-o --open)'{-o,--open}'[Open with the default browser]' \
-                '(-d --description)'{-d,--description}'[Edit only the description]' \
                 && return 0
             ;;
         (new)
@@ -50,11 +46,10 @@ _gist () {
                 '(- :)'{-h,--help}'[Show this help and exit]' \
                 '(-o --open)'{-o,--open}'[Open with the default browser]' \
                 '(-p --private)'{-p,--private}'[Create as private gist]' \
-                '(-c --from-clipboard)'{-c,--from-clipboard}'[Create gist from clipboard]' \
                 '(-)*: :_files' \
                 && return 0
             ;;
-        (delete|config|get)
+        (delete|config|get|edit)
             _arguments \
                 '(- :)'{-h,--help}'[Show this help and exit]' \
                 && return 0

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/b4b4r07/go-colon"
+	colon "github.com/b4b4r07/go-colon"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -23,7 +23,7 @@ func expandPath(s string) string {
 	return os.Expand(s, os.Getenv)
 }
 
-func runFilter(command string, r io.Reader, w io.Writer) error {
+func Filter(command string, r io.Reader, w io.Writer) error {
 	command = expandPath(command)
 	result, err := colon.Parse(command)
 	if err != nil {

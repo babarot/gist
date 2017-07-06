@@ -1,10 +1,12 @@
-package cli
+package gist
 
 import (
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/b4b4r07/gist/cli/config"
 )
 
 var Filename = "cache.json"
@@ -22,7 +24,7 @@ func NewCache() *Cache {
 		ready   bool
 		updated time.Time
 	)
-	path := filepath.Join(Conf.Gist.Dir, Filename)
+	path := filepath.Join(config.Conf.Gist.Dir, Filename)
 	fi, err := os.Stat(path)
 	if err == nil {
 		ready = true
@@ -31,8 +33,8 @@ func NewCache() *Cache {
 	return &Cache{
 		Ready:   ready,
 		Path:    path,
-		TTL:     Conf.Gist.CacheTTL * time.Minute,
-		Use:     Conf.Gist.UseCache,
+		TTL:     config.Conf.Gist.CacheTTL * time.Minute,
+		Use:     config.Conf.Gist.UseCache,
 		Updated: updated,
 	}
 }
@@ -41,21 +43,21 @@ func (c *Cache) Clear() error {
 	return os.Remove(c.Path)
 }
 
-func (c *Cache) Cache(files Files) error {
+func (c *Cache) Cache(items Items) error {
 	f, err := os.Create(c.Path)
 	if err != nil {
 		return err
 	}
-	return json.NewEncoder(f).Encode(&files)
+	return json.NewEncoder(f).Encode(&items)
 }
 
-func (c *Cache) Load() (files Files, err error) {
+func (c *Cache) Load() (items Items, err error) {
 	f, err := os.Open(c.Path)
 	if err != nil {
 		return
 	}
 	defer f.Close()
-	err = json.NewDecoder(f).Decode(&files)
+	err = json.NewDecoder(f).Decode(&items)
 	c.pseudoRun()
 	return
 }

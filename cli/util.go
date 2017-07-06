@@ -1,6 +1,7 @@
-package util
+package cli
 
 import (
+	"log"
 	"os"
 	"time"
 
@@ -14,24 +15,29 @@ var (
 type Spinner struct {
 	*spinner.Spinner
 
-	Text string
+	text string
 }
 
 func NewSpinner(text string) *Spinner {
 	return &Spinner{
 		Spinner: spinner.New(spinner.CharSets[SpinnerSymbol], 100*time.Millisecond),
-		Text:    text,
+		text:    text,
 	}
 }
 
 func (s *Spinner) Start() {
 	s.Spinner.Writer = os.Stderr
-	if len(s.Text) > 0 {
-		s.Suffix = " " + s.Text
+	s.Spinner.Prefix = "\r"
+	if len(s.text) > 0 {
+		s.Suffix = " " + s.text
 	}
 	s.Spinner.Start()
 }
 
 func (s *Spinner) Stop() {
 	s.Spinner.Stop()
+}
+
+func ErrorLog(err error) {
+	log.Printf("%v\n", err)
 }

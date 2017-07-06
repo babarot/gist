@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/b4b4r07/gist/cli"
+	"github.com/b4b4r07/gist/cli/screen"
 	"github.com/spf13/cobra"
 )
 
@@ -15,22 +16,22 @@ var getCmd = &cobra.Command{
 }
 
 func get(cmd *cobra.Command, args []string) error {
-	screen, err := cli.NewScreen()
+	s, err := screen.Open()
 	if err != nil {
 		return err
 	}
 
-	lines, err := screen.Select()
+	rows, err := s.Select()
 	if err != nil {
 		return err
 	}
 
-	for _, line := range lines {
+	for _, row := range rows {
 		if len(args) == 0 {
-			fmt.Println(line.Path)
+			fmt.Println(row.File.Path)
 			continue
 		}
-		if err := cli.Run(args[0], line.Path); err != nil {
+		if err := cli.Run(args[0], row.File.Path); err != nil {
 			return err
 		}
 	}
