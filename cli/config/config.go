@@ -97,7 +97,7 @@ func (cfg *Config) LoadFile(file string) error {
 	cfg.Core.TomlFile = file
 	cfg.Core.User = os.Getenv("USER")
 
-	cfg.Gist.Token = os.Getenv("GITHUB_TOKEN")
+	cfg.Gist.Token = "$GITHUB_TOKEN"
 	cfg.Gist.BaseURL = "https://gist.github.com"
 	dir := filepath.Join(filepath.Dir(file), "files")
 	os.MkdirAll(dir, 0700)

@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"errors"
+	"os"
+	"strings"
 
 	"github.com/google/go-github/github"
 	runewidth "github.com/mattn/go-runewidth"
@@ -32,9 +34,18 @@ type (
 	Files []File
 )
 
+const (
+	// EnvToken is GitHub token string
+	EnvToken = "GITHUB_TOKEN"
+)
+
 func NewGist(token string) (*Gist, error) {
+	token = strings.TrimPrefix(token, "$")
+	if token == EnvToken {
+		token = os.Getenv(EnvToken)
+	}
 	if token == "" {
-		return &Gist{}, errors.New("token is missing")
+		return &Gist{}, errors.New("github token is missing")
 	}
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
