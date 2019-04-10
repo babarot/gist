@@ -2,3 +2,4 @@ vendor
 bin/gist
 build/gist
 dist
+gist
