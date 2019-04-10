@@ -9,7 +9,7 @@ build: ## Build for local environment
 
 .PHONY: release
 release: ## Build for multiple OSs, packaging it and upload to GitHub Release
-	@bash <(wget -o /dev/null -qO - https://git.io/release-go)
+	@VERSION_DIR=cmd bash <(wget -o /dev/null -qO - https://git.io/release-go)
 
 .PHONY: help
 help: ## Self-documented Makefile
