@@ -17,7 +17,7 @@ type meta struct {
 
 func (m *meta) init(args []string) error {
 	user := os.Getenv("USER")
-	base := filepath.Join(user, ".gist")
+	base := filepath.Join(os.Getenv("HOME"), ".gist")
 	files, err := gist.List(user, base)
 	if err != nil {
 		return err
