@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"github.com/b4b4r07/gist/pkg/gist"
 	"github.com/k0kubun/pp"
 	"github.com/spf13/cobra"
 )
 
 type listCmd struct {
+	meta
 }
 
 // newListCmd creates a new list command
@@ -22,6 +22,9 @@ func newListCmd() *cobra.Command {
 		SilenceErrors:         true,
 		Args:                  cobra.MaximumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := c.meta.init(args); err != nil {
+				return err
+			}
 			return c.run(args)
 		},
 	}
@@ -30,10 +33,6 @@ func newListCmd() *cobra.Command {
 }
 
 func (c *listCmd) run(args []string) error {
-	files, err := gist.List("b4b4r07")
-	if err != nil {
-		return err
-	}
-	pp.Println(files)
+	pp.Println(c.files)
 	return nil
 }

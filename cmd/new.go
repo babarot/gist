@@ -12,6 +12,8 @@ import (
 )
 
 type newCmd struct {
+	meta
+
 	private bool
 }
 
@@ -28,6 +30,9 @@ func newNewCmd() *cobra.Command {
 		SilenceErrors:         true,
 		Args:                  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := c.meta.init(args); err != nil {
+				return err
+			}
 			return c.run(args)
 		},
 	}
