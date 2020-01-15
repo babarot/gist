@@ -38,28 +38,30 @@ type File struct {
 
 type cache struct {
 	Pages []Page `json:"pages"`
+
+	path string
 }
 
-func open(path string) ([]Page, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return []Page{}, err
-	}
-	defer f.Close()
-	var c cache
-	if err := json.NewDecoder(f).Decode(&c); err != nil {
-		return []Page{}, err
-	}
-	return c.Pages, nil
+func newCache(path string) cache {
+	return cache{path: path}
 }
 
-func save(path string, pages []Page) error {
-	f, err := os.Create(path)
+func (c *cache) open() error {
+	f, err := os.Open(c.path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	c := cache{Pages: pages}
+	return json.NewDecoder(f).Decode(&c)
+}
+
+func (c *cache) save(pages []Page) error {
+	f, err := os.Create(c.path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	c.Pages = pages
 	return json.NewEncoder(f).Encode(&c)
 }
 
@@ -67,20 +69,22 @@ func List(user, workDir string) ([]File, error) {
 	token := os.Getenv("GITHUB_TOKEN")
 
 	var pages []Page
-	var err error
 	f := filepath.Join(workDir, "cache.json")
-	pages, err = open(f)
-	if err != nil {
-		log.Print(err)
-	}
-	if len(pages) == 0 {
+	c := newCache(f)
+	c.open()
+	defer c.save(pages)
+
+	switch len(c.Pages) {
+	case 0:
 		client := newClient(token)
-		pages, err = client.List(user)
+		results, err := client.List(user)
 		if err != nil {
 			return []File{}, err
 		}
+		pages = results
+	default:
+		pages = c.Pages
 	}
-	defer save(f, pages)
 
 	ch := make(chan Page, len(pages))
 	wg := new(sync.WaitGroup)
