@@ -2,10 +2,8 @@ package gist
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -19,13 +17,13 @@ import (
 
 // Page represents gist page itself
 type Page struct {
-	ID          string    `json:"id"`
-	Description string    `json:"description"`
-	Public      bool      `json:"public"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          string            `json:"id"`
+	Description string            `json:"description"`
+	Public      bool              `json:"public"`
+	CreatedAt   time.Time         `json:"created_at"`
+	Files       map[string]string `json:"files"`
 
-	Files map[string]string `json:"files"`
-	Repo  *git.GitRepo      `json:"-"`
+	Repo *git.GitRepo `json:"-"`
 }
 
 // File represents a single file hosted on gist
@@ -36,35 +34,6 @@ type File struct {
 	Gist Page
 }
 
-type cache struct {
-	Pages []Page `json:"pages"`
-
-	path string
-}
-
-func newCache(path string) cache {
-	return cache{path: path}
-}
-
-func (c *cache) open() error {
-	f, err := os.Open(c.path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return json.NewDecoder(f).Decode(&c)
-}
-
-func (c *cache) save(pages []Page) error {
-	f, err := os.Create(c.path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	c.Pages = pages
-	return json.NewEncoder(f).Encode(&c)
-}
-
 func List(user, workDir string) ([]File, error) {
 	token := os.Getenv("GITHUB_TOKEN")
 
@@ -72,7 +41,6 @@ func List(user, workDir string) ([]File, error) {
 	f := filepath.Join(workDir, "cache.json")
 	c := newCache(f)
 	c.open()
-	defer c.save(pages)
 
 	switch len(c.Pages) {
 	case 0:
@@ -104,7 +72,7 @@ func List(user, workDir string) ([]File, error) {
 				Token:    token,
 			})
 			if err != nil {
-				log.Println(err)
+				return
 			}
 			repo.CloneOrOpen(context.Background())
 			page.Repo = repo
@@ -112,7 +80,7 @@ func List(user, workDir string) ([]File, error) {
 			for name := range page.Files {
 				content, err := ioutil.ReadFile(filepath.Join(repo.Path(), name))
 				if err != nil {
-					log.Println(err)
+					return
 				}
 				files[name] = string(content)
 			}
@@ -126,6 +94,7 @@ func List(user, workDir string) ([]File, error) {
 	}()
 
 	pages = []Page{}
+
 	for p := range ch {
 		pages = append(pages, p)
 	}
@@ -144,6 +113,7 @@ func List(user, workDir string) ([]File, error) {
 		}
 	}
 
+	c.save(pages)
 	return files, nil
 }
 
