@@ -23,7 +23,7 @@ type Page struct {
 	CreatedAt   time.Time         `json:"created_at"`
 	Files       map[string]string `json:"files"`
 
-	Repo *git.GitRepo `json:"-"`
+	Repo *git.Repo `json:"-"`
 }
 
 // File represents a single file hosted on gist
@@ -65,7 +65,7 @@ func List(user, workDir string) ([]File, error) {
 				ch <- page
 				wg.Done()
 			}()
-			repo, err := git.NewGitRepo(git.Config{
+			repo, err := git.NewRepo(git.Config{
 				URL:      fmt.Sprintf("https://gist.github.com/%s/%s", user, page.ID),
 				WorkDir:  workDir,
 				Username: user,

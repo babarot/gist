@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"gopkg.in/src-d/go-git.v4"
@@ -16,11 +15,10 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 )
 
-type GitRepo struct {
+type Repo struct {
 	url      string
 	repo     *git.Repository
 	worktree *git.Worktree
-	mu       sync.Mutex
 
 	workDir     string
 	user        string
@@ -42,14 +40,14 @@ type Config struct {
 	AuthorEmail string
 }
 
-func NewGitRepo(cfg Config) (*GitRepo, error) {
+func NewRepo(cfg Config) (*Repo, error) {
 	u, err := url.Parse(cfg.URL)
 	if err != nil {
 		return nil, err
 	}
 	workDir := filepath.Join(cfg.WorkDir, u.Path)
 
-	return &GitRepo{
+	return &Repo{
 		workDir:     workDir,
 		url:         cfg.URL,
 		user:        cfg.Username,
@@ -60,14 +58,14 @@ func NewGitRepo(cfg Config) (*GitRepo, error) {
 	}, nil
 }
 
-func (r *GitRepo) auth() *http.BasicAuth {
+func (r *Repo) auth() *http.BasicAuth {
 	return &http.BasicAuth{
 		Username: r.user,
 		Password: r.token,
 	}
 }
 
-func (r *GitRepo) author() *object.Signature {
+func (r *Repo) author() *object.Signature {
 	return &object.Signature{
 		Name:  r.commitName,
 		Email: r.commitEmail,
@@ -75,7 +73,7 @@ func (r *GitRepo) author() *object.Signature {
 	}
 }
 
-func (r *GitRepo) Clone(ctx context.Context) error {
+func (r *Repo) Clone(ctx context.Context) error {
 	repo, err := git.PlainCloneContext(ctx, r.workDir, false, &git.CloneOptions{
 		URL:  r.url,
 		Auth: r.auth(),
@@ -95,7 +93,7 @@ func (r *GitRepo) Clone(ctx context.Context) error {
 	return nil
 }
 
-func (r *GitRepo) Objects() (map[string]string, error) {
+func (r *Repo) Objects() (map[string]string, error) {
 	m := make(map[string]string)
 	head, err := r.repo.Head()
 	if err != nil {
@@ -116,7 +114,7 @@ func (r *GitRepo) Objects() (map[string]string, error) {
 	return m, nil
 }
 
-func (r *GitRepo) Open(ctx context.Context) error {
+func (r *Repo) Open(ctx context.Context) error {
 	repo, err := git.PlainOpen(r.workDir)
 	if err != nil {
 		return err
@@ -133,7 +131,7 @@ func (r *GitRepo) Open(ctx context.Context) error {
 	return nil
 }
 
-func (r *GitRepo) CloneOrOpen(ctx context.Context) error {
+func (r *Repo) CloneOrOpen(ctx context.Context) error {
 	_, err := os.Stat(r.workDir)
 	switch {
 	case os.IsNotExist(err):
@@ -147,7 +145,7 @@ func (r *GitRepo) CloneOrOpen(ctx context.Context) error {
 	}
 }
 
-func (r *GitRepo) Pull(ctx context.Context) error {
+func (r *Repo) Pull(ctx context.Context) error {
 	if err := r.worktree.Checkout(&git.CheckoutOptions{
 		Branch: plumbing.NewBranchReferenceName(r.branch),
 		Force:  true,
@@ -167,11 +165,11 @@ func (r *GitRepo) Pull(ctx context.Context) error {
 	return nil
 }
 
-func (r *GitRepo) Path() string {
+func (r *Repo) Path() string {
 	return r.workDir
 }
 
-func (r *GitRepo) Push(ctx context.Context) error {
+func (r *Repo) Push(ctx context.Context) error {
 	if err := r.repo.PushContext(ctx, &git.PushOptions{
 		Auth:       r.auth(),
 		RemoteName: "origin",
@@ -182,19 +180,19 @@ func (r *GitRepo) Push(ctx context.Context) error {
 	return nil
 }
 
-func (r *GitRepo) Add(path string) error {
+func (r *Repo) Add(path string) error {
 	_, err := r.worktree.Add(path)
 	return err
 }
 
-func (r *GitRepo) Commit(msg string) error {
+func (r *Repo) Commit(msg string) error {
 	_, err := r.worktree.Commit(msg, &git.CommitOptions{
 		Author: r.author(),
 	})
 	return err
 }
 
-func (r *GitRepo) IsClean() bool {
+func (r *Repo) IsClean() bool {
 	status, err := r.worktree.Status()
 	if err != nil {
 		return false
