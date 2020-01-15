@@ -3,6 +3,8 @@ package gist
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -34,11 +36,7 @@ type File struct {
 
 func List(user, workDir string) ([]File, error) {
 	token := os.Getenv("GITHUB_TOKEN")
-
-	client, err := newClient(token)
-	if err != nil {
-		return []File{}, err
-	}
+	client := newClient(token)
 
 	pages, err := client.List(user)
 	if err != nil {
@@ -56,14 +54,26 @@ func List(user, workDir string) ([]File, error) {
 				ch <- page
 				wg.Done()
 			}()
-			repo, _ := git.NewGitRepo(git.Config{
+			repo, err := git.NewGitRepo(git.Config{
 				URL:      fmt.Sprintf("https://gist.github.com/%s/%s", user, page.ID),
 				WorkDir:  workDir,
 				Username: user,
 				Token:    token,
 			})
+			if err != nil {
+				log.Println(err)
+			}
 			repo.CloneOrOpen(context.Background())
 			page.Repo = repo
+			files := make(map[string]string)
+			for name := range page.Files {
+				content, err := ioutil.ReadFile(filepath.Join(repo.Path(), name))
+				if err != nil {
+					log.Println(err)
+				}
+				files[name] = string(content)
+			}
+			page.Files = files
 		}()
 	}
 
@@ -72,8 +82,7 @@ func List(user, workDir string) ([]File, error) {
 		close(ch)
 	}()
 
-	// pages = []Page{}
-	pages = make([]Page, len(pages))
+	pages = []Page{}
 	for p := range ch {
 		pages = append(pages, p)
 	}
@@ -117,10 +126,7 @@ func (f *File) Edit() error {
 }
 
 func Create(page Page) error {
-	client, err := newClient(os.Getenv("GITHUB_TOKEN"))
-	if err != nil {
-		return err
-	}
+	client := newClient(os.Getenv("GITHUB_TOKEN"))
 	files := make(map[github.GistFilename]github.GistFile)
 	for name, content := range page.Files {
 		fn := github.GistFilename(name)
@@ -129,7 +135,7 @@ func Create(page Page) error {
 			Content:  github.String(content),
 		}
 	}
-	_, _, err = client.Gists.Create(context.Background(), &github.Gist{
+	_, _, err := client.Gists.Create(context.Background(), &github.Gist{
 		Files:       files,
 		Description: github.String(page.Description),
 		Public:      github.Bool(page.Public),

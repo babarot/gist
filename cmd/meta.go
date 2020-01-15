@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/b4b4r07/gist/pkg/gist"
@@ -17,11 +18,27 @@ func (m *meta) init(args []string) error {
 	if err != nil {
 		return err
 	}
+	if len(files) == 0 {
+		return errors.New("unknown error when meta.init")
+	}
 	m.files = files
 	return nil
 }
 
+func head(content string) string {
+	lines := strings.Split(content, "\n")
+	content = "\n"
+	content += "  " + lines[0] + "\n"
+	content += "  " + lines[1] + "\n"
+	content += "  " + lines[2] + "\n"
+	content += "  " + lines[3] + "\n"
+	content += "  " + lines[4] + "\n"
+	return content
+}
+
 func (m *meta) prompt() (gist.File, error) {
+	funcMap := promptui.FuncMap
+	funcMap["head"] = head
 	templates := &promptui.SelectTemplates{
 		Label:    "{{ . }}",
 		Active:   promptui.IconSelect + " {{ .Name | cyan }}",
@@ -29,9 +46,11 @@ func (m *meta) prompt() (gist.File, error) {
 		Selected: promptui.IconGood + " {{ .Name }}",
 		Details: `
 {{ "ID:" | faint }}	{{ .Gist.ID }}
-{{ "Desc:" | faint }}	{{ .Gist.Description }}
+{{ "Description:" | faint }}	{{ .Gist.Description }}
 {{ "Public:" | faint }}	{{ .Gist.Public }}
+{{ "Content:" | faint }}	{{ .Content | head }}
 		`,
+		FuncMap: funcMap,
 	}
 
 	searcher := func(input string, index int) bool {
