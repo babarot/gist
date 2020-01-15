@@ -2,10 +2,13 @@ package cmd
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/b4b4r07/gist/pkg/gist"
 	"github.com/manifoldco/promptui"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type meta struct {
@@ -13,8 +16,9 @@ type meta struct {
 }
 
 func (m *meta) init(args []string) error {
-	user := "b4b4r07"
-	files, err := gist.List(user, "/Users/b4b4r07/.gist")
+	user := os.Getenv("USER")
+	base := filepath.Join(user, ".gist")
+	files, err := gist.List(user, base)
 	if err != nil {
 		return err
 	}
@@ -26,13 +30,26 @@ func (m *meta) init(args []string) error {
 }
 
 func head(content string) string {
+	wrap := func(line string) string {
+		line = strings.ReplaceAll(line, "\t", "  ")
+		id := int(os.Stdout.Fd())
+		width, _, _ := terminal.GetSize(id)
+		if width < 10 {
+			return line
+		}
+		if len(line) < width-10 {
+			return line
+		}
+		return line[:width-10] + "..."
+	}
 	lines := strings.Split(content, "\n")
 	content = "\n"
-	content += "  " + lines[0] + "\n"
-	content += "  " + lines[1] + "\n"
-	content += "  " + lines[2] + "\n"
-	content += "  " + lines[3] + "\n"
-	content += "  " + lines[4] + "\n"
+	for i := 0; i < len(lines); i++ {
+		if i > 4 {
+			break
+		}
+		content += "  " + wrap(lines[i]) + "\n"
+	}
 	return content
 }
 
