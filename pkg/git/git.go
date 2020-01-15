@@ -171,3 +171,11 @@ func (r *GitRepo) Commit(msg string) error {
 	})
 	return err
 }
+
+func (r *GitRepo) IsClean() bool {
+	status, err := r.worktree.Status()
+	if err != nil {
+		return false
+	}
+	return status.IsClean()
+}

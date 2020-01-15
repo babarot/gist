@@ -102,14 +102,18 @@ func (f *File) Edit() error {
 	if err := vim.Run(ctx); err != nil {
 		return err
 	}
-	git := f.Gist.Repo
-	if err := git.Add(f.Name); err != nil {
+	repo := f.Gist.Repo
+	if repo.IsClean() {
+		// no need to push
+		return nil
+	}
+	if err := repo.Add(f.Name); err != nil {
 		return err
 	}
-	if err := git.Commit("update"); err != nil {
+	if err := repo.Commit("update"); err != nil {
 		return err
 	}
-	return git.Push(ctx)
+	return repo.Push(ctx)
 }
 
 func Create(page Page) error {
