@@ -3,6 +3,7 @@ package git
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -92,6 +93,27 @@ func (r *GitRepo) Clone(ctx context.Context) error {
 	r.worktree = w
 
 	return nil
+}
+
+func (r *GitRepo) Objects() (map[string]string, error) {
+	m := make(map[string]string)
+	head, err := r.repo.Head()
+	if err != nil {
+		return m, err
+	}
+	commit, err := r.repo.CommitObject(head.Hash())
+	if err != nil {
+		return m, err
+	}
+	tree, err := commit.Tree()
+	if err != nil {
+		return m, err
+	}
+	for _, entry := range tree.Entries {
+		content, _ := ioutil.ReadFile(filepath.Join(r.workDir, entry.Name))
+		m[entry.Name] = string(content)
+	}
+	return m, nil
 }
 
 func (r *GitRepo) Open(ctx context.Context) error {
