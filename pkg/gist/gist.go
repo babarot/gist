@@ -2,6 +2,7 @@ package gist
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -18,12 +19,13 @@ import (
 
 // Page represents gist page itself
 type Page struct {
-	ID          string
-	Description string
-	Public      bool
-	Files       map[string]string
-	Repo        *git.GitRepo
-	CreatedAt   time.Time
+	ID          string    `json:"id"`
+	Description string    `json:"description"`
+	Public      bool      `json:"public"`
+	CreatedAt   time.Time `json:"created_at"`
+
+	Files map[string]string `json:"files"`
+	Repo  *git.GitRepo      `json:"-"`
 }
 
 // File represents a single file hosted on gist
@@ -34,14 +36,51 @@ type File struct {
 	Gist Page
 }
 
+type cache struct {
+	Pages []Page `json:"pages"`
+}
+
+func open(path string) ([]Page, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return []Page{}, err
+	}
+	defer f.Close()
+	var c cache
+	if err := json.NewDecoder(f).Decode(&c); err != nil {
+		return []Page{}, err
+	}
+	return c.Pages, nil
+}
+
+func save(path string, pages []Page) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	c := cache{Pages: pages}
+	return json.NewEncoder(f).Encode(&c)
+}
+
 func List(user, workDir string) ([]File, error) {
 	token := os.Getenv("GITHUB_TOKEN")
-	client := newClient(token)
 
-	pages, err := client.List(user)
+	var pages []Page
+	var err error
+	f := filepath.Join(workDir, "cache.json")
+	pages, err = open(f)
 	if err != nil {
-		return []File{}, err
+		log.Print(err)
 	}
+	if len(pages) == 0 {
+		client := newClient(token)
+		pages, err = client.List(user)
+		if err != nil {
+			return []File{}, err
+		}
+	}
+	defer save(f, pages)
 
 	ch := make(chan Page, len(pages))
 	wg := new(sync.WaitGroup)
