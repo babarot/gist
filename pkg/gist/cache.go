@@ -33,3 +33,7 @@ func (c *cache) save(pages []Page) error {
 	c.Pages = pages
 	return json.NewEncoder(f).Encode(&c)
 }
+
+func (c *cache) delete() error {
+	return os.Remove(c.path)
+}

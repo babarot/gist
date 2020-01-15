@@ -15,6 +15,27 @@ import (
 	"github.com/google/go-github/github"
 )
 
+type Gist struct {
+	Pages []Page
+	Files []File
+
+	WorkDir string
+	User    string
+
+	cache *cache
+}
+
+func New(user, workDir string) Gist {
+	f := filepath.Join(workDir, "cache.json")
+	c := newCache(f)
+	c.open()
+	return Gist{
+		WorkDir: workDir,
+		User:    user,
+		cache:   c,
+	}
+}
+
 // Page represents gist page itself
 type Page struct {
 	ID          string            `json:"id"`
@@ -34,24 +55,20 @@ type File struct {
 	Gist Page
 }
 
-func List(user, workDir string) ([]File, error) {
+func (g Gist) List() ([]File, error) {
 	token := os.Getenv("GITHUB_TOKEN")
 
 	var pages []Page
-	f := filepath.Join(workDir, "cache.json")
-	c := newCache(f)
-	c.open()
-
-	switch len(c.Pages) {
+	switch len(g.cache.Pages) {
 	case 0:
 		client := newClient(token)
-		results, err := client.List(user)
+		results, err := client.List(g.User)
 		if err != nil {
 			return []File{}, err
 		}
 		pages = results
 	default:
-		pages = c.Pages
+		pages = g.cache.Pages
 	}
 
 	ch := make(chan Page, len(pages))
@@ -66,9 +83,9 @@ func List(user, workDir string) ([]File, error) {
 				wg.Done()
 			}()
 			repo, err := git.NewRepo(git.Config{
-				URL:      fmt.Sprintf("https://gist.github.com/%s/%s", user, page.ID),
-				WorkDir:  workDir,
-				Username: user,
+				URL:      fmt.Sprintf("https://gist.github.com/%s/%s", g.User, page.ID),
+				WorkDir:  g.WorkDir,
+				Username: g.User,
 				Token:    token,
 			})
 			if err != nil {
@@ -113,7 +130,7 @@ func List(user, workDir string) ([]File, error) {
 		}
 	}
 
-	c.save(pages)
+	g.cache.save(pages)
 	return files, nil
 }
 
@@ -138,7 +155,8 @@ func (f *File) Edit() error {
 	return repo.Push(ctx)
 }
 
-func Create(page Page) error {
+func (g Gist) Create(page Page) error {
+	defer g.cache.delete()
 	client := newClient(os.Getenv("GITHUB_TOKEN"))
 	files := make(map[github.GistFilename]github.GistFile)
 	for name, content := range page.Files {

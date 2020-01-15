@@ -13,18 +13,23 @@ import (
 
 type meta struct {
 	files []gist.File
+
+	gist gist.Gist
 }
 
 func (m *meta) init(args []string) error {
 	user := os.Getenv("USER")
 	base := filepath.Join(os.Getenv("HOME"), ".gist")
-	files, err := gist.List(user, base)
+	m.gist = gist.New(user, base)
+
+	files, err := m.gist.List()
 	if err != nil {
 		return err
 	}
 	if len(files) == 0 {
 		return errors.New("unknown error when meta.init")
 	}
+
 	m.files = files
 	return nil
 }

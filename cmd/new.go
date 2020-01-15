@@ -81,7 +81,7 @@ func (c *newCmd) run(args []string) error {
 		return err
 	}
 
-	return gist.Create(gist.Page{
+	return c.gist.Create(gist.Page{
 		Files:       files,
 		Description: desc,
 		Public:      !c.private,
