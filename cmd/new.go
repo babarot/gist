@@ -39,11 +39,6 @@ func newNewCmd() *cobra.Command {
 }
 
 func (c *newCmd) run(args []string) error {
-	client, err := gist.New(os.Getenv("GITHUB_TOKEN"))
-	if err != nil {
-		return err
-	}
-
 	validate := func(input string) error {
 		if len(input) < 3 {
 			return errors.New("Filename must have more than 3 characters")
@@ -81,7 +76,7 @@ func (c *newCmd) run(args []string) error {
 		return err
 	}
 
-	return client.Create(gist.Page{
+	return gist.Create(gist.Page{
 		Files:       files,
 		Description: desc,
 		Public:      !c.private,

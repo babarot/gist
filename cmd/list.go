@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/b4b4r07/gist/pkg/gist"
 	"github.com/k0kubun/pp"
 	"github.com/spf13/cobra"
@@ -32,18 +30,10 @@ func newListCmd() *cobra.Command {
 }
 
 func (c *listCmd) run(args []string) error {
-	gist, err := gist.New(os.Getenv("GITHUB_TOKEN"))
+	files, err := gist.List("b4b4r07")
 	if err != nil {
 		return err
 	}
-	pages, err := gist.List("b4b4r07")
-	if err != nil {
-		return err
-	}
-	page, err := gist.Get(pages[len(pages)-1].ID)
-	if err != nil {
-		return err
-	}
-	pp.Println(page)
+	pp.Println(files)
 	return nil
 }

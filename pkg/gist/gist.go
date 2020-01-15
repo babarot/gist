@@ -2,29 +2,10 @@ package gist
 
 import (
 	"context"
-	"errors"
+	"os"
 
 	"github.com/google/go-github/github"
-	"golang.org/x/oauth2"
 )
-
-// Client represents gist client
-type Client struct {
-	*github.Client
-}
-
-// New returns Gist structure
-func New(token string) (Client, error) {
-	if token == "" {
-		return Client{}, errors.New("github token is missing")
-	}
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(oauth2.NoContext, ts)
-	client := github.NewClient(tc)
-	return Client{Client: client}, nil
-}
 
 // Page represents gist page itself
 type Page struct {
@@ -34,54 +15,40 @@ type Page struct {
 	Files       map[string]string
 }
 
-// List lists gist pages
-func (c Client) List(user string) ([]Page, error) {
-	opt := &github.GistListOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
-	}
-	var gists []*github.Gist
-	for {
-		results, resp, err := c.Gists.List(context.Background(), user, opt)
-		if err != nil {
-			return []Page{}, err
-		}
-		gists = append(gists, results...)
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
-	}
-	var pages []Page
-	for _, gist := range gists {
-		pages = append(pages, Page{
-			ID:          gist.GetID(),
-			Description: gist.GetDescription(),
-			Public:      gist.GetPublic(),
-		})
-	}
-	return pages, nil
+// File represents a single file hosted on gist
+type File struct {
+	Name    string
+	Content string
+	Gist    Page
 }
 
-// Get gets gist page in detail
-func (c Client) Get(id string) (Page, error) {
-	gist, _, err := c.Gists.Get(context.Background(), id)
+func List(user string) ([]File, error) {
+	client, err := newClient(os.Getenv("GITHUB_TOKEN"))
 	if err != nil {
-		return Page{}, err
+		return []File{}, err
 	}
-	files := make(map[string]string)
-	for name, file := range gist.Files {
-		files[string(name)] = file.GetContent()
+	pages, err := client.List(user)
+	if err != nil {
+		return []File{}, err
 	}
-	return Page{
-		ID:          gist.GetID(),
-		Description: gist.GetDescription(),
-		Public:      gist.GetPublic(),
-		Files:       files,
-	}, nil
+	var files []File
+	for _, page := range pages {
+		for name, content := range page.Files {
+			files = append(files, File{
+				Name:    name,
+				Content: content,
+				Gist:    page,
+			})
+		}
+	}
+	return files, nil
 }
 
-// Create creates gist page
-func (c Client) Create(page Page) error {
+func Create(page Page) error {
+	client, err := newClient(os.Getenv("GITHUB_TOKEN"))
+	if err != nil {
+		return err
+	}
 	files := make(map[github.GistFilename]github.GistFile)
 	for name, content := range page.Files {
 		fn := github.GistFilename(name)
@@ -90,7 +57,7 @@ func (c Client) Create(page Page) error {
 			Content:  github.String(content),
 		}
 	}
-	_, _, err := c.Gists.Create(context.Background(), &github.Gist{
+	_, _, err = client.Gists.Create(context.Background(), &github.Gist{
 		Files:       files,
 		Description: github.String(page.Description),
 		Public:      github.Bool(page.Public),

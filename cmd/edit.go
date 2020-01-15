@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/b4b4r07/gist/pkg/gist"
 	"github.com/k0kubun/pp"
 	"github.com/manifoldco/promptui"
@@ -33,10 +31,6 @@ func newEditCmd() *cobra.Command {
 }
 
 func (c *editCmd) run(args []string) error {
-	gist, err := gist.New(os.Getenv("GITHUB_TOKEN"))
-	if err != nil {
-		return err
-	}
 	pages, err := gist.List("b4b4r07")
 	if err != nil {
 		return err
@@ -45,23 +39,20 @@ func (c *editCmd) run(args []string) error {
 	if err != nil {
 		return err
 	}
-	page, err = gist.Get(page.ID)
-	if err != nil {
-		return err
-	}
 	pp.Println(page)
 	return nil
 }
 
-func (c *editCmd) prompt(pages []gist.Page) (gist.Page, error) {
+func (c *editCmd) prompt(pages []gist.File) (gist.File, error) {
 	templates := &promptui.SelectTemplates{
 		Label:    "{{ . }}",
-		Active:   promptui.IconSelect + " {{ .ID | cyan }}",
-		Inactive: "  {{ .ID | faint }}",
-		Selected: promptui.IconGood + " {{ .ID }}",
+		Active:   promptui.IconSelect + " {{ .Name | cyan }}",
+		Inactive: "  {{ .Name | faint }}",
+		Selected: promptui.IconGood + " {{ .Name }}",
 		Details: `
-{{ "Description:" | faint }}	{{ .Description }}
-{{ "Public:" | faint }}	{{ .Public }}
+{{ "ID:" | faint }}	{{ .Gist.ID }}
+{{ "Desc:" | faint }}	{{ .Gist.Description }}
+{{ "Public:" | faint }}	{{ .Gist.Public }}
 		`,
 	}
 
