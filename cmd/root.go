@@ -8,7 +8,7 @@ import (
 
 var (
 	// Version is the version number
-	Version = "0.1.7"
+	Version = "1.0.0"
 
 	// BuildTag set during build to git tag, if any
 	BuildTag = "unset"
