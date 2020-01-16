@@ -48,6 +48,8 @@ func (c client) List(user string) ([]Page, error) {
 			Public:      gist.GetPublic(),
 			CreatedAt:   gist.GetCreatedAt(),
 			Files:       files,
+			URL:         gist.GetHTMLURL(),
+			User:        user,
 		})
 	}
 	return pages, nil

@@ -2,7 +2,6 @@ package gist
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -25,6 +24,29 @@ type Gist struct {
 	cache *cache
 }
 
+// Page represents gist page itself
+type Page struct {
+	User        string            `json:"user"`
+	ID          string            `json:"id"`
+	Description string            `json:"description"`
+	URL         string            `json:"url"`
+	Public      bool              `json:"public"`
+	CreatedAt   time.Time         `json:"created_at"`
+	Files       map[string]string `json:"files"`
+
+	// Repo *git.Repo `json:"-"`
+}
+
+// File represents a single file hosted on gist
+type File struct {
+	Name    string
+	Content string
+
+	FullPath string
+
+	Gist Page
+}
+
 func New(user, workDir string) Gist {
 	f := filepath.Join(workDir, "cache.json")
 	c := newCache(f)
@@ -34,25 +56,6 @@ func New(user, workDir string) Gist {
 		User:    user,
 		cache:   c,
 	}
-}
-
-// Page represents gist page itself
-type Page struct {
-	ID          string            `json:"id"`
-	Description string            `json:"description"`
-	Public      bool              `json:"public"`
-	CreatedAt   time.Time         `json:"created_at"`
-	Files       map[string]string `json:"files"`
-
-	Repo *git.Repo `json:"-"`
-}
-
-// File represents a single file hosted on gist
-type File struct {
-	Name    string
-	Content string
-
-	Gist Page
 }
 
 func (g Gist) List() ([]File, error) {
@@ -83,7 +86,7 @@ func (g Gist) List() ([]File, error) {
 				wg.Done()
 			}()
 			repo, err := git.NewRepo(git.Config{
-				URL:      fmt.Sprintf("https://gist.github.com/%s/%s", g.User, page.ID),
+				URL:      page.URL,
 				WorkDir:  filepath.Join(g.WorkDir, g.User, page.ID),
 				Username: g.User,
 				Token:    token,
@@ -92,7 +95,7 @@ func (g Gist) List() ([]File, error) {
 				return
 			}
 			repo.CloneOrOpen(context.Background())
-			page.Repo = repo
+			// page.Repo = repo
 			files := make(map[string]string)
 			for name := range page.Files {
 				content, err := ioutil.ReadFile(filepath.Join(repo.Path(), name))
@@ -123,9 +126,10 @@ func (g Gist) List() ([]File, error) {
 	for _, page := range pages {
 		for name, content := range page.Files {
 			files = append(files, File{
-				Name:    name,
-				Content: content,
-				Gist:    page,
+				Name:     name,
+				Content:  content,
+				FullPath: filepath.Join(g.WorkDir, g.User, page.ID, name),
+				Gist:     page,
 			})
 		}
 	}
@@ -135,13 +139,24 @@ func (g Gist) List() ([]File, error) {
 }
 
 func (f *File) Edit() error {
-	path := filepath.Join(f.Gist.Repo.Path(), f.Name)
-	vim := shell.New("vim", path)
+	vim := shell.New("vim", f.FullPath)
 	ctx := context.Background()
 	if err := vim.Run(ctx); err != nil {
 		return err
 	}
-	repo := f.Gist.Repo
+	token := os.Getenv("GITHUB_TOKEN")
+	repo, err := git.NewRepo(git.Config{
+		URL:      f.Gist.URL,
+		WorkDir:  filepath.Dir(f.FullPath),
+		Username: f.Gist.User,
+		Token:    token,
+	})
+	if err != nil {
+		return err
+	}
+	if err := repo.Open(ctx); err != nil {
+		return err
+	}
 	if repo.IsClean() {
 		// no need to push
 		return nil
