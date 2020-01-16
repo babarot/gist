@@ -2,8 +2,8 @@ package gist
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/b4b4r07/gist/pkg/git"
 	"github.com/b4b4r07/gist/pkg/shell"
+	"github.com/caarlos0/spin"
 )
 
 type Gist struct {
@@ -19,6 +20,8 @@ type Gist struct {
 	User    string
 
 	Pages []Page
+
+	cache *cache
 }
 
 // Page represents gist page itself
@@ -51,26 +54,29 @@ func New() Gist {
 
 func (g Gist) Files() []File {
 	token := os.Getenv("GITHUB_TOKEN")
+
 	f := filepath.Join(g.WorkDir, "cache.json")
 	c := newCache(f)
 	c.open()
+	g.cache = c
 
 	switch len(c.Pages) {
 	case 0:
-		log.Println("get pages from api")
+		s := spin.New("%s Fetching pages...")
+		s.Start()
 		client := newClient(token)
-		results, err := client.List(g.User)
+		pages, err := client.List(g.User)
 		if err != nil {
 			panic(err)
 		}
-		g.Pages = results
+		g.Pages = pages
+		s.Stop()
 	default:
-		log.Println("get pages from cache")
 		g.Pages = c.Pages
 	}
+	c.save(g.Pages)
 
 	g.update()
-	c.save(g.Pages)
 
 	var files []File
 	for _, page := range g.Pages {
@@ -90,7 +96,10 @@ func (g Gist) Files() []File {
 }
 
 func (g Gist) update() error {
-	log.Println("update all repos")
+	s := spin.New("%s Checking pages...")
+	s.Start()
+	defer s.Stop()
+
 	token := os.Getenv("GITHUB_TOKEN")
 	ch := make(chan Page, len(g.Pages))
 	wg := new(sync.WaitGroup)
@@ -164,8 +173,13 @@ func (f *File) Edit() error {
 	if err := repo.Commit("update"); err != nil {
 		return err
 	}
-	log.Println("pushing...")
-	defer log.Println("done")
+	s := spin.New("%s Pushing...")
+	s.Start()
+	defer func() {
+		s.Stop()
+		fmt.Println("Pushed")
+		os.Remove(filepath.Join(os.Getenv("HOME"), ".gist", "cache.json")) // TODO
+	}()
 	return repo.Push(ctx)
 }
 
