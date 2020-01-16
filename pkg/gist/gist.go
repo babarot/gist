@@ -12,27 +12,22 @@ import (
 
 	"github.com/b4b4r07/gist/pkg/git"
 	"github.com/b4b4r07/gist/pkg/shell"
-	"github.com/google/go-github/github"
 )
 
 type Gist struct {
-	Files []File
-
 	WorkDir string
 	User    string
-
-	cache *cache
 }
 
 // Page represents gist page itself
 type Page struct {
-	User        string            `json:"user"`
-	ID          string            `json:"id"`
-	Description string            `json:"description"`
-	URL         string            `json:"url"`
-	Public      bool              `json:"public"`
-	CreatedAt   time.Time         `json:"created_at"`
-	Files       map[string]string `json:"files"`
+	User        string    `json:"user"`
+	ID          string    `json:"id"`
+	Description string    `json:"description"`
+	URL         string    `json:"url"`
+	Public      bool      `json:"public"`
+	CreatedAt   time.Time `json:"created_at"`
+	Files       []string  `json:"files"`
 }
 
 // File represents a single file hosted on gist
@@ -44,30 +39,14 @@ type File struct {
 	Gist Page
 }
 
-func New(user, workDir string) Gist {
-	gist := Gist{
-		WorkDir: workDir,
-		User:    user,
+func New() Gist {
+	return Gist{
+		User:    os.Getenv("USER"),
+		WorkDir: filepath.Join(os.Getenv("HOME"), ".gist"),
 	}
-
-	pages := gist.clone()
-
-	var files []File
-	for _, page := range pages {
-		for name, content := range page.Files {
-			files = append(files, File{
-				Name:     name,
-				Content:  content,
-				FullPath: filepath.Join(workDir, user, page.ID, name),
-				Gist:     page,
-			})
-		}
-	}
-	gist.Files = files
-	return gist
 }
 
-func (g Gist) clone() []Page {
+func (g Gist) Files() []File {
 	token := os.Getenv("GITHUB_TOKEN")
 	f := filepath.Join(g.WorkDir, "cache.json")
 	c := newCache(f)
@@ -88,7 +67,29 @@ func (g Gist) clone() []Page {
 		pages = c.Pages
 	}
 
+	pages = g.update(pages)
+	c.save(pages)
+
+	var files []File
+	for _, page := range pages {
+		for _, name := range page.Files {
+			path := filepath.Join(g.WorkDir, g.User, page.ID, name)
+			content, _ := ioutil.ReadFile(path)
+			files = append(files, File{
+				Name:     name,
+				Content:  string(content),
+				FullPath: path,
+				Gist:     page,
+			})
+		}
+	}
+
+	return files
+}
+
+func (g Gist) update(pages []Page) []Page {
 	log.Println("update all repos")
+	token := os.Getenv("GITHUB_TOKEN")
 	ch := make(chan Page, len(pages))
 	wg := new(sync.WaitGroup)
 
@@ -110,15 +111,6 @@ func (g Gist) clone() []Page {
 				return
 			}
 			repo.CloneOrOpen(context.Background())
-			files := make(map[string]string)
-			for name := range page.Files {
-				content, err := ioutil.ReadFile(filepath.Join(repo.Path(), name))
-				if err != nil {
-					return
-				}
-				files[name] = string(content)
-			}
-			page.Files = files
 		}()
 	}
 
@@ -136,7 +128,6 @@ func (g Gist) clone() []Page {
 		return pages[i].CreatedAt.After(pages[j].CreatedAt)
 	})
 
-	c.save(pages)
 	return pages
 }
 
@@ -175,20 +166,21 @@ func (f *File) Edit() error {
 }
 
 func (g Gist) Create(page Page) error {
+	return nil
 	// defer g.cache.delete()
-	client := newClient(os.Getenv("GITHUB_TOKEN"))
-	files := make(map[github.GistFilename]github.GistFile)
-	for name, content := range page.Files {
-		fn := github.GistFilename(name)
-		files[fn] = github.GistFile{
-			Filename: github.String(name),
-			Content:  github.String(content),
-		}
-	}
-	_, _, err := client.Gists.Create(context.Background(), &github.Gist{
-		Files:       files,
-		Description: github.String(page.Description),
-		Public:      github.Bool(page.Public),
-	})
-	return err
+	// client := newClient(os.Getenv("GITHUB_TOKEN"))
+	// files := make(map[github.GistFilename]github.GistFile)
+	// for name, content := range page.Files {
+	// 	fn := github.GistFilename(name)
+	// 	files[fn] = github.GistFile{
+	// 		Filename: github.String(name),
+	// 		Content:  github.String(content),
+	// 	}
+	// }
+	// _, _, err := client.Gists.Create(context.Background(), &github.Gist{
+	// 	Files:       files,
+	// 	Description: github.String(page.Description),
+	// 	Public:      github.Bool(page.Public),
+	// })
+	// return err
 }

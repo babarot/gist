@@ -82,7 +82,7 @@ func (c *newCmd) run(args []string) error {
 	}
 
 	return c.gist.Create(gist.Page{
-		Files:       files,
+		// Files:       files,
 		Description: desc,
 		Public:      !c.private,
 	})
