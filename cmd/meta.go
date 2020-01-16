@@ -58,7 +58,7 @@ func (m *meta) prompt() (gist.File, error) {
 		Details: `
 {{ "ID:" | faint }}	{{ .Gist.ID }}
 {{ "Description:" | faint }}	{{ .Gist.Description }}
-{{ "Public:" | faint }}	{{ .Gist.Public }}
+{{ "Private:" | faint }}	{{ not .Gist.Public }}
 {{ "Last modified:" | faint }}	{{ .Gist.UpdatedAt | time }}
 {{ "Content:" | faint }}	{{ .Content | head }}
 		`,
