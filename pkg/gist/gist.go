@@ -17,6 +17,8 @@ import (
 type Gist struct {
 	WorkDir string
 	User    string
+
+	Pages []Page
 }
 
 // Page represents gist page itself
@@ -52,7 +54,6 @@ func (g Gist) Files() []File {
 	c := newCache(f)
 	c.open()
 
-	var pages []Page
 	switch len(c.Pages) {
 	case 0:
 		log.Println("get pages from api")
@@ -61,17 +62,17 @@ func (g Gist) Files() []File {
 		if err != nil {
 			panic(err)
 		}
-		pages = results
+		g.Pages = results
 	default:
 		log.Println("get pages from cache")
-		pages = c.Pages
+		g.Pages = c.Pages
 	}
 
-	pages = g.update(pages)
-	c.save(pages)
+	g.update()
+	c.save(g.Pages)
 
 	var files []File
-	for _, page := range pages {
+	for _, page := range g.Pages {
 		for _, name := range page.Files {
 			path := filepath.Join(g.WorkDir, g.User, page.ID, name)
 			content, _ := ioutil.ReadFile(path)
@@ -87,13 +88,13 @@ func (g Gist) Files() []File {
 	return files
 }
 
-func (g Gist) update(pages []Page) []Page {
+func (g Gist) update() error {
 	log.Println("update all repos")
 	token := os.Getenv("GITHUB_TOKEN")
-	ch := make(chan Page, len(pages))
+	ch := make(chan Page, len(g.Pages))
 	wg := new(sync.WaitGroup)
 
-	for _, page := range pages {
+	for _, page := range g.Pages {
 		page := page
 		wg.Add(1)
 		go func() {
@@ -119,7 +120,7 @@ func (g Gist) update(pages []Page) []Page {
 		close(ch)
 	}()
 
-	pages = []Page{}
+	pages := []Page{}
 	for p := range ch {
 		pages = append(pages, p)
 	}
@@ -128,7 +129,9 @@ func (g Gist) update(pages []Page) []Page {
 		return pages[i].CreatedAt.After(pages[j].CreatedAt)
 	})
 
-	return pages
+	g.Pages = pages
+
+	return nil
 }
 
 func (f *File) Edit() error {
