@@ -27,7 +27,6 @@ func newRootCmd() *cobra.Command {
 		Version:            fmt.Sprintf("%s (%s/%s)", Version, BuildTag, BuildSHA),
 	}
 
-	rootCmd.AddCommand(newListCmd())
 	rootCmd.AddCommand(newNewCmd())
 	rootCmd.AddCommand(newEditCmd())
 	return rootCmd
