@@ -1,44 +1,40 @@
 package cmd
 
 import (
-	"github.com/b4b4r07/gist/cli/config"
-	"github.com/b4b4r07/gist/cli/gist"
-	"github.com/b4b4r07/gist/cli/screen"
 	"github.com/spf13/cobra"
 )
 
-var editCmd = &cobra.Command{
-	Use:   "edit",
-	Short: "Edit the gist file and sync after",
-	Long:  "Edit the gist file and sync after",
-	RunE:  edit,
+type editCmd struct {
+	meta
 }
 
-func edit(cmd *cobra.Command, args []string) (err error) {
-	s, err := screen.Open()
-	if err != nil {
-		return
+// newEditCmd creates a new edit command
+func newEditCmd() *cobra.Command {
+	c := &editCmd{}
+
+	editCmd := &cobra.Command{
+		Use:                   "edit",
+		Short:                 "Edit gist files",
+		Aliases:               []string{},
+		DisableFlagsInUseLine: true,
+		SilenceUsage:          true,
+		SilenceErrors:         true,
+		Args:                  cobra.MaximumNArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := c.meta.init(args); err != nil {
+				return err
+			}
+			return c.run(args)
+		},
 	}
 
-	rows, err := s.Select()
-	if err != nil {
-		return
-	}
-
-	client, err := gist.NewClient(config.Conf.Gist.Token)
-	if err != nil {
-		return
-	}
-
-	for _, row := range rows {
-		if err = client.Edit(row.File); err != nil {
-			return
-		}
-	}
-
-	return
+	return editCmd
 }
 
-func init() {
-	RootCmd.AddCommand(editCmd)
+func (c *editCmd) run(args []string) error {
+	file, err := c.prompt()
+	if err != nil {
+		return err
+	}
+	return file.Edit()
 }
