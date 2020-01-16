@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -41,14 +40,14 @@ type Config struct {
 }
 
 func NewRepo(cfg Config) (*Repo, error) {
-	u, err := url.Parse(cfg.URL)
-	if err != nil {
-		return nil, err
-	}
-	workDir := filepath.Join(cfg.WorkDir, u.Path)
+	// u, err := url.Parse(cfg.URL)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// workDir := filepath.Join(cfg.WorkDir, u.Path)
 
 	return &Repo{
-		workDir:     workDir,
+		workDir:     cfg.WorkDir,
 		url:         cfg.URL,
 		user:        cfg.Username,
 		token:       cfg.Token,

@@ -84,7 +84,7 @@ func (g Gist) List() ([]File, error) {
 			}()
 			repo, err := git.NewRepo(git.Config{
 				URL:      fmt.Sprintf("https://gist.github.com/%s/%s", g.User, page.ID),
-				WorkDir:  g.WorkDir,
+				WorkDir:  filepath.Join(g.WorkDir, g.User, page.ID),
 				Username: g.User,
 				Token:    token,
 			})
