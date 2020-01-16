@@ -13,6 +13,7 @@ import (
 	"github.com/b4b4r07/gist/pkg/git"
 	"github.com/b4b4r07/gist/pkg/shell"
 	"github.com/caarlos0/spin"
+	"github.com/google/go-github/github"
 )
 
 type Gist struct {
@@ -26,14 +27,14 @@ type Gist struct {
 
 // Page represents gist page itself
 type Page struct {
-	User        string    `json:"user"`
 	ID          string    `json:"id"`
 	Description string    `json:"description"`
+	User        string    `json:"user"`
 	URL         string    `json:"url"`
 	Public      bool      `json:"public"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
-	Files       []string  `json:"files"`
+	Files       []File    `json:"files"`
 }
 
 // File represents a single file hosted on gist
@@ -46,21 +47,23 @@ type File struct {
 }
 
 func New() Gist {
+	workDir := filepath.Join(os.Getenv("HOME"), ".gist")
+	f := filepath.Join(workDir, "cache.json")
+	c := newCache(f)
 	return Gist{
 		User:    os.Getenv("USER"),
-		WorkDir: filepath.Join(os.Getenv("HOME"), ".gist"),
+		WorkDir: workDir,
+		cache:   c,
 	}
 }
 
 func (g Gist) Files() []File {
 	token := os.Getenv("GITHUB_TOKEN")
 
-	f := filepath.Join(g.WorkDir, "cache.json")
-	c := newCache(f)
-	c.open()
-	g.cache = c
+	// load cache
+	g.cache.open()
 
-	switch len(c.Pages) {
+	switch len(g.cache.Pages) {
 	case 0:
 		s := spin.New("%s Fetching pages...")
 		s.Start()
@@ -72,19 +75,19 @@ func (g Gist) Files() []File {
 		g.Pages = pages
 		s.Stop()
 	default:
-		g.Pages = c.Pages
+		g.Pages = g.cache.Pages
 	}
-	c.save(g.Pages)
+	g.cache.save(g.Pages)
 
 	g.update()
 
 	var files []File
 	for _, page := range g.Pages {
-		for _, name := range page.Files {
-			path := filepath.Join(g.WorkDir, g.User, page.ID, name)
+		for _, file := range page.Files {
+			path := filepath.Join(g.WorkDir, g.User, page.ID, file.Name)
 			content, _ := ioutil.ReadFile(path)
 			files = append(files, File{
-				Name:     name,
+				Name:     file.Name,
 				Content:  string(content),
 				FullPath: path,
 				Gist:     page,
@@ -184,21 +187,28 @@ func (f *File) Edit() error {
 }
 
 func (g Gist) Create(page Page) error {
-	return nil
-	// defer g.cache.delete()
-	// client := newClient(os.Getenv("GITHUB_TOKEN"))
-	// files := make(map[github.GistFilename]github.GistFile)
-	// for name, content := range page.Files {
-	// 	fn := github.GistFilename(name)
-	// 	files[fn] = github.GistFile{
-	// 		Filename: github.String(name),
-	// 		Content:  github.String(content),
-	// 	}
-	// }
-	// _, _, err := client.Gists.Create(context.Background(), &github.Gist{
-	// 	Files:       files,
-	// 	Description: github.String(page.Description),
-	// 	Public:      github.Bool(page.Public),
-	// })
-	// return err
+	s := spin.New("%s Creating pages...")
+	s.Start()
+
+	// reset cache
+	defer g.cache.delete()
+
+	client := newClient(os.Getenv("GITHUB_TOKEN"))
+	files := make(map[github.GistFilename]github.GistFile)
+	for _, file := range page.Files {
+		name := github.GistFilename(file.Name)
+		files[name] = github.GistFile{
+			Filename: github.String(file.Name),
+			Content:  github.String(file.Content),
+		}
+	}
+	gist, _, err := client.Gists.Create(context.Background(), &github.Gist{
+		Files:       files,
+		Description: github.String(page.Description),
+		Public:      github.Bool(page.Public),
+	})
+
+	s.Stop()
+	fmt.Println(gist.GetHTMLURL())
+	return err
 }

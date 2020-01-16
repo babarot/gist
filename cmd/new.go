@@ -51,7 +51,7 @@ func (c *newCmd) run(args []string) error {
 		return nil
 	}
 
-	files := make(map[string]string)
+	var files []gist.File
 	for _, arg := range args {
 		f, err := os.Open(arg)
 		if err != nil {
@@ -72,7 +72,10 @@ func (c *newCmd) run(args []string) error {
 		if err != nil {
 			return err
 		}
-		files[name] = string(b)
+		files = append(files, gist.File{
+			Name:    name,
+			Content: string(b),
+		})
 	}
 
 	prompt := promptui.Prompt{Label: "Description"}
@@ -82,7 +85,7 @@ func (c *newCmd) run(args []string) error {
 	}
 
 	return c.gist.Create(gist.Page{
-		// Files:       files,
+		Files:       files,
 		Description: desc,
 		Public:      !c.private,
 	})

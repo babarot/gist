@@ -38,9 +38,9 @@ func (c client) List(user string) ([]Page, error) {
 	}
 	var pages []Page
 	for _, gist := range gists {
-		var files []string
+		var files []File
 		for name := range gist.Files {
-			files = append(files, string(name))
+			files = append(files, File{Name: string(name)})
 		}
 		pages = append(pages, Page{
 			ID:          gist.GetID(),
