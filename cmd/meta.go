@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,8 +11,6 @@ import (
 )
 
 type meta struct {
-	files []gist.File
-
 	gist gist.Gist
 }
 
@@ -21,16 +18,6 @@ func (m *meta) init(args []string) error {
 	user := os.Getenv("USER")
 	base := filepath.Join(os.Getenv("HOME"), ".gist")
 	m.gist = gist.New(user, base)
-
-	files, err := m.gist.List()
-	if err != nil {
-		return err
-	}
-	if len(files) == 0 {
-		return errors.New("unknown error when meta.init")
-	}
-
-	m.files = files
 	return nil
 }
 
@@ -76,7 +63,7 @@ func (m *meta) prompt() (gist.File, error) {
 	}
 
 	searcher := func(input string, index int) bool {
-		file := m.files[index]
+		file := m.gist.Files[index]
 		name := strings.Replace(strings.ToLower(file.Name), " ", "", -1)
 		input = strings.Replace(strings.ToLower(input), " ", "", -1)
 		return strings.Contains(name, input)
@@ -84,12 +71,12 @@ func (m *meta) prompt() (gist.File, error) {
 
 	prompt := promptui.Select{
 		Label:             "Select a page",
-		Items:             m.files,
+		Items:             m.gist.Files,
 		Templates:         templates,
 		Searcher:          searcher,
 		StartInSearchMode: true,
 		HideSelected:      true,
 	}
 	i, _, err := prompt.Run()
-	return m.files[i], err
+	return m.gist.Files[i], err
 }

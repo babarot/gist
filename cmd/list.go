@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/k0kubun/pp"
 	"github.com/spf13/cobra"
 )
 
@@ -33,6 +32,5 @@ func newListCmd() *cobra.Command {
 }
 
 func (c *listCmd) run(args []string) error {
-	pp.Println(c.files)
 	return nil
 }

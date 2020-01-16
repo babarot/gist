@@ -15,7 +15,6 @@ import (
 )
 
 type Gist struct {
-	Pages []Page
 	Files []File
 
 	WorkDir string
@@ -33,8 +32,6 @@ type Page struct {
 	Public      bool              `json:"public"`
 	CreatedAt   time.Time         `json:"created_at"`
 	Files       map[string]string `json:"files"`
-
-	// Repo *git.Repo `json:"-"`
 }
 
 // File represents a single file hosted on gist
@@ -48,31 +45,20 @@ type File struct {
 }
 
 func New(user, workDir string) Gist {
-	f := filepath.Join(workDir, "cache.json")
-	c := newCache(f)
-	c.open()
-	return Gist{
+	gist := Gist{
 		WorkDir: workDir,
 		User:    user,
-		cache:   c,
 	}
+	files, err := gist.list()
+	if err != nil {
+		panic(err)
+	}
+	gist.Files = files
+	return gist
 }
 
-func (g Gist) List() ([]File, error) {
+func (g Gist) clone(pages []Page) []Page {
 	token := os.Getenv("GITHUB_TOKEN")
-
-	var pages []Page
-	switch len(g.cache.Pages) {
-	case 0:
-		client := newClient(token)
-		results, err := client.List(g.User)
-		if err != nil {
-			return []File{}, err
-		}
-		pages = results
-	default:
-		pages = g.cache.Pages
-	}
 
 	ch := make(chan Page, len(pages))
 	wg := new(sync.WaitGroup)
@@ -95,7 +81,6 @@ func (g Gist) List() ([]File, error) {
 				return
 			}
 			repo.CloneOrOpen(context.Background())
-			// page.Repo = repo
 			files := make(map[string]string)
 			for name := range page.Files {
 				content, err := ioutil.ReadFile(filepath.Join(repo.Path(), name))
@@ -122,6 +107,31 @@ func (g Gist) List() ([]File, error) {
 		return pages[i].CreatedAt.After(pages[j].CreatedAt)
 	})
 
+	return pages
+}
+
+func (g Gist) list() ([]File, error) {
+	token := os.Getenv("GITHUB_TOKEN")
+
+	f := filepath.Join(g.WorkDir, "cache.json")
+	c := newCache(f)
+	c.open()
+
+	var pages []Page
+	switch len(c.Pages) {
+	case 0:
+		client := newClient(token)
+		results, err := client.List(g.User)
+		if err != nil {
+			return []File{}, err
+		}
+		pages = results
+	default:
+		pages = c.Pages
+	}
+
+	pages = g.clone(pages)
+
 	var files []File
 	for _, page := range pages {
 		for name, content := range page.Files {
@@ -134,7 +144,7 @@ func (g Gist) List() ([]File, error) {
 		}
 	}
 
-	g.cache.save(pages)
+	c.save(pages)
 	return files, nil
 }
 
@@ -171,7 +181,7 @@ func (f *File) Edit() error {
 }
 
 func (g Gist) Create(page Page) error {
-	defer g.cache.delete()
+	// defer g.cache.delete()
 	client := newClient(os.Getenv("GITHUB_TOKEN"))
 	files := make(map[github.GistFilename]github.GistFile)
 	for name, content := range page.Files {
