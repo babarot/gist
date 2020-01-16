@@ -30,6 +30,9 @@ func newNewCmd() *cobra.Command {
 		SilenceErrors:         true,
 		Args:                  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// TODO:
+			// new command doesn't need to fetch all repos data
+			// so divide this function to init and load.
 			if err := c.meta.init(args); err != nil {
 				return err
 			}

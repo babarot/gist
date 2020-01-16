@@ -43,6 +43,7 @@ func head(content string) string {
 		}
 		content += "  " + wrap(lines[i]) + "\n"
 	}
+	content += "  ...\n"
 	return content
 }
 

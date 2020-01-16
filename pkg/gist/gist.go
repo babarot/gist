@@ -187,13 +187,10 @@ func (f *File) Edit() error {
 }
 
 func (g Gist) Create(page Page) error {
-	s := spin.New("%s Creating pages...")
+	s := spin.New("%s Creating page...")
 	s.Start()
-
-	// reset cache
 	defer g.cache.delete()
 
-	client := newClient(os.Getenv("GITHUB_TOKEN"))
 	files := make(map[github.GistFilename]github.GistFile)
 	for _, file := range page.Files {
 		name := github.GistFilename(file.Name)
@@ -202,6 +199,7 @@ func (g Gist) Create(page Page) error {
 			Content:  github.String(file.Content),
 		}
 	}
+	client := newClient(os.Getenv("GITHUB_TOKEN"))
 	gist, _, err := client.Gists.Create(context.Background(), &github.Gist{
 		Files:       files,
 		Description: github.String(page.Description),
@@ -210,5 +208,16 @@ func (g Gist) Create(page Page) error {
 
 	s.Stop()
 	fmt.Println(gist.GetHTMLURL())
+	return err
+}
+
+func (g Gist) Delete(page Page) error {
+	s := spin.New("%s Deleting page...")
+	s.Start()
+	defer g.cache.delete()
+	client := newClient(os.Getenv("GITHUB_TOKEN"))
+	_, err := client.Gists.Delete(context.Background(), page.ID)
+	s.Stop()
+	fmt.Println("Deleted")
 	return err
 }
