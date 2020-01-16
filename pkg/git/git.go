@@ -2,6 +2,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -45,6 +46,19 @@ func NewRepo(cfg Config) (*Repo, error) {
 	// 	return nil, err
 	// }
 	// workDir := filepath.Join(cfg.WorkDir, u.Path)
+
+	if cfg.WorkDir == "" {
+		return &Repo{}, errors.New("workdir is empty")
+	}
+	if cfg.URL == "" {
+		return &Repo{}, errors.New("URL is empty")
+	}
+	if cfg.Token == "" {
+		return &Repo{}, errors.New("token is empty")
+	}
+	if cfg.Username == "" {
+		return &Repo{}, errors.New("user is empty")
+	}
 
 	return &Repo{
 		workDir:     cfg.WorkDir,

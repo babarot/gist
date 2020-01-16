@@ -3,6 +3,7 @@ package gist
 import (
 	"context"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -36,9 +37,8 @@ type Page struct {
 
 // File represents a single file hosted on gist
 type File struct {
-	Name    string
-	Content string
-
+	Name     string
+	Content  string
 	FullPath string
 
 	Gist Page
@@ -49,17 +49,46 @@ func New(user, workDir string) Gist {
 		WorkDir: workDir,
 		User:    user,
 	}
-	files, err := gist.list()
-	if err != nil {
-		panic(err)
+
+	pages := gist.clone()
+
+	var files []File
+	for _, page := range pages {
+		for name, content := range page.Files {
+			files = append(files, File{
+				Name:     name,
+				Content:  content,
+				FullPath: filepath.Join(workDir, user, page.ID, name),
+				Gist:     page,
+			})
+		}
 	}
 	gist.Files = files
 	return gist
 }
 
-func (g Gist) clone(pages []Page) []Page {
+func (g Gist) clone() []Page {
 	token := os.Getenv("GITHUB_TOKEN")
+	f := filepath.Join(g.WorkDir, "cache.json")
+	c := newCache(f)
+	c.open()
 
+	var pages []Page
+	switch len(c.Pages) {
+	case 0:
+		log.Println("get pages from api")
+		client := newClient(token)
+		results, err := client.List(g.User)
+		if err != nil {
+			panic(err)
+		}
+		pages = results
+	default:
+		log.Println("get pages from cache")
+		pages = c.Pages
+	}
+
+	log.Println("update all repos")
 	ch := make(chan Page, len(pages))
 	wg := new(sync.WaitGroup)
 
@@ -99,53 +128,16 @@ func (g Gist) clone(pages []Page) []Page {
 	}()
 
 	pages = []Page{}
-
 	for p := range ch {
 		pages = append(pages, p)
 	}
+
 	sort.Slice(pages, func(i, j int) bool {
 		return pages[i].CreatedAt.After(pages[j].CreatedAt)
 	})
 
-	return pages
-}
-
-func (g Gist) list() ([]File, error) {
-	token := os.Getenv("GITHUB_TOKEN")
-
-	f := filepath.Join(g.WorkDir, "cache.json")
-	c := newCache(f)
-	c.open()
-
-	var pages []Page
-	switch len(c.Pages) {
-	case 0:
-		client := newClient(token)
-		results, err := client.List(g.User)
-		if err != nil {
-			return []File{}, err
-		}
-		pages = results
-	default:
-		pages = c.Pages
-	}
-
-	pages = g.clone(pages)
-
-	var files []File
-	for _, page := range pages {
-		for name, content := range page.Files {
-			files = append(files, File{
-				Name:     name,
-				Content:  content,
-				FullPath: filepath.Join(g.WorkDir, g.User, page.ID, name),
-				Gist:     page,
-			})
-		}
-	}
-
 	c.save(pages)
-	return files, nil
+	return pages
 }
 
 func (f *File) Edit() error {
@@ -177,6 +169,8 @@ func (f *File) Edit() error {
 	if err := repo.Commit("update"); err != nil {
 		return err
 	}
+	log.Println("pushing...")
+	defer log.Println("done")
 	return repo.Push(ctx)
 }
 
