@@ -3,6 +3,7 @@ module github.com/b4b4r07/gist
 go 1.12
 
 require (
+	github.com/dustin/go-humanize v1.0.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/b4b4r07/gist/pkg/gist"
+	"github.com/dustin/go-humanize"
 	"github.com/manifoldco/promptui"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -48,6 +49,7 @@ func head(content string) string {
 func (m *meta) prompt() (gist.File, error) {
 	funcMap := promptui.FuncMap
 	funcMap["head"] = head
+	funcMap["time"] = humanize.Time
 	templates := &promptui.SelectTemplates{
 		Label:    "{{ . }}",
 		Active:   promptui.IconSelect + " {{ .Name | cyan }}",
@@ -57,6 +59,7 @@ func (m *meta) prompt() (gist.File, error) {
 {{ "ID:" | faint }}	{{ .Gist.ID }}
 {{ "Description:" | faint }}	{{ .Gist.Description }}
 {{ "Public:" | faint }}	{{ .Gist.Public }}
+{{ "Last modified:" | faint }}	{{ .Gist.UpdatedAt | time }}
 {{ "Content:" | faint }}	{{ .Content | head }}
 		`,
 		FuncMap: funcMap,

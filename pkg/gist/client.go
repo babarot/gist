@@ -47,6 +47,7 @@ func (c client) List(user string) ([]Page, error) {
 			Description: gist.GetDescription(),
 			Public:      gist.GetPublic(),
 			CreatedAt:   gist.GetCreatedAt(),
+			UpdatedAt:   gist.GetUpdatedAt(),
 			Files:       files,
 			URL:         gist.GetHTMLURL(),
 			User:        user,

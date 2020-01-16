@@ -29,6 +29,7 @@ type Page struct {
 	URL         string    `json:"url"`
 	Public      bool      `json:"public"`
 	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 	Files       []string  `json:"files"`
 }
 
