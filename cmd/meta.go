@@ -14,7 +14,7 @@ import (
 
 type meta struct {
 	gist  gist.Gist
-	Files []gist.File
+	files []gist.File
 
 	cache *gist.Cache
 }
@@ -24,6 +24,8 @@ func (m *meta) init(args []string) error {
 	cache := gist.NewCache(filepath.Join(workDir, "cache.json"))
 
 	token := os.Getenv("GITHUB_TOKEN")
+	client := gist.NewClient(token)
+
 	user := os.Getenv("USER")
 
 	// load cache
@@ -34,7 +36,6 @@ func (m *meta) init(args []string) error {
 	case 0:
 		s := spin.New("%s Fetching pages...")
 		s.Start()
-		client := gist.NewClient(token)
 		results, err := client.List(user)
 		s.Stop()
 		if err != nil {
@@ -48,6 +49,8 @@ func (m *meta) init(args []string) error {
 
 	gist := gist.Gist{
 		User:    user,
+		Token:   token,
+		Client:  client,
 		WorkDir: workDir,
 		Pages:   pages,
 	}
@@ -59,7 +62,7 @@ func (m *meta) init(args []string) error {
 
 	m.cache = cache
 	m.gist = gist
-	m.Files = gist.Files()
+	m.files = gist.Files()
 	return nil
 }
 
@@ -108,7 +111,7 @@ func (m *meta) prompt() (gist.File, error) {
 	}
 
 	searcher := func(input string, index int) bool {
-		file := m.Files[index]
+		file := m.files[index]
 		name := strings.Replace(strings.ToLower(file.Name), " ", "", -1)
 		input = strings.Replace(strings.ToLower(input), " ", "", -1)
 		return strings.Contains(name, input)
@@ -116,12 +119,12 @@ func (m *meta) prompt() (gist.File, error) {
 
 	prompt := promptui.Select{
 		Label:             "Select a page",
-		Items:             m.Files,
+		Items:             m.files,
 		Templates:         templates,
 		Searcher:          searcher,
 		StartInSearchMode: true,
 		HideSelected:      true,
 	}
 	i, _, err := prompt.Run()
-	return m.Files[i], err
+	return m.files[i], err
 }

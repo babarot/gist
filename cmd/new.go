@@ -92,6 +92,7 @@ func (c *newCmd) run(args []string) error {
 	s := spin.New("%s Creating page...")
 	s.Start()
 	defer s.Stop()
+
 	url, err := c.gist.Create(gist.Page{
 		Files:       files,
 		Description: desc,
@@ -100,8 +101,10 @@ func (c *newCmd) run(args []string) error {
 	if err != nil {
 		return err
 	}
+
 	s.Stop()
-	c.cache.Delete()
 	fmt.Println(url)
+
+	c.cache.Delete()
 	return nil
 }

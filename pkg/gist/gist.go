@@ -2,6 +2,7 @@ package gist
 
 import (
 	"context"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,10 +16,13 @@ import (
 )
 
 type Gist struct {
-	WorkDir string
-	User    string
+	User  string
+	Token string
 
-	Pages []Page
+	Client Client
+
+	WorkDir string
+	Pages   []Page
 }
 
 // Page represents gist page itself
@@ -61,7 +65,6 @@ func (g Gist) Files() []File {
 }
 
 func (g Gist) Update() error {
-	token := os.Getenv("GITHUB_TOKEN")
 	ch := make(chan Page, len(g.Pages))
 	wg := new(sync.WaitGroup)
 
@@ -77,7 +80,7 @@ func (g Gist) Update() error {
 				URL:      page.URL,
 				WorkDir:  filepath.Join(g.WorkDir, g.User, page.ID),
 				Username: g.User,
-				Token:    token,
+				Token:    g.Token,
 			})
 			if err != nil {
 				return
@@ -114,6 +117,9 @@ func (f File) Edit() error {
 func (f File) Upload() error {
 	ctx := context.Background()
 	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		return errors.New("GITHUB_TOKEN is missing")
+	}
 	repo, err := git.NewRepo(git.Config{
 		URL:      f.Gist.URL,
 		WorkDir:  filepath.Dir(f.FullPath),
@@ -148,8 +154,7 @@ func (g Gist) Create(page Page) (string, error) {
 			Content:  github.String(file.Content),
 		}
 	}
-	client := NewClient(os.Getenv("GITHUB_TOKEN"))
-	gist, _, err := client.Gists.Create(context.Background(), &github.Gist{
+	gist, _, err := g.Client.Gists.Create(context.Background(), &github.Gist{
 		Files:       files,
 		Description: github.String(page.Description),
 		Public:      github.Bool(page.Public),
@@ -159,7 +164,6 @@ func (g Gist) Create(page Page) (string, error) {
 }
 
 func (g Gist) Delete(page Page) error {
-	client := NewClient(os.Getenv("GITHUB_TOKEN"))
-	_, err := client.Gists.Delete(context.Background(), page.ID)
+	_, err := g.Client.Gists.Delete(context.Background(), page.ID)
 	return err
 }

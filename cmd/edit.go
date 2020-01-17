@@ -51,8 +51,9 @@ func (c *editCmd) run(args []string) error {
 	if err := file.Upload(); err != nil {
 		return err
 	}
-	fmt.Println("Pushed")
 
 	s.Stop()
+	fmt.Println("Pushed")
+
 	return nil
 }
