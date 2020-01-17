@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/b4b4r07/gist/pkg/gist"
+	"github.com/caarlos0/spin"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -87,9 +89,19 @@ func (c *newCmd) run(args []string) error {
 		return err
 	}
 
-	return c.gist.Create(gist.Page{
+	s := spin.New("%s Creating page...")
+	s.Start()
+	defer s.Stop()
+	url, err := c.gist.Create(gist.Page{
 		Files:       files,
 		Description: desc,
 		Public:      !c.private,
 	})
+	if err != nil {
+		return err
+	}
+	s.Stop()
+	c.cache.Delete()
+	fmt.Println(url)
+	return nil
 }

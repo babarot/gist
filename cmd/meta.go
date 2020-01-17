@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/b4b4r07/gist/pkg/gist"
+	"github.com/caarlos0/spin"
 	"github.com/dustin/go-humanize"
 	"github.com/manifoldco/promptui"
 	"golang.org/x/crypto/ssh/terminal"
@@ -13,12 +15,51 @@ import (
 type meta struct {
 	gist  gist.Gist
 	Files []gist.File
+
+	cache *gist.Cache
 }
 
 func (m *meta) init(args []string) error {
-	g := gist.New()
-	m.gist = g
-	m.Files = g.Files()
+	workDir := filepath.Join(os.Getenv("HOME"), ".gist")
+	cache := gist.NewCache(filepath.Join(workDir, "cache.json"))
+
+	token := os.Getenv("GITHUB_TOKEN")
+	user := os.Getenv("USER")
+
+	// load cache
+	cache.Open()
+
+	var pages []gist.Page
+	switch len(cache.Pages) {
+	case 0:
+		s := spin.New("%s Fetching pages...")
+		s.Start()
+		client := gist.NewClient(token)
+		results, err := client.List(user)
+		s.Stop()
+		if err != nil {
+			panic(err)
+		}
+		pages = results
+	default:
+		pages = cache.Pages
+	}
+	cache.Save(pages)
+
+	gist := gist.Gist{
+		User:    user,
+		WorkDir: workDir,
+		Pages:   pages,
+	}
+
+	s := spin.New("%s Checking pages...")
+	s.Start()
+	gist.Update()
+	s.Stop()
+
+	m.cache = cache
+	m.gist = gist
+	m.Files = gist.Files()
 	return nil
 }
 
@@ -39,11 +80,11 @@ func head(content string) string {
 	content = "\n"
 	for i := 0; i < len(lines); i++ {
 		if i > 4 {
+			content += "  ...\n"
 			break
 		}
 		content += "  " + wrap(lines[i]) + "\n"
 	}
-	content += "  ...\n"
 	return content
 }
 

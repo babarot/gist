@@ -5,18 +5,18 @@ import (
 	"os"
 )
 
-type cache struct {
+type Cache struct {
 	Pages []Page `json:"pages"`
 
-	path string
+	Path string `json:"-"`
 }
 
-func newCache(path string) *cache {
-	return &cache{path: path, Pages: []Page{}}
+func NewCache(path string) *Cache {
+	return &Cache{Path: path, Pages: []Page{}}
 }
 
-func (c *cache) open() error {
-	f, err := os.Open(c.path)
+func (c *Cache) Open() error {
+	f, err := os.Open(c.Path)
 	if err != nil {
 		return err
 	}
@@ -24,8 +24,8 @@ func (c *cache) open() error {
 	return json.NewDecoder(f).Decode(&c)
 }
 
-func (c *cache) save(pages []Page) error {
-	f, err := os.Create(c.path)
+func (c *Cache) Save(pages []Page) error {
+	f, err := os.Create(c.Path)
 	if err != nil {
 		return err
 	}
@@ -34,6 +34,6 @@ func (c *cache) save(pages []Page) error {
 	return json.NewEncoder(f).Encode(&c)
 }
 
-func (c *cache) delete() error {
-	return os.Remove(c.path)
+func (c *Cache) Delete() error {
+	return os.Remove(c.Path)
 }

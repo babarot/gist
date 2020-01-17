@@ -7,20 +7,20 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type client struct {
+type Client struct {
 	*github.Client
 }
 
-func newClient(token string) client {
+func NewClient(token string) Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
-	return client{github.NewClient(tc)}
+	return Client{github.NewClient(tc)}
 }
 
 // List lists gist pages
-func (c client) List(user string) ([]Page, error) {
+func (c Client) List(user string) ([]Page, error) {
 	opt := &github.GistListOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
 	}

@@ -2,7 +2,6 @@ package gist
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/b4b4r07/gist/pkg/git"
 	"github.com/b4b4r07/gist/pkg/shell"
-	"github.com/caarlos0/spin"
 	"github.com/google/go-github/github"
 )
 
@@ -21,8 +19,6 @@ type Gist struct {
 	User    string
 
 	Pages []Page
-
-	cache *cache
 }
 
 // Page represents gist page itself
@@ -46,41 +42,7 @@ type File struct {
 	Gist Page
 }
 
-func New() Gist {
-	workDir := filepath.Join(os.Getenv("HOME"), ".gist")
-	f := filepath.Join(workDir, "cache.json")
-	c := newCache(f)
-	return Gist{
-		User:    os.Getenv("USER"),
-		WorkDir: workDir,
-		cache:   c,
-	}
-}
-
 func (g Gist) Files() []File {
-	token := os.Getenv("GITHUB_TOKEN")
-
-	// load cache
-	g.cache.open()
-
-	switch len(g.cache.Pages) {
-	case 0:
-		s := spin.New("%s Fetching pages...")
-		s.Start()
-		client := newClient(token)
-		pages, err := client.List(g.User)
-		if err != nil {
-			panic(err)
-		}
-		g.Pages = pages
-		s.Stop()
-	default:
-		g.Pages = g.cache.Pages
-	}
-	g.cache.save(g.Pages)
-
-	g.update()
-
 	var files []File
 	for _, page := range g.Pages {
 		for _, file := range page.Files {
@@ -98,11 +60,7 @@ func (g Gist) Files() []File {
 	return files
 }
 
-func (g Gist) update() error {
-	s := spin.New("%s Checking pages...")
-	s.Start()
-	defer s.Stop()
-
+func (g Gist) Update() error {
 	token := os.Getenv("GITHUB_TOKEN")
 	ch := make(chan Page, len(g.Pages))
 	wg := new(sync.WaitGroup)
@@ -147,12 +105,14 @@ func (g Gist) update() error {
 	return nil
 }
 
-func (f *File) Edit() error {
+func (f File) Edit() error {
 	vim := shell.New("vim", f.FullPath)
 	ctx := context.Background()
-	if err := vim.Run(ctx); err != nil {
-		return err
-	}
+	return vim.Run(ctx)
+}
+
+func (f File) Upload() error {
+	ctx := context.Background()
 	token := os.Getenv("GITHUB_TOKEN")
 	repo, err := git.NewRepo(git.Config{
 		URL:      f.Gist.URL,
@@ -176,21 +136,10 @@ func (f *File) Edit() error {
 	if err := repo.Commit("update"); err != nil {
 		return err
 	}
-	s := spin.New("%s Pushing...")
-	s.Start()
-	defer func() {
-		s.Stop()
-		fmt.Println("Pushed")
-		os.Remove(filepath.Join(os.Getenv("HOME"), ".gist", "cache.json")) // TODO
-	}()
 	return repo.Push(ctx)
 }
 
-func (g Gist) Create(page Page) error {
-	s := spin.New("%s Creating page...")
-	s.Start()
-	defer g.cache.delete()
-
+func (g Gist) Create(page Page) (string, error) {
 	files := make(map[github.GistFilename]github.GistFile)
 	for _, file := range page.Files {
 		name := github.GistFilename(file.Name)
@@ -199,25 +148,18 @@ func (g Gist) Create(page Page) error {
 			Content:  github.String(file.Content),
 		}
 	}
-	client := newClient(os.Getenv("GITHUB_TOKEN"))
+	client := NewClient(os.Getenv("GITHUB_TOKEN"))
 	gist, _, err := client.Gists.Create(context.Background(), &github.Gist{
 		Files:       files,
 		Description: github.String(page.Description),
 		Public:      github.Bool(page.Public),
 	})
 
-	s.Stop()
-	fmt.Println(gist.GetHTMLURL())
-	return err
+	return gist.GetHTMLURL(), err
 }
 
 func (g Gist) Delete(page Page) error {
-	s := spin.New("%s Deleting page...")
-	s.Start()
-	defer g.cache.delete()
-	client := newClient(os.Getenv("GITHUB_TOKEN"))
+	client := NewClient(os.Getenv("GITHUB_TOKEN"))
 	_, err := client.Gists.Delete(context.Background(), page.ID)
-	s.Stop()
-	fmt.Println("Deleted")
 	return err
 }

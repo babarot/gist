@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/caarlos0/spin"
 	"github.com/spf13/cobra"
 )
 
@@ -36,5 +39,18 @@ func (c *deleteCmd) run(args []string) error {
 	if err != nil {
 		return err
 	}
-	return c.gist.Delete(file.Gist)
+
+	s := spin.New("%s Deleting page...")
+	s.Start()
+	defer s.Stop()
+
+	if err := c.gist.Delete(file.Gist); err != nil {
+		return err
+	}
+	fmt.Println("Deleted")
+
+	s.Stop()
+	c.cache.Delete()
+
+	return nil
 }

@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/caarlos0/spin"
 	"github.com/spf13/cobra"
 )
 
@@ -36,5 +39,20 @@ func (c *editCmd) run(args []string) error {
 	if err != nil {
 		return err
 	}
-	return file.Edit()
+
+	if err := file.Edit(); err != nil {
+		return err
+	}
+
+	s := spin.New("%s Pushing...")
+	s.Start()
+	defer s.Stop()
+
+	if err := file.Upload(); err != nil {
+		return err
+	}
+	fmt.Println("Pushed")
+
+	s.Stop()
+	return nil
 }
