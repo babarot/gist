@@ -114,10 +114,10 @@ func (m *meta) prompt() (gist.File, error) {
 		Inactive: "  {{ .Name | faint }}",
 		Selected: promptui.IconGood + " {{ .Name }}",
 		Details: `
-{{ "ID:" | faint }}	{{ .Gist.ID }}
-{{ "Description:" | faint }}	{{ .Gist.Description }}
-{{ "Private:" | faint }}	{{ not .Gist.Public }}
-{{ "Last modified:" | faint }}	{{ .Gist.UpdatedAt | time }}
+{{ "ID:" | faint }}	{{ .Page.ID }}
+{{ "Description:" | faint }}	{{ .Page.Description }}
+{{ "Private:" | faint }}	{{ not .Page.Public }}
+{{ "Last modified:" | faint }}	{{ .Page.UpdatedAt | time }}
 {{ "Content:" | faint }}	{{ .Content | head }}
 		`,
 		FuncMap: funcMap,

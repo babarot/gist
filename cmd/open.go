@@ -37,5 +37,5 @@ func (c *openCmd) run(args []string) error {
 	if err != nil {
 		return err
 	}
-	return browser.OpenURL(file.Gist.URL)
+	return browser.OpenURL(file.Page.URL)
 }

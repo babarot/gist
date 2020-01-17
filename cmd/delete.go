@@ -44,7 +44,7 @@ func (c *deleteCmd) run(args []string) error {
 	s.Start()
 	defer s.Stop()
 
-	if err := c.gist.Delete(file.Gist); err != nil {
+	if err := c.gist.Delete(file.Page); err != nil {
 		return err
 	}
 	fmt.Println("Deleted")

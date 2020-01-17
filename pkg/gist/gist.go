@@ -43,7 +43,7 @@ type File struct {
 	Content  string
 	FullPath string
 
-	Gist Page
+	Page Page
 }
 
 func (g Gist) Files() []File {
@@ -56,7 +56,7 @@ func (g Gist) Files() []File {
 				Name:     file.Name,
 				Content:  string(content),
 				FullPath: path,
-				Gist:     page,
+				Page:     page,
 			})
 		}
 	}
@@ -115,9 +115,9 @@ func (f File) HasUpdated() (bool, error) {
 		return false, errors.New("GITHUB_TOKEN is missing")
 	}
 	repo, err := git.NewRepo(git.Config{
-		URL:      f.Gist.URL,
+		URL:      f.Page.URL,
 		WorkDir:  filepath.Dir(f.FullPath),
-		Username: f.Gist.User,
+		Username: f.Page.User,
 		Token:    token,
 	})
 	if err != nil {
@@ -136,9 +136,9 @@ func (f File) Update() error {
 		return errors.New("GITHUB_TOKEN is missing")
 	}
 	repo, err := git.NewRepo(git.Config{
-		URL:      f.Gist.URL,
+		URL:      f.Page.URL,
 		WorkDir:  filepath.Dir(f.FullPath),
-		Username: f.Gist.User,
+		Username: f.Page.User,
 		Token:    token,
 	})
 	if err != nil {
