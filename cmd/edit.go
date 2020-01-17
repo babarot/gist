@@ -47,11 +47,20 @@ func (c *editCmd) run(args []string) error {
 		return err
 	}
 
+	updated, err := file.HasUpdated()
+	if err != nil {
+		return err
+	}
+
+	if !updated {
+		return nil
+	}
+
 	s := spin.New("%s Pushing...")
 	s.Start()
 	defer s.Stop()
 
-	if err := file.Upload(); err != nil {
+	if err := file.Update(); err != nil {
 		return err
 	}
 

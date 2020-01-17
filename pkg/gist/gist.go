@@ -108,7 +108,28 @@ func (g Gist) Update() error {
 	return nil
 }
 
-func (f File) Upload() error {
+func (f File) HasUpdated() (bool, error) {
+	ctx := context.Background()
+	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		return false, errors.New("GITHUB_TOKEN is missing")
+	}
+	repo, err := git.NewRepo(git.Config{
+		URL:      f.Gist.URL,
+		WorkDir:  filepath.Dir(f.FullPath),
+		Username: f.Gist.User,
+		Token:    token,
+	})
+	if err != nil {
+		return false, err
+	}
+	if err := repo.Open(ctx); err != nil {
+		return false, err
+	}
+	return !repo.IsClean(), nil
+}
+
+func (f File) Update() error {
 	ctx := context.Background()
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
