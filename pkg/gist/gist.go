@@ -2,9 +2,8 @@ package gist
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"sort"
 	"sync"
@@ -35,6 +34,8 @@ type Page struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	Files       []File    `json:"files"`
+
+	Repo *git.Repo `json:"-"`
 }
 
 // File represents a single file hosted on gist
@@ -43,7 +44,7 @@ type File struct {
 	Content  string
 	FullPath string
 
-	Page Page
+	Page
 }
 
 func (g Gist) Files() []File {
@@ -64,7 +65,7 @@ func (g Gist) Files() []File {
 	return files
 }
 
-func (g Gist) Update() error {
+func (g *Gist) Checkout() error {
 	ch := make(chan Page, len(g.Pages))
 	wg := new(sync.WaitGroup)
 
@@ -86,6 +87,7 @@ func (g Gist) Update() error {
 				return
 			}
 			repo.CloneOrOpen(context.Background())
+			page.Repo = repo
 		}()
 	}
 
@@ -110,18 +112,9 @@ func (g Gist) Update() error {
 
 func (f File) HasUpdated() (bool, error) {
 	ctx := context.Background()
-	token := os.Getenv("GITHUB_TOKEN")
-	if token == "" {
-		return false, errors.New("GITHUB_TOKEN is missing")
-	}
-	repo, err := git.NewRepo(git.Config{
-		URL:      f.Page.URL,
-		WorkDir:  filepath.Dir(f.FullPath),
-		Username: f.Page.User,
-		Token:    token,
-	})
-	if err != nil {
-		return false, err
+	repo := f.Page.Repo
+	if repo == nil {
+		return false, fmt.Errorf("%s: repository not found", f.Name)
 	}
 	if err := repo.Open(ctx); err != nil {
 		return false, err
@@ -131,18 +124,9 @@ func (f File) HasUpdated() (bool, error) {
 
 func (f File) Update() error {
 	ctx := context.Background()
-	token := os.Getenv("GITHUB_TOKEN")
-	if token == "" {
-		return errors.New("GITHUB_TOKEN is missing")
-	}
-	repo, err := git.NewRepo(git.Config{
-		URL:      f.Page.URL,
-		WorkDir:  filepath.Dir(f.FullPath),
-		Username: f.Page.User,
-		Token:    token,
-	})
-	if err != nil {
-		return err
+	repo := f.Page.Repo
+	if repo == nil {
+		return fmt.Errorf("%s: repository not found", f.Name)
 	}
 	if err := repo.Open(ctx); err != nil {
 		return err

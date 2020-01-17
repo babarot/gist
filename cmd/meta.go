@@ -71,7 +71,7 @@ func (m *meta) init(args []string) error {
 	s := spin.New("%s Checking pages...")
 	s.Start()
 	defer s.Stop()
-	gist.Update()
+	gist.Checkout()
 
 	m.cache = cache
 	m.gist = gist
