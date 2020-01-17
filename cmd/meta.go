@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/b4b4r07/gist/pkg/gist"
-	"github.com/caarlos0/spin"
+	"github.com/b4b4r07/gist/pkg/spin"
 	"github.com/dustin/go-humanize"
 	"github.com/manifoldco/promptui"
 	"golang.org/x/crypto/ssh/terminal"

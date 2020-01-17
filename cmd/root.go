@@ -2,7 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"runtime"
 
+	"github.com/b4b4r07/gist/pkg/logging"
 	"github.com/spf13/cobra"
 )
 
@@ -36,18 +40,18 @@ func newRootCmd() *cobra.Command {
 
 // Execute is
 func Execute() error {
-	// logWriter, err := logging.LogOutput()
-	// if err != nil {
-	// 	return err
-	// }
-	// log.SetOutput(logWriter)
-	//
-	// log.Printf("[INFO] pkg version: %s", Version)
-	// log.Printf("[INFO] Go runtime version: %s", runtime.Version())
-	// log.Printf("[INFO] Build tag/SHA: %s/%s", BuildTag, BuildSHA)
-	// log.Printf("[INFO] CLI args: %#v", os.Args)
-	//
-	// defer log.Printf("[DEBUG] root command execution finished")
+	logWriter, err := logging.LogOutput()
+	if err != nil {
+		return err
+	}
+	log.SetOutput(logWriter)
+
+	log.Printf("[INFO] pkg version: %s", Version)
+	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
+	log.Printf("[INFO] Build tag/SHA: %s/%s", BuildTag, BuildSHA)
+	log.Printf("[INFO] CLI args: %#v", os.Args)
+
+	defer log.Printf("[DEBUG] root command execution finished")
 
 	return newRootCmd().Execute()
 }

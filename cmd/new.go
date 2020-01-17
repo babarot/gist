@@ -10,7 +10,7 @@ import (
 
 	"github.com/b4b4r07/gist/pkg/gist"
 	"github.com/b4b4r07/gist/pkg/shell"
-	"github.com/caarlos0/spin"
+	"github.com/b4b4r07/gist/pkg/spin"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
