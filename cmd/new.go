@@ -109,41 +109,50 @@ func (c *newCmd) withNoArg() ([]gist.File, error) {
 	}
 	defer os.Remove(tmpfile.Name())
 	defer tmpfile.Close()
-	vim := shell.New("vim", tmpfile.Name())
-	if err := vim.Run(context.Background()); err != nil {
+
+	editor := shell.New(c.gist.Editor, tmpfile.Name())
+	if err := editor.Run(context.Background()); err != nil {
 		return files, err
 	}
+
 	content, err := ioutil.ReadFile(tmpfile.Name())
 	if err != nil {
 		return files, err
 	}
+
 	prompt := promptui.Prompt{
 		Label:    "Filename",
 		Validate: c.validator,
 	}
+
 	name, err := prompt.Run()
 	if err != nil {
 		return files, err
 	}
+
 	files = append(files, gist.File{
 		Name:    name,
 		Content: string(content),
 	})
+
 	return files, nil
 }
 
 func (c *newCmd) withArgs(args []string) ([]gist.File, error) {
 	var files []gist.File
+
 	for _, arg := range args {
 		f, err := os.Open(arg)
 		if err != nil {
 			return files, err
 		}
 		defer f.Close()
+
 		content, err := ioutil.ReadAll(f)
 		if err != nil {
 			return files, err
 		}
+
 		prompt := promptui.Prompt{
 			Label:     "Filename",
 			Validate:  c.validator,
@@ -154,10 +163,12 @@ func (c *newCmd) withArgs(args []string) ([]gist.File, error) {
 		if err != nil {
 			return files, err
 		}
+
 		files = append(files, gist.File{
 			Name:    name,
 			Content: string(content),
 		})
 	}
+
 	return files, nil
 }

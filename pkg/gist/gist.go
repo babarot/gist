@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/b4b4r07/gist/pkg/git"
-	"github.com/b4b4r07/gist/pkg/shell"
 	"github.com/google/go-github/github"
 )
 
 type Gist struct {
-	User  string
-	Token string
+	User   string
+	Token  string
+	Editor string
 
 	Client Client
 
@@ -106,12 +106,6 @@ func (g Gist) Update() error {
 	g.Pages = pages
 
 	return nil
-}
-
-func (f File) Edit() error {
-	vim := shell.New("vim", f.FullPath)
-	ctx := context.Background()
-	return vim.Run(ctx)
 }
 
 func (f File) Upload() error {

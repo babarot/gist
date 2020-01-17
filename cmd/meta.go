@@ -47,9 +47,15 @@ func (m *meta) init(args []string) error {
 	}
 	cache.Save(pages)
 
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vim"
+	}
+
 	gist := gist.Gist{
 		User:    user,
 		Token:   token,
+		Editor:  editor,
 		Client:  client,
 		WorkDir: workDir,
 		Pages:   pages,

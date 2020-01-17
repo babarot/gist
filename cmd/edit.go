@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/b4b4r07/gist/pkg/shell"
 	"github.com/caarlos0/spin"
 	"github.com/spf13/cobra"
 )
@@ -40,7 +42,8 @@ func (c *editCmd) run(args []string) error {
 		return err
 	}
 
-	if err := file.Edit(); err != nil {
+	editor := shell.New(c.gist.Editor, file.FullPath)
+	if err := editor.Run(context.Background()); err != nil {
 		return err
 	}
 
