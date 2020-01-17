@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,10 +24,19 @@ func (m *meta) init(args []string) error {
 	workDir := filepath.Join(os.Getenv("HOME"), ".gist")
 	cache := gist.NewCache(filepath.Join(workDir, "cache.json"))
 
+	user := os.Getenv("GIST_USER")
+	if user == "" {
+		user = os.Getenv("USER")
+	}
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vim"
+	}
 	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		return errors.New("GITHUB_TOKEN is missing")
+	}
 	client := gist.NewClient(token)
-
-	user := os.Getenv("USER")
 
 	// load cache
 	cache.Open()
@@ -39,18 +49,15 @@ func (m *meta) init(args []string) error {
 		results, err := client.List(user)
 		s.Stop()
 		if err != nil {
-			panic(err)
+			return err
 		}
 		pages = results
 	default:
 		pages = cache.Pages
 	}
-	cache.Save(pages)
 
-	editor := os.Getenv("EDITOR")
-	if editor == "" {
-		editor = "vim"
-	}
+	// update cache
+	cache.Save(pages)
 
 	gist := gist.Gist{
 		User:    user,
@@ -63,8 +70,8 @@ func (m *meta) init(args []string) error {
 
 	s := spin.New("%s Checking pages...")
 	s.Start()
+	defer s.Stop()
 	gist.Update()
-	s.Stop()
 
 	m.cache = cache
 	m.gist = gist
