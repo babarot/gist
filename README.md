@@ -29,13 +29,13 @@
             alt="Website"
             />
     </a>
-    <a href="https://github.com/b4b4r07/gist">
+    <a href="https://github.com/b4b4r07/gist/actions?query=workflow%3Arelease">
         <img
             src="https://github.com/b4b4r07/gist/workflows/release/badge.svg?branch=master&event=push"
             alt="GitHub Releases"
             />
     </a>
-    <a href="https://github.com/b4b4r07/gist">
+    <a href="https://github.com/b4b4r07/gist/blob/master/go.mod">
         <img
             src="https://img.shields.io/github/go-mod/go-version/b4b4r07/gist"
             alt="Go version"
