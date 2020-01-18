@@ -1,8 +1,47 @@
-<a href="https://gist.github.com"><img src="https://raw.githubusercontent.com/b4b4r07/i/master/gist/logo.png" width="200"></a> <sub>A simple gist editor for CLI.</sub>
+<p align="center">
+  <a href="https://gist.github.com">
+    <img
+         src="https://raw.githubusercontent.com/b4b4r07/i/master/gist/logo.png" 
+         width="200"
+         alt="gist - A simple gist editor for CLI"
+         >
+  </a>
+</p>
 
-<img src="./docs/screenshot.png" width="1000">
+<p align="center"><em>A simple gist editor for CLI.</em></p>
+<p align="center">
+  <img src="./docs/screenshot.png" width="500">
+</p>
 
-[![](http://img.shields.io/github/release/b4b4r07/gist.svg?style=flat-square)][release] [![](http://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)][license]
+<p align="center">
+    <a href="https://b4b4r07.mit-license.org">
+        <img src="https://img.shields.io/github/license/b4b4r07/gist" alt="License"/>
+    </a>
+    <a href="https://github.com/b4b4r07/gist/releases">
+        <img
+            src="https://img.shields.io/github/v/release/b4b4r07/gist"
+            alt="GitHub Releases"/>
+    </a>
+    <br />
+    <a href="https://b4b4r07.github.io/gist/">
+        <img
+            src="https://img.shields.io/website?down_color=lightgrey&down_message=donw&up_color=green&up_message=up&url=https%3A%2F%2Fb4b4r07.github.io%2Fgist"
+            alt="Website"
+            />
+    </a>
+    <a href="https://github.com/b4b4r07/gist">
+        <img
+            src="https://github.com/b4b4r07/gist/workflows/release/badge.svg?branch=master&event=push"
+            alt="GitHub Releases"
+            />
+    </a>
+    <a href="https://github.com/b4b4r07/gist">
+        <img
+            src="https://img.shields.io/github/go-mod/go-version/b4b4r07/gist"
+            alt="Go version"
+            />
+    </a>
+</p>
 
 ## Features
 
