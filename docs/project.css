@@ -1,0 +1,83 @@
+body {
+  background: #e0e0e0;
+  font-size: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, Cantarell, sans-serif;
+  line-height: 1.3em;
+  color: #313131;
+}
+
+.container {
+  background: #fafafa;
+  max-width: 900px;
+  margin: 20px auto 0;
+  padding: 10px 10px;
+  border-radius: 3px;
+}
+
+header {
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+header h1 {
+  font-size: 40px;
+}
+
+nav {
+  margin-top: 20px;
+  line-height: 30px;
+}
+
+nav > a {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0 20px 0;
+  color: #2382e1;
+  text-decoration: none;
+}
+
+h2 {
+  font-size: 25px;
+}
+
+main {
+  display: flex;
+  justify-content: center;
+}
+@media screen and (max-width: 640px) {
+  main {
+    flex-wrap: wrap;
+  }
+}
+
+.screenshot img {
+  max-width: 100%;
+}
+
+footer {
+  display: table;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 12px;
+}
+
+footer > nav > a {
+  font-size: 15px;
+  font-weight: bold;
+  margin: 0 15px 0;
+  color: #666666;
+  text-decoration: none;
+}
+
+.features {
+  width: 100%;
+  list-style: square;
+  margin-left: 30px;
+}
+
+.features li:not(:first-child) {
+  margin-top: 10px;
+}
+
+/*# sourceMappingURL=project.css.map */
