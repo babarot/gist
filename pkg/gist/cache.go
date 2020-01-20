@@ -6,13 +6,17 @@ import (
 )
 
 type Cache struct {
+	Token string `json:"token"`
 	Pages []Page `json:"pages"`
-
-	Path string `json:"-"`
+	Path  string `json:"-"`
 }
 
 func NewCache(path string) *Cache {
-	return &Cache{Path: path, Pages: []Page{}}
+	return &Cache{
+		Token: os.Getenv("GITHUB_TOKEN"),
+		Pages: []Page{},
+		Path:  path,
+	}
 }
 
 func (c *Cache) Open() error {

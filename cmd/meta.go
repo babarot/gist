@@ -23,6 +23,9 @@ type meta struct {
 func (m *meta) init(args []string) error {
 	workDir := filepath.Join(os.Getenv("HOME"), ".gist")
 	cache := gist.NewCache(filepath.Join(workDir, "cache.json"))
+	// load cache
+	cache.Open()
+	m.cache = cache
 
 	user := os.Getenv("GIST_USER")
 	if user == "" {
@@ -32,14 +35,12 @@ func (m *meta) init(args []string) error {
 	if editor == "" {
 		editor = "vim"
 	}
-	token := os.Getenv("GITHUB_TOKEN")
-	if token == "" {
-		return errors.New("GITHUB_TOKEN is missing")
+
+	token, err := m.githubToken()
+	if err != nil {
+		return err
 	}
 	client := gist.NewClient(token)
-
-	// load cache
-	cache.Open()
 
 	var pages []gist.Page
 	switch len(cache.Pages) {
@@ -73,7 +74,6 @@ func (m *meta) init(args []string) error {
 	defer s.Stop()
 	gist.Checkout()
 
-	m.cache = cache
 	m.gist = gist
 	m.files = gist.Files()
 	return nil
@@ -140,4 +140,29 @@ func (m *meta) prompt() (gist.File, error) {
 	}
 	i, _, err := prompt.Run()
 	return m.files[i], err
+}
+
+func (m *meta) githubToken() (string, error) {
+	var token string
+	token = os.Getenv("GITHUB_TOKEN")
+	if token != "" {
+		return token, nil
+	}
+	if m.cache == nil {
+		return "", errors.New("cache is nil")
+	}
+	token = m.cache.Token
+	if token != "" {
+		return token, nil
+	}
+	prompt := promptui.Prompt{
+		Label: "GITHUB_TOKEN",
+		Mask:  '*',
+	}
+	token, err := prompt.Run()
+	if err != nil {
+		return "", err
+	}
+	m.cache.Token = token
+	return token, nil
 }

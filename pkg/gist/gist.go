@@ -40,11 +40,11 @@ type Page struct {
 
 // File represents a single file hosted on gist
 type File struct {
-	Name     string
-	Content  string
-	FullPath string
+	Name     string `json:"name"`
+	Content  string `json:"content"`
+	FullPath string `json:"fullpath"`
 
-	Page
+	Page `json:"-"`
 }
 
 func (g Gist) Files() []File {
