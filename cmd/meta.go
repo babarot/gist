@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/b4b4r07/gist/pkg/gist"
 	"github.com/b4b4r07/gist/pkg/spin"
@@ -77,6 +78,20 @@ func (m *meta) init(args []string) error {
 	m.gist = gist
 	m.files = gist.Files()
 	return nil
+}
+
+func (m *meta) UpdateCache(file gist.File) {
+	if file.ID == "" {
+		return
+	}
+	var pages []gist.Page
+	for _, page := range m.cache.Pages {
+		if page.ID == file.ID {
+			page.UpdatedAt = time.Now()
+		}
+		pages = append(pages, page)
+	}
+	m.cache.Save(pages)
 }
 
 func head(content string) string {
