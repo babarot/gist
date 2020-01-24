@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 
 	"github.com/b4b4r07/gist/pkg/logging"
-	"github.com/b4b4r07/spin"
+	"github.com/caarlos0/spin"
 )
 
 func New(text string) *spin.Spinner {

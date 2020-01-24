@@ -3,8 +3,7 @@ module github.com/b4b4r07/gist
 go 1.12
 
 require (
-	github.com/b4b4r07/spin v1.1.1-0.20200117140957-d93460703a1c
-	github.com/caarlos0/spin v1.1.0 // indirect
+	github.com/caarlos0/spin v1.1.1-0.20200123125736-2bc438191c89
 	github.com/dustin/go-humanize v1.0.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v1.0.0 // indirect
