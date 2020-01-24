@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/b4b4r07/gist/pkg/logging"
+	clilog "github.com/b4b4r07/go-cli-log"
 	"github.com/spf13/cobra"
 )
 
@@ -40,11 +40,9 @@ func newRootCmd() *cobra.Command {
 
 // Execute is
 func Execute() error {
-	logWriter, err := logging.LogOutput()
-	if err != nil {
-		return err
-	}
-	log.SetOutput(logWriter)
+	clilog.Env = "GIST_LOG"
+	clilog.Path = "GIST_LOG_PATH"
+	clilog.SetOutput()
 
 	log.Printf("[INFO] pkg version: %s", Version)
 	log.Printf("[INFO] Go runtime version: %s", runtime.Version())

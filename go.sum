@@ -7,6 +7,10 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYU
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
+github.com/b4b4r07/go-cli-log v0.0.0-20200124115450-c6d0a1621967 h1:ku6R6/I1sIdcFtAzpP5qfBr5OWn981X0kmOnxIp4Mas=
+github.com/b4b4r07/go-cli-log v0.0.0-20200124115450-c6d0a1621967/go.mod h1:banxIPzSdnym1ZZb48bKR3ojP9fW9fuYnM8XZeYlvbA=
+github.com/b4b4r07/go-cli-log v0.0.0-20200124120248-8fac4d71de01 h1:rH+k/Ce7EpkeraV5xHl9Dd/PWPsKLX8f7HRfzumoGmA=
+github.com/b4b4r07/go-cli-log v0.0.0-20200124120248-8fac4d71de01/go.mod h1:banxIPzSdnym1ZZb48bKR3ojP9fW9fuYnM8XZeYlvbA=
 github.com/caarlos0/spin v1.1.1-0.20200123125736-2bc438191c89 h1:9zUBQuu3b8WvC4Um/KUXciqr0kdTw8PKIGzbzm2b2gU=
 github.com/caarlos0/spin v1.1.1-0.20200123125736-2bc438191c89/go.mod h1:HOC4pUvfhjXR2yDt+sEY9dRc2m4CCaK5z5oQYAbzXSA=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
