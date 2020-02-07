@@ -58,6 +58,12 @@ Download the binary from [GitHub Releases][release] and drop it in your `$PATH`.
 - [Darwin / Mac](https://github.com/b4b4r07/gist/releases/latest)
 - [Linux](https://github.com/b4b4r07/gist/releases/latest)
 
+**For macOS / [Homebrew](https://brew.sh/) user**:
+
+```console
+$ brew install b4b4r07/tap/gist
+```
+
 ## Versus
 
 There are many other implements as the gist client (called "gister") such as the following that works on command-line:
