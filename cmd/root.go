@@ -12,7 +12,7 @@ import (
 
 var (
 	// Version is the version number
-	Version = "1.2.0"
+	Version = "unset"
 
 	// BuildTag set during build to git tag, if any
 	BuildTag = "unset"
@@ -25,7 +25,7 @@ var (
 func newRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:                "gist",
-		Short:              "CLI for Gist",
+		Short:              "A simple gist editor for CLI",
 		SilenceErrors:      true,
 		DisableSuggestions: false,
 		Version:            fmt.Sprintf("%s (%s/%s)", Version, BuildTag, BuildSHA),
@@ -38,7 +38,7 @@ func newRootCmd() *cobra.Command {
 	return rootCmd
 }
 
-// Execute is
+// Execute is the entrypoint of this cmd package
 func Execute() error {
 	clilog.Env = "GIST_LOG"
 	clilog.Path = "GIST_LOG_PATH"
