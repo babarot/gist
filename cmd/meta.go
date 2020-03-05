@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/manifoldco/promptui"
 	"golang.org/x/crypto/ssh/terminal"
+	"gopkg.in/yaml.v2"
 )
 
 type meta struct {
@@ -21,9 +23,22 @@ type meta struct {
 	cache *gist.Cache
 }
 
+type GistConfig struct {
+	User  string
+	Token string
+}
+
 func (m *meta) init(args []string) error {
 	workDir := filepath.Join(os.Getenv("HOME"), ".gist")
+	gistConfigFile := filepath.Join(os.Getenv("HOME"), ".gist", "config")
 	cache := gist.NewCache(filepath.Join(workDir, "cache.json"))
+	config, _ := ioutil.ReadFile(gistConfigFile)
+	gistConfig := GistConfig{}
+	err := yaml.Unmarshal(config, &gistConfig)
+	if err == nil {
+		os.Setenv("GIST_USER", gistConfig.User)
+		os.Setenv("GITHUB_TOKEN", gistConfig.Token)
+	}
 	// load cache
 	cache.Open()
 	m.cache = cache

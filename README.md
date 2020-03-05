@@ -72,6 +72,18 @@ There are many other implements as the gist client (called "gister") such as the
 - <https://github.com/jdowner/gist>
 - ...
 
+## Configurate
+
+> touch ~/.gist/config
+
+```yaml
+{
+  "user": "xxxx",
+  "token": "xxxx-xxxx-xxxx"
+}
+
+```
+
 ## License
 
 MIT
