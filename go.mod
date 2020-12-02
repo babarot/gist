@@ -1,9 +1,8 @@
 module github.com/jiahut/gist
 
-go 1.12
+go 1.15
 
 require (
-	github.com/b4b4r07/gist v1.2.4
 	github.com/b4b4r07/go-cli-log v0.0.0-20200124120248-8fac4d71de01
 	github.com/caarlos0/spin v1.1.1-0.20200123125736-2bc438191c89
 	github.com/dustin/go-humanize v1.0.0

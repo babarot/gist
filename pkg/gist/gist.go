@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/b4b4r07/gist/pkg/git"
+	"github.com/jiahut/gist/pkg/git"
 	"github.com/google/go-github/github"
 )
 

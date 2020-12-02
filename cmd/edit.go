@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/b4b4r07/gist/pkg/shell"
-	"github.com/b4b4r07/gist/pkg/spin"
+	"github.com/jiahut/gist/pkg/shell"
+	"github.com/jiahut/gist/pkg/spin"
 	"github.com/spf13/cobra"
 )
 
