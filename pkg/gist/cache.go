@@ -35,6 +35,9 @@ func (c *Cache) Save(pages []Page) error {
 	}
 	defer f.Close()
 	c.Pages = pages
+	// TODO: don't save token
+	// but better to think another solution to solve this
+	c.Token = ""
 	return json.NewEncoder(f).Encode(&c)
 }
 
