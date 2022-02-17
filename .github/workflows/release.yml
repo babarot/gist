@@ -70,10 +70,7 @@ jobs:
           version: latest
           args: release --rm-dist
         env:
-          # To upload homebrew formula to other repos,
-          # need to set the dedicated token having enough permissions
-          # https://github.com/goreleaser/goreleaser/issues/982
-          GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Post release comment
         uses: actions-ecosystem/action-create-comment@v1
