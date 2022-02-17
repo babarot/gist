@@ -62,6 +62,8 @@ func (c *newCmd) run(args []string) error {
 	var files []gist.File
 	var err error
 
+	// TODO: Check pipe to allow to give from STDIN
+	// gist new < gist.md
 	switch len(args) {
 	case 0:
 		files, err = c.withNoArg()
