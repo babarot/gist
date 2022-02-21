@@ -30,13 +30,16 @@ release:
 
 # https://goreleaser.com/customization/#Homebrew
 brews:
-- name: gist
-  tap:
+- tap:
     owner: b4b4r07
     name: homebrew-tap
+    token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
   folder: Formula
-  homepage: https://github.com/b4b4r07/gist
-  description: A simple gist editor for CLI
+  commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+  homepage: https://babarot.me/gist
+  description: |
+    A simple gist editor for CLI
+  license: MIT
   skip_upload: auto
   test: |
     system "#{bin}/gist", "--version"
