@@ -15,6 +15,8 @@ import (
 )
 
 type meta struct {
+	editor string
+
 	gist  gist.Gist
 	files []gist.File
 
@@ -36,6 +38,7 @@ func (m *meta) init(args []string) error {
 	if editor == "" {
 		editor = "vim"
 	}
+	m.editor = editor
 
 	token, err := m.githubToken()
 	if err != nil {
@@ -64,7 +67,6 @@ func (m *meta) init(args []string) error {
 	gist := gist.Gist{
 		User:    user,
 		Token:   token,
-		Editor:  editor,
 		Client:  client,
 		WorkDir: workDir,
 		Pages:   pages,

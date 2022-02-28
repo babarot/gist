@@ -112,7 +112,7 @@ func (c *newCmd) withNoArg() ([]gist.File, error) {
 	defer os.Remove(tmpfile.Name())
 	defer tmpfile.Close()
 
-	editor := shell.New(c.gist.Editor, tmpfile.Name())
+	editor := shell.New(c.editor, tmpfile.Name())
 	if err := editor.Run(context.Background()); err != nil {
 		return files, err
 	}

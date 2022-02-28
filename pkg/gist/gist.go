@@ -14,9 +14,8 @@ import (
 )
 
 type Gist struct {
-	User   string
-	Token  string
-	Editor string
+	User  string
+	Token string
 
 	Client Client
 

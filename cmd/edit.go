@@ -42,7 +42,7 @@ func (c *editCmd) run(args []string) error {
 		return err
 	}
 
-	editor := shell.New(c.gist.Editor, file.FullPath)
+	editor := shell.New(c.editor, file.FullPath)
 	if err := editor.Run(context.Background()); err != nil {
 		return err
 	}
