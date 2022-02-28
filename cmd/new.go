@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/b4b4r07/gist/pkg/gist"
 	"github.com/b4b4r07/gist/pkg/shell"
@@ -59,17 +58,7 @@ func (c *newCmd) run(args []string) error {
 		return nil
 	}
 
-	var files []gist.File
-	var err error
-
-	// TODO: Check pipe to allow to give from STDIN
-	// gist new < gist.md
-	switch len(args) {
-	case 0:
-		files, err = c.withNoArg()
-	default:
-		files, err = c.withArgs(args)
-	}
+	files, err := c.withNoArg()
 	if err != nil {
 		return err
 	}
@@ -99,7 +88,6 @@ func (c *newCmd) run(args []string) error {
 	s.Stop()
 	fmt.Println(url)
 
-	c.cache.Delete()
 	return nil
 }
 
@@ -136,41 +124,6 @@ func (c *newCmd) withNoArg() ([]gist.File, error) {
 		Name:    name,
 		Content: string(content),
 	})
-
-	return files, nil
-}
-
-func (c *newCmd) withArgs(args []string) ([]gist.File, error) {
-	var files []gist.File
-
-	for _, arg := range args {
-		f, err := os.Open(arg)
-		if err != nil {
-			return files, err
-		}
-		defer f.Close()
-
-		content, err := ioutil.ReadAll(f)
-		if err != nil {
-			return files, err
-		}
-
-		prompt := promptui.Prompt{
-			Label:     "Filename",
-			Validate:  c.validator,
-			AllowEdit: true,
-			Default:   filepath.Base(arg),
-		}
-		name, err := prompt.Run()
-		if err != nil {
-			return files, err
-		}
-
-		files = append(files, gist.File{
-			Name:    name,
-			Content: string(content),
-		})
-	}
 
 	return files, nil
 }

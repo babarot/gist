@@ -64,8 +64,6 @@ func (c *editCmd) run(args []string) error {
 		return err
 	}
 
-	c.UpdateCache(file)
-
 	s.Stop()
 	fmt.Printf("Pushed: %s\n", file.URL)
 

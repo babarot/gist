@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/b4b4r07/gist/pkg/gist"
 	"github.com/b4b4r07/gist/pkg/spin"
@@ -19,16 +18,10 @@ type meta struct {
 
 	gist  gist.Gist
 	files []gist.File
-
-	cache *gist.Cache
 }
 
 func (m *meta) init(args []string) error {
 	workDir := filepath.Join(os.Getenv("HOME"), ".gist")
-	cache := gist.NewCache(filepath.Join(workDir, "cache.json"))
-	// load cache
-	cache.Open()
-	m.cache = cache
 
 	user := os.Getenv("GIST_USER")
 	if user == "" {
@@ -41,28 +34,20 @@ func (m *meta) init(args []string) error {
 	m.editor = editor
 
 	token := os.Getenv("GITHUB_TOKEN")
-	if token != "" {
+	if token == "" {
 		return errors.New("GITHUB_TOKEN is missing")
 	}
 	client := gist.NewClient(token)
 
 	var pages []gist.Page
-	switch len(cache.Pages) {
-	case 0:
-		s := spin.New("%s Fetching pages...")
-		s.Start()
-		results, err := client.List(user)
-		s.Stop()
-		if err != nil {
-			return err
-		}
-		pages = results
-	default:
-		pages = cache.Pages
+	s := spin.New("%s Fetching pages...")
+	s.Start()
+	results, err := client.List(user)
+	s.Stop()
+	if err != nil {
+		return err
 	}
-
-	// update cache
-	cache.Save(pages)
+	pages = results
 
 	gist := gist.Gist{
 		User:    user,
@@ -72,28 +57,14 @@ func (m *meta) init(args []string) error {
 		Pages:   pages,
 	}
 
-	s := spin.New("%s Checking pages...")
-	s.Start()
-	defer s.Stop()
+	s2 := spin.New("%s Checking pages...")
+	s2.Start()
+	defer s2.Stop()
 	gist.Checkout()
 
 	m.gist = gist
 	m.files = gist.Files()
 	return nil
-}
-
-func (m *meta) UpdateCache(file gist.File) {
-	if file.ID == "" {
-		return
-	}
-	var pages []gist.Page
-	for _, page := range m.cache.Pages {
-		if page.ID == file.ID {
-			page.UpdatedAt = time.Now()
-		}
-		pages = append(pages, page)
-	}
-	m.cache.Save(pages)
 }
 
 func head(content string) string {

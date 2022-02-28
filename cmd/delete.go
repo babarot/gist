@@ -50,7 +50,6 @@ func (c *deleteCmd) run(args []string) error {
 	fmt.Println("Deleted")
 
 	s.Stop()
-	c.cache.Delete()
 
 	return nil
 }
