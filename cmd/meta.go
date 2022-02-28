@@ -40,9 +40,9 @@ func (m *meta) init(args []string) error {
 	}
 	m.editor = editor
 
-	token, err := m.githubToken()
-	if err != nil {
-		return err
+	token := os.Getenv("GITHUB_TOKEN")
+	if token != "" {
+		return errors.New("GITHUB_TOKEN is missing")
 	}
 	client := gist.NewClient(token)
 
@@ -125,6 +125,7 @@ func (m *meta) prompt() (gist.File, error) {
 	funcMap := promptui.FuncMap
 	funcMap["head"] = head
 	funcMap["time"] = humanize.Time
+
 	templates := &promptui.SelectTemplates{
 		Label:    "{{ . }}",
 		Active:   promptui.IconSelect + " {{ .Name | cyan }}",
@@ -155,31 +156,11 @@ func (m *meta) prompt() (gist.File, error) {
 		StartInSearchMode: true,
 		HideSelected:      true,
 	}
-	i, _, err := prompt.Run()
-	return m.files[i], err
-}
 
-func (m *meta) githubToken() (string, error) {
-	var token string
-	token = os.Getenv("GITHUB_TOKEN")
-	if token != "" {
-		return token, nil
-	}
-	if m.cache == nil {
-		return "", errors.New("cache is nil")
-	}
-	token = m.cache.Token
-	if token != "" {
-		return token, nil
-	}
-	prompt := promptui.Prompt{
-		Label: "GITHUB_TOKEN",
-		Mask:  '*',
-	}
-	token, err := prompt.Run()
+	i, _, err := prompt.Run()
 	if err != nil {
-		return "", err
+		return gist.File{}, err
 	}
-	m.cache.Token = token
-	return token, nil
+
+	return m.files[i], err
 }
