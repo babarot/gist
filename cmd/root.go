@@ -31,10 +31,13 @@ func newRootCmd() *cobra.Command {
 		Version:            fmt.Sprintf("%s (%s/%s)", Version, BuildTag, BuildSHA),
 	}
 
-	rootCmd.AddCommand(newNewCmd())
-	rootCmd.AddCommand(newEditCmd())
-	rootCmd.AddCommand(newOpenCmd())
-	rootCmd.AddCommand(newDeleteCmd())
+	rootCmd.AddCommand(
+		newNewCmd(),
+		newEditCmd(),
+		newOpenCmd(),
+		newDeleteCmd(),
+	)
+
 	return rootCmd
 }
 

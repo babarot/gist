@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"time"
 
 	"gopkg.in/src-d/go-git.v4"
@@ -41,12 +39,6 @@ type Config struct {
 }
 
 func NewRepo(cfg Config) (*Repo, error) {
-	// u, err := url.Parse(cfg.URL)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// workDir := filepath.Join(cfg.WorkDir, u.Path)
-
 	if cfg.WorkDir == "" {
 		return &Repo{}, errors.New("workdir is empty")
 	}
@@ -104,27 +96,6 @@ func (r *Repo) Clone(ctx context.Context) error {
 	r.worktree = w
 
 	return nil
-}
-
-func (r *Repo) Objects() (map[string]string, error) {
-	m := make(map[string]string)
-	head, err := r.repo.Head()
-	if err != nil {
-		return m, err
-	}
-	commit, err := r.repo.CommitObject(head.Hash())
-	if err != nil {
-		return m, err
-	}
-	tree, err := commit.Tree()
-	if err != nil {
-		return m, err
-	}
-	for _, entry := range tree.Entries {
-		content, _ := ioutil.ReadFile(filepath.Join(r.workDir, entry.Name))
-		m[entry.Name] = string(content)
-	}
-	return m, nil
 }
 
 func (r *Repo) Open(ctx context.Context) error {

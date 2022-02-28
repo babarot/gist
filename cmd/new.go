@@ -54,7 +54,7 @@ func newNewCmd() *cobra.Command {
 func (c *newCmd) run(args []string) error {
 	c.validator = func(input string) error {
 		if len(input) == 0 {
-			return errors.New("Filename must have more than 1 characters")
+			return errors.New("filename must have more than 1 characters")
 		}
 		return nil
 	}
