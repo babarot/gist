@@ -29,9 +29,9 @@
             alt="Website"
             />
     </a>
-    <a href="https://github.com/b4b4r07/gist/actions?query=workflow%3Arelease">
+    <a href="https://github.com/b4b4r07/gist/actions/workflows/release.yaml">
         <img
-            src="https://github.com/b4b4r07/gist/workflows/release/badge.svg?branch=master&event=push"
+            src="https://github.com/b4b4r07/gist/actions/workflows/release.yaml/badge.svg"
             alt="GitHub Releases"
             />
     </a>
@@ -60,8 +60,32 @@ Download the binary from [GitHub Releases][release] and drop it in your `$PATH`.
 
 **For macOS / [Homebrew](https://brew.sh/) user**:
 
-```console
-$ brew install b4b4r07/tap/gist
+```bash
+brew install b4b4r07/tap/gist
+```
+
+**Using [afx](https://github.com/b4b4r07/afx), package manager for CLI**:
+
+```yaml
+github:
+- name: b4b4r07/gist
+  description: A simple gist editor for CLI
+  owner: b4b4r07
+  repo: gist
+  release:
+    name: gist
+    tag: v1.2.6 ## NEED UPDATE!
+    asset:
+      filename: '{{ .Release.Name }}_{{ .OS }}_{{ .Arch }}.tar.gz'
+      replacements:
+        darwin: darwin
+        amd64: arm64
+  command:
+    link:
+    - from: gist
+      to: gist
+    env:
+      GIST_USER: b4b4r07 ## NEED UPDATE!
 ```
 
 ## Versus
