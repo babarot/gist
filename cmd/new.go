@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/b4b4r07/gist/pkg/gist"
-	"github.com/b4b4r07/gist/pkg/shell"
-	"github.com/b4b4r07/gist/pkg/spin"
+	"github.com/babarot/gist/pkg/gist"
+	"github.com/babarot/gist/pkg/shell"
+	"github.com/babarot/gist/pkg/spin"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )

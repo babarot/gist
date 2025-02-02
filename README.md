@@ -4,30 +4,30 @@
 </p>
 
 <p align="center">
-    <a href="https://b4b4r07.mit-license.org">
-        <img src="https://img.shields.io/github/license/b4b4r07/gist" alt="License"/>
+    <a href="https://babarot.mit-license.org">
+        <img src="https://img.shields.io/github/license/babarot/gist" alt="License"/>
     </a>
-    <a href="https://github.com/b4b4r07/gist/releases">
+    <a href="https://github.com/babarot/gist/releases">
         <img
-            src="https://img.shields.io/github/v/release/b4b4r07/gist"
+            src="https://img.shields.io/github/v/release/babarot/gist"
             alt="GitHub Releases"/>
     </a>
     <br />
-    <a href="https://b4b4r07.github.io/gist/">
+    <a href="https://babarot.github.io/gist/">
         <img
-            src="https://img.shields.io/website?down_color=lightgrey&down_message=donw&up_color=green&up_message=up&url=https%3A%2F%2Fb4b4r07.github.io%2Fgist"
+            src="https://img.shields.io/website?down_color=lightgrey&down_message=donw&up_color=green&up_message=up&url=https%3A%2F%2Fbabarot.github.io%2Fgist"
             alt="Website"
             />
     </a>
-    <a href="https://github.com/b4b4r07/gist/actions/workflows/release.yaml">
+    <a href="https://github.com/babarot/gist/actions/workflows/release.yaml">
         <img
-            src="https://github.com/b4b4r07/gist/actions/workflows/release.yaml/badge.svg"
+            src="https://github.com/babarot/gist/actions/workflows/release.yaml/badge.svg"
             alt="GitHub Releases"
             />
     </a>
-    <a href="https://github.com/b4b4r07/gist/blob/master/go.mod">
+    <a href="https://github.com/babarot/gist/blob/master/go.mod">
         <img
-            src="https://img.shields.io/github/go-mod/go-version/b4b4r07/gist"
+            src="https://img.shields.io/github/go-mod/go-version/babarot/gist"
             alt="Go version"
             />
     </a>
@@ -45,22 +45,22 @@
 
 Download the binary from [GitHub Releases][release] and drop it in your `$PATH`.
 
-- [Darwin / Mac](https://github.com/b4b4r07/gist/releases/latest)
-- [Linux](https://github.com/b4b4r07/gist/releases/latest)
+- [Darwin / Mac](https://github.com/babarot/gist/releases/latest)
+- [Linux](https://github.com/babarot/gist/releases/latest)
 
 **For macOS / [Homebrew](https://brew.sh/) user**:
 
 ```bash
-brew install b4b4r07/tap/gist
+brew install babarot/tap/gist
 ```
 
-**Using [afx](https://github.com/b4b4r07/afx), package manager for CLI**:
+**Using [afx](https://github.com/babarot/afx), package manager for CLI**:
 
 ```yaml
 github:
-- name: b4b4r07/gist
+- name: babarot/gist
   description: A simple gist editor for CLI
-  owner: b4b4r07
+  owner: babarot
   repo: gist
   release:
     name: gist
@@ -75,7 +75,7 @@ github:
     - from: gist
       to: gist
     env:
-      GIST_USER: b4b4r07 ## NEED UPDATE!
+      GIST_USER: babarot ## NEED UPDATE!
 ```
 
 ## Versus
@@ -92,7 +92,7 @@ MIT
 
 ## Author
 
-b4b4r07
+babarot
 
-[release]: https://github.com/b4b4r07/gist/releases
-[license]: https://b4b4r07.mit-license.org
+[release]: https://github.com/babarot/gist/releases
+[license]: https://babarot.mit-license.org

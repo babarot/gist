@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
 type Repo struct {
@@ -121,7 +120,7 @@ func (r *Repo) Objects() (map[string]string, error) {
 		return m, err
 	}
 	for _, entry := range tree.Entries {
-		content, _ := ioutil.ReadFile(filepath.Join(r.workDir, entry.Name))
+		content, _ := os.ReadFile(filepath.Join(r.workDir, entry.Name))
 		m[entry.Name] = string(content)
 	}
 	return m, nil

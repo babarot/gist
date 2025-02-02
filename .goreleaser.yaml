@@ -9,9 +9,9 @@ builds:
     binary: gist
     ldflags:
       - -s -w
-      - -X github.com/b4b4r07/gist/cmd.Version={{.Version}}
-      - -X github.com/b4b4r07/gist/cmd.BuildSHA={{.ShortCommit}}
-      - -X github.com/b4b4r07/gist/cmd.BuildTag={{.Tag}}
+      - -X github.com/babarot/gist/cmd.Version={{.Version}}
+      - -X github.com/babarot/gist/cmd.BuildSHA={{.ShortCommit}}
+      - -X github.com/babarot/gist/cmd.BuildTag={{.Tag}}
     env:
       - CGO_ENABLED=0
 archives:
@@ -31,7 +31,7 @@ release:
 # https://goreleaser.com/customization/#Homebrew
 brews:
 - tap:
-    owner: b4b4r07
+    owner: babarot
     name: homebrew-tap
     token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
   folder: Formula

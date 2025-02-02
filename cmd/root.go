@@ -2,11 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"runtime"
 
-	clilog "github.com/b4b4r07/go-cli-log"
 	"github.com/spf13/cobra"
 )
 
@@ -40,16 +36,16 @@ func newRootCmd() *cobra.Command {
 
 // Execute is the entrypoint of this cmd package
 func Execute() error {
-	clilog.Env = "GIST_LOG"
-	clilog.Path = "GIST_LOG_PATH"
-	clilog.SetOutput()
-
-	log.Printf("[INFO] pkg version: %s", Version)
-	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
-	log.Printf("[INFO] Build tag/SHA: %s/%s", BuildTag, BuildSHA)
-	log.Printf("[INFO] CLI args: %#v", os.Args)
-
-	defer log.Printf("[DEBUG] root command execution finished")
+	// clilog.Env = "GIST_LOG"
+	// clilog.Path = "GIST_LOG_PATH"
+	// clilog.SetOutput()
+	//
+	// log.Printf("[INFO] pkg version: %s", Version)
+	// log.Printf("[INFO] Go runtime version: %s", runtime.Version())
+	// log.Printf("[INFO] Build tag/SHA: %s/%s", BuildTag, BuildSHA)
+	// log.Printf("[INFO] CLI args: %#v", os.Args)
+	//
+	// defer log.Printf("[DEBUG] root command execution finished")
 
 	return newRootCmd().Execute()
 }
