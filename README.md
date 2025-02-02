@@ -1,13 +1,3 @@
-<p align="center">
-  <a href="https://gist.github.com">
-    <img
-         src="https://raw.githubusercontent.com/b4b4r07/i/master/gist/logo.png" 
-         width="200"
-         alt="gist - A simple gist editor for CLI"
-         >
-  </a>
-</p>
-
 <p align="center"><em>A simple gist editor for CLI.</em></p>
 <p align="center">
   <img src="./docs/screenshot.png" width="500">
