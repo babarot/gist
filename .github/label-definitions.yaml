@@ -1,4 +1,4 @@
-# tag management - used by tagpr management
+# tag management - used by tagpr
 - name: tagpr
   description: Used by tagpr for managing the release
   color: ededed
@@ -8,7 +8,7 @@
 - name: tagpr:major
   description: Used by tagpr for managing the release
   color: ededed
-- name: no-update-changelog
+- name: changelog/skip
   description: Used in case of no need to update changelog
   color: ededed
 
@@ -27,6 +27,9 @@
   color: 425df5
 - name: kind/breaking-change
   description: Denotes a PR that introduces potentially breaking changes that require user action.
+  color: 425df5
+- name: kind/improvement
+  description: An improvement to existing functionality; not a new feature or bug fix
   color: 425df5
 
 # release/ - which version to be released
