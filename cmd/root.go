@@ -6,15 +6,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Set by GoReleaser through -ldflags; see .goreleaser.yaml.
 var (
-	// Version is the version number
-	Version = "unset"
-
-	// BuildTag set during build to git tag, if any
-	BuildTag = "unset"
-
-	// BuildSHA is the git sha set during build
-	BuildSHA = "unset"
+	version   = "unset"
+	revision  = "unset"
+	buildDate = "unset"
 )
 
 // newRootCmd returns the root command
@@ -24,7 +20,7 @@ func newRootCmd() *cobra.Command {
 		Short:              "A simple gist editor for CLI",
 		SilenceErrors:      true,
 		DisableSuggestions: false,
-		Version:            fmt.Sprintf("%s (%s/%s)", Version, BuildTag, BuildSHA),
+		Version:            fmt.Sprintf("%s (%s/%s)", version, revision, buildDate),
 	}
 
 	rootCmd.AddCommand(newNewCmd())
