@@ -1,5 +1,9 @@
 # Changelog
 
+## [v1.2.9](https://github.com/babarot/gist/compare/v1.2.8...v1.2.9) - 2026-10-09
+### Others
+- Sync shared files from github-config by @babarot in https://github.com/babarot/gist/pull/21
+
 ## [v1.2.8](https://github.com/babarot/gist/compare/v1.2.7...v1.2.8) - 2026-10-09
 ### Bug fixes
 - Show the version the release was built with by @babarot in https://github.com/babarot/gist/pull/19
