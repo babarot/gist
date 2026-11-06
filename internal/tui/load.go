@@ -45,6 +45,16 @@ func (m *Model) gotViewer(msg viewerMsg) tea.Cmd {
 			t := &m.tabs[i]
 			t.gists, t.list, t.loaded, t.cur, t.top = nil, cache.List{}, false, 0, 0
 		}
+		// What was kept of another account's gists goes with its lists. Reads
+		// under way still end, and still count until they do
+		if m.login != "" {
+			running, reading := m.preview.running, m.preview.reading
+			m.preview = newPreviewState(m.preview.dir)
+			m.preview.running, m.preview.reading = running, reading
+			if err := m.preview.disk.Clear(); err != nil {
+				m.opt.Log.Warn("the kept contents cannot be removed", "err", err.Error())
+			}
+		}
 		m.openStores(msg.login)
 	}
 	cmds := []tea.Cmd{m.readMine()}
@@ -144,13 +154,32 @@ func (m *Model) gotList(msg listDoneMsg) tea.Cmd {
 	m.keep(t, l)
 	if first {
 		m.replace(t, l.Gists)
-		m.line.Say(m.now(), fmt.Sprintf("✓ %d gists · saved to the cache", len(l.Gists)))
+		m.line.Say(m.now(), fmt.Sprintf("✓ %s · saved to the cache", gistCount(len(l.Gists))))
 		return nil
 	}
 	added, updated, gone := m.compare(t, old, l.Gists)
 	m.replace(t, l.Gists)
+	m.forgetGone(old)
 	m.line.Say(m.now(), summary(added, updated, gone))
 	return nil
+}
+
+// forgetGone drops what is kept of gists no longer there, which may be secret
+// and should not stay on the disk.
+func (m *Model) forgetGone(old []model.Gist) {
+	for _, g := range old {
+		if !m.listed(g.ID) {
+			m.preview.forget(g.ID)
+			m.removeKept(g.ID)
+		}
+	}
+}
+
+func gistCount(n int) string {
+	if n == 1 {
+		return "1 gist"
+	}
+	return fmt.Sprintf("%d gists", n)
 }
 
 // keep saves the list. A list not kept costs the next launch a reading, which
@@ -183,6 +212,9 @@ func (m *Model) compare(t *tab, old, now []model.Gist) (added, updated, gone int
 		case g.Updated.After(was.Updated):
 			updated++
 			mark(g.ID)
+		}
+		if ok && g.Comments != was.Comments {
+			delete(m.preview.comments, g.ID)
 		}
 		delete(before, g.ID)
 	}
@@ -230,14 +262,15 @@ func (m *Model) gotStarred(msg starredMsg) {
 	if msg.seq != t.seq {
 		return
 	}
-	t.reading = false
+	t.reading, t.readOnce = false, true
 	if msg.err != nil {
 		m.line.Fail(m.now(), msg.err.Error())
 		return
 	}
 	cache.Sort(msg.gists)
 	had := t.loaded
-	added, updated, gone := m.compare(t, t.gists, msg.gists)
+	old := t.gists
+	added, updated, gone := m.compare(t, old, msg.gists)
 	if !had {
 		clear(t.marks)
 		clear(t.fresh)
@@ -246,6 +279,7 @@ func (m *Model) gotStarred(msg starredMsg) {
 	t.list, t.loaded = l, true
 	m.keep(t, l)
 	m.replace(t, msg.gists)
+	m.forgetGone(old)
 	if had {
 		m.line.Say(m.now(), summary(added, updated, gone))
 	}

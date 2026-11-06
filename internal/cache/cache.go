@@ -196,6 +196,9 @@ func (c *Contents) Remove(id string) error {
 	return ignoreMissing(os.Remove(c.path(id)))
 }
 
+// Clear drops all that is kept.
+func (c *Contents) Clear() error { return os.RemoveAll(c.dir) }
+
 func ignoreMissing(err error) error {
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil

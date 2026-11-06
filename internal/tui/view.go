@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image/color"
 	"strconv"
-	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -12,7 +11,6 @@ import (
 	"github.com/babarot/gist/v2/internal/config"
 	"github.com/babarot/gist/v2/internal/model"
 	"github.com/babarot/gist/v2/internal/text"
-	"github.com/babarot/gist/v2/internal/tui/keymap"
 	"github.com/babarot/gist/v2/internal/tui/statusline"
 )
 
@@ -43,8 +41,6 @@ const (
 	footerRows  = 2 // the status line and the key line
 	minListRows = 3
 	minBoxRows  = 5
-	// infoWidth is the width of the info pane.
-	infoWidth = 30
 )
 
 func (m *Model) layout() layout {
@@ -336,119 +332,6 @@ func ago(d time.Duration) string {
 		return fmt.Sprintf("%dmo", int(d/(30*day)))
 	}
 	return fmt.Sprintf("%dy", int(d/(365*day)))
-}
-
-func (m *Model) drawPreview(c *canvas, l layout) {
-	p := m.pal
-	if l.boxH < 2 {
-		return
-	}
-	c.box(0, l.boxY, c.w, l.boxH, p.surface1, nil)
-	g, ok := m.selected()
-	if !ok {
-		c.put(l.boxY, 2, " preview ", style{fg: p.subtext1, bold: true})
-		return
-	}
-	dx := c.w - 1 - infoWidth - 2
-	if dx < 20 {
-		dx = c.w // no room for the pane
-	}
-	m.drawFileTabs(c, l, g, dx)
-	id := g.ID[:min(7, len(g.ID))]
-	hints := []string{id}
-	if len(g.Files) > 1 {
-		hints = append(hints, m.keys.Hint(keymap.PrevFile, keymap.NextFile)+" file")
-	}
-	s := " " + strings.Join(hints, " · ") + " "
-	c.put(l.boxY+l.boxH-1, c.w-2-text.Width(s), s, style{fg: p.overlay})
-	if dx >= c.w {
-		return
-	}
-	line := style{fg: p.surface1}
-	for y := l.boxY + 1; y < l.boxY+l.boxH-1; y++ {
-		c.put(y, dx, "│", line)
-	}
-	c.put(l.boxY, dx, "┬", line)
-	c.put(l.boxY+l.boxH-1, dx, "┴", line)
-	x := c.put(l.boxY, dx+1, " ", line)
-	x = c.put(l.boxY, x, " info ", style{fg: p.base, bg: p.blue, bold: true})
-	c.put(l.boxY, x, " ", line)
-	m.drawInfo(c, l, g, dx+2)
-}
-
-// drawFileTabs lays the files along the top of the frame.
-func (m *Model) drawFileTabs(c *canvas, l layout, g model.Gist, dx int) {
-	p := m.pal
-	line := style{fg: p.surface1}
-	x := c.put(l.boxY, 1, " ", line)
-	cur := m.selectedFile(g)
-	for i, f := range g.Files {
-		s := " " + f.Name + " "
-		if x+text.Width(s) > dx-2 {
-			c.put(l.boxY, x, "…", style{fg: p.overlay})
-			break
-		}
-		x0 := x
-		if i == cur {
-			x = c.put(l.boxY, x, s, style{fg: p.base, bg: p.blue, bold: true})
-		} else {
-			x = c.put(l.boxY, x, s, style{fg: p.overlay})
-		}
-		m.addHit(l.boxY, x0, x, func() tea.Cmd {
-			m.fileTab[g.ID] = i
-			return nil
-		})
-		x = c.put(l.boxY, x, " ", line)
-	}
-}
-
-func (m *Model) drawInfo(c *canvas, l layout, g model.Gist, x int) {
-	p := m.pal
-	now := m.now()
-	var total int64
-	for _, f := range g.Files {
-		total += f.Size
-	}
-	vis, visSt := "secret", style{fg: p.peach}
-	if g.Public {
-		vis, visSt = "public", style{fg: p.text}
-	}
-	plain := style{fg: p.text}
-	type row struct {
-		k, v string
-		st   style
-	}
-	var rows []row
-	if m.cur == tabStarred {
-		rows = append(rows, row{"owner", g.Owner, plain})
-	}
-	rows = append(rows,
-		row{"gist", g.ID[:min(7, len(g.ID))], plain},
-		row{"visibility", vis, visSt},
-		row{"files", fmt.Sprintf("%d · %s", len(g.Files), size(total)), plain},
-		row{"comments", strconv.Itoa(g.Comments), plain},
-		row{"created", ago(now.Sub(g.Created)) + " ago", plain},
-		row{"updated", ago(now.Sub(g.Updated)) + " ago", plain},
-	)
-	if len(g.Files) > 0 {
-		f := g.Files[m.selectedFile(g)]
-		rows = append(rows, row{}, row{"file", f.Name, plain})
-		if f.Language != "" {
-			rows = append(rows, row{"type", f.Language, plain})
-		}
-		rows = append(rows, row{"size", size(f.Size), plain})
-	}
-	for i, r := range rows {
-		y := l.boxY + 1 + i
-		if y >= l.boxY+l.boxH-1 {
-			break
-		}
-		if r.k == "" {
-			continue
-		}
-		c.put(y, x, r.k, style{fg: p.overlay})
-		c.putCut(y, x+11, []seg{{r.v, r.st}}, infoWidth-12, style{fg: p.overlay})
-	}
 }
 
 // size says how many bytes n is, shortly.

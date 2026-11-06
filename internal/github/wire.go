@@ -3,6 +3,7 @@ package github
 import (
 	"cmp"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/babarot/gist/v2/internal/model"
@@ -34,6 +35,7 @@ type file struct {
 	Size      int64  `json:"size"`
 	RawURL    string `json:"raw_url"`
 	Content   string `json:"content"`
+	Encoding  string `json:"encoding"`
 	Truncated bool   `json:"truncated"`
 }
 
@@ -79,6 +81,7 @@ func (g gist) model() model.Gist {
 			RawURL:    f.RawURL,
 			Content:   f.Content,
 			Truncated: f.Truncated,
+			Binary:    f.Encoding == "base64" || strings.ContainsRune(f.Content, 0),
 		})
 	}
 	slices.SortFunc(m.Files, func(a, b model.File) int { return cmp.Compare(a.Name, b.Name) })

@@ -20,7 +20,7 @@ func (m *Model) addHit(y, x0, x1 int, act func() tea.Cmd) {
 // mouse handles a click, the wheel and dragging the top edge of the preview.
 // What is open over the screen keeps the mouse from the list under it.
 func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
-	if m.uiState() != uiList {
+	if st := m.uiState(); st != uiList && st != uiListComments {
 		return nil
 	}
 	mouse := msg.Mouse()
@@ -35,7 +35,7 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 			m.keepBoxHeight()
 		}
 	case tea.MouseWheelMsg:
-		m.wheel(msg, mouse.Y)
+		m.wheel(msg, mouse.X, mouse.Y)
 	case tea.MouseClickMsg:
 		if msg.Button != tea.MouseLeft {
 			return nil
@@ -53,16 +53,28 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	return nil
 }
 
-func (m *Model) wheel(msg tea.MouseWheelMsg, y int) {
+// wheel moves what is under the mouse: the list, or the content or comments of
+// the preview, a line at a time.
+func (m *Model) wheel(msg tea.MouseWheelMsg, x, y int) {
 	l := m.layout()
-	if y < l.listY || y >= l.listY+l.listRows {
-		return
-	}
+	by := 0
 	switch msg.Button {
 	case tea.MouseWheelDown:
-		m.moveTo(m.tab().cur + 1)
+		by = 1
 	case tea.MouseWheelUp:
-		m.moveTo(m.tab().cur - 1)
+		by = -1
+	}
+	switch {
+	case y >= l.listY && y < l.listY+l.listRows:
+		m.moveTo(m.tab().cur + by)
+	case y > l.boxY && y < l.boxY+l.boxH-1:
+		if x >= m.paneX() {
+			if m.side == sideComments {
+				m.scrollComments(by)
+			}
+			return
+		}
+		m.scrollContent(by)
 	}
 }
 

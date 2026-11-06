@@ -19,19 +19,23 @@ type Action string
 
 // The actions.
 const (
-	Quit     Action = "quit"
-	Help     Action = "help"
-	Refresh  Action = "refresh"
-	Up       Action = "up"
-	Down     Action = "down"
-	Top      Action = "top"
-	Bottom   Action = "bottom"
-	PrevFile Action = "prev_file"
-	NextFile Action = "next_file"
-	Mine     Action = "tab_mine"
-	Starred  Action = "tab_starred"
-	Browse   Action = "browse"
-	CopyURL  Action = "copy_url"
+	Quit       Action = "quit"
+	Help       Action = "help"
+	Refresh    Action = "refresh"
+	Up         Action = "up"
+	Down       Action = "down"
+	Top        Action = "top"
+	Bottom     Action = "bottom"
+	PrevFile   Action = "prev_file"
+	NextFile   Action = "next_file"
+	Mine       Action = "tab_mine"
+	Starred    Action = "tab_starred"
+	Browse     Action = "browse"
+	CopyURL    Action = "copy_url"
+	ScrollDown Action = "scroll_down"
+	ScrollUp   Action = "scroll_up"
+	ToggleSide Action = "toggle_comments"
+	ToggleMD   Action = "toggle_markdown"
 )
 
 // Def is an action with its default keys and the words the key hints show.
@@ -56,6 +60,10 @@ var Defaults = []Def{
 	{Starred, []string{"2"}, "starred"},
 	{Browse, []string{"o"}, "browser"},
 	{CopyURL, []string{"y"}, "copy url"},
+	{ScrollDown, []string{"J"}, "scroll down"},
+	{ScrollUp, []string{"K"}, "scroll up"},
+	{ToggleSide, []string{"c"}, "comments"},
+	{ToggleMD, []string{"m"}, "markdown"},
 }
 
 // The fixed keys are read before any action and cannot be bound.

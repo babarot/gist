@@ -7,13 +7,14 @@ package tui
 type uiState int
 
 const (
-	uiList     uiState = iota // the list
-	uiHelp                    // the key list
-	uiAuthFail                // no token was found
+	uiList         uiState = iota // the list, with info beside the preview
+	uiListComments                // the list, with comments beside the preview
+	uiHelp                        // the key list
+	uiAuthFail                    // no token was found
 	numUIStates
 )
 
-var uiStateNames = [numUIStates]string{"list", "key list", "no token"}
+var uiStateNames = [numUIStates]string{"list", "list, comments", "key list", "no token"}
 
 func (s uiState) String() string { return uiStateNames[s] }
 
@@ -23,10 +24,12 @@ func (m *Model) uiState() uiState {
 		return uiAuthFail
 	case m.helpOpen:
 		return uiHelp
+	case m.side == sideComments:
+		return uiListComments
 	}
 	return uiList
 }
 
 // opensHelp reports whether ? opens the key list: from a pane, not over a box,
 // where ? is nothing.
-func (s uiState) opensHelp() bool { return s == uiList }
+func (s uiState) opensHelp() bool { return s == uiList || s == uiListComments }

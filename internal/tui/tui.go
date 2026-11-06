@@ -24,6 +24,8 @@ type Source interface {
 	Viewer(ctx context.Context) (string, error)
 	List(ctx context.Context, etags []string, got func(model.ListPage)) ([]model.ListPage, error)
 	Starred(ctx context.Context) ([]model.Gist, error)
+	Get(ctx context.Context, id string) (model.Gist, error)
+	Comments(ctx context.Context, id string) ([]model.Comment, error)
 }
 
 // Layout keeps how the screen was left, for the next launch. The app package
@@ -76,7 +78,8 @@ type tab struct {
 	store *cache.Store
 	// loaded says gists can be shown, reading says they are being read, and
 	// first that it is the first time, so they come in as they are read.
-	loaded, reading, first bool
+	// readOnce says it was read from GitHub in this run.
+	loaded, reading, first, readOnce bool
 	// got and estimate are how far a first reading is.
 	got, estimate int
 	// seq tells the reading under way from one given up.
@@ -109,6 +112,9 @@ type Model struct {
 	fileTab                   map[string]int
 	selectID                  string
 	helpOpen                  bool
+	preview                   previewState
+	side                      int
+	plain                     bool
 	boxHeight                 int
 	dragging                  bool
 
@@ -141,6 +147,8 @@ func New(o Options) *Model {
 		fileTab:   map[string]int{},
 		selectID:  o.Select,
 		boxHeight: defaultBoxHeight,
+		plain:     o.Config.Preview.Markdown == config.MarkdownPlain,
+		preview:   newPreviewState(filepath.Join(o.CacheDir, "contents")),
 	}
 	if o.Config.Theme == config.ThemeLatte {
 		m.pal = themes[config.ThemeLatte]
@@ -208,7 +216,7 @@ func (m *Model) Init() tea.Cmd {
 // Update handles a message, and keeps the clocks running that it needs.
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cmd := m.update(msg)
-	return m, tea.Batch(cmd, m.spin(), m.timer())
+	return m, tea.Batch(cmd, m.readContents(), m.dwell(), m.spin(), m.timer())
 }
 
 func (m *Model) update(msg tea.Msg) tea.Cmd {
@@ -233,6 +241,12 @@ func (m *Model) update(msg tea.Msg) tea.Cmd {
 		return m.gotList(msg)
 	case starredMsg:
 		m.gotStarred(msg)
+	case contentMsg:
+		m.gotContent(msg)
+	case commentsMsg:
+		m.gotComments(msg)
+	case dwellMsg:
+		return m.dwelled(msg)
 	case spinMsg:
 		m.spinning = false
 		m.spinFrame++
@@ -252,7 +266,8 @@ func (m *Model) tab() *tab { return &m.tabs[m.cur] }
 
 // busy says something is being read, for which the spinner turns.
 func (m *Model) busy() bool {
-	return m.readingViewer || m.tabs[tabMine].reading || m.tabs[tabStarred].reading
+	return m.readingViewer || m.tabs[tabMine].reading || m.tabs[tabStarred].reading ||
+		m.preview.running > 0 || len(m.preview.readingComments) > 0
 }
 
 type spinMsg struct{}

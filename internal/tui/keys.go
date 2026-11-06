@@ -63,8 +63,28 @@ func (m *Model) listKey(k string) tea.Cmd {
 		return m.browse()
 	case on(keymap.CopyURL):
 		return m.copyURL()
+	case on(keymap.ScrollDown):
+		m.scroll(scrollStep)
+	case on(keymap.ScrollUp):
+		m.scroll(-scrollStep)
+	case on(keymap.ToggleSide):
+		m.toggleSide()
+		return m.readCommentsNow()
+	case on(keymap.ToggleMD):
+		m.plain = !m.plain
 	}
 	return nil
+}
+
+// scrollStep is how many lines J and K move.
+const scrollStep = 3
+
+func (m *Model) toggleSide() {
+	if m.side == sideInfo {
+		m.side = sideComments
+	} else {
+		m.side = sideInfo
+	}
 }
 
 // stepFile moves along the file tabs of the gist, stopping at the ends.
@@ -76,15 +96,18 @@ func (m *Model) stepFile(by int) {
 	m.fileTab[g.ID] = max(0, min(m.selectedFile(g)+by, len(g.Files)-1))
 }
 
+// showStarred shows the starred tab, reading it the first time it is shown.
 func (m *Model) showStarred() tea.Cmd {
 	m.cur = tabStarred
-	if t := m.tab(); !t.loaded && !t.reading && m.viewerRead {
+	if t := m.tab(); !t.readOnce && !t.reading && m.viewerRead {
 		return m.readStarred()
 	}
 	return nil
 }
 
 func (m *Model) refresh() tea.Cmd {
+	clear(m.preview.failed)
+	clear(m.preview.failedComments)
 	if !m.viewerRead {
 		if m.readingViewer {
 			return nil
@@ -129,8 +152,22 @@ func (m *Model) keyHints() []hint {
 		return []hint{{keymap.Back, "close"}}
 	}
 	hints := []hint{k("browser", keymap.Browse), k("copy url", keymap.CopyURL)}
-	if g, ok := m.selected(); ok && len(g.Files) > 1 {
-		hints = append(hints, k("file", keymap.PrevFile, keymap.NextFile))
+	if g, ok := m.selected(); ok {
+		if len(g.Files) > 1 {
+			hints = append(hints, k("file", keymap.PrevFile, keymap.NextFile))
+		}
+		if m.side == sideComments {
+			hints = append(hints, k("info", keymap.ToggleSide), k("comments", keymap.ScrollDown, keymap.ScrollUp))
+		} else {
+			hints = append(hints, k("comments", keymap.ToggleSide))
+		}
+		if m.onMarkdown(g) {
+			what := "plain"
+			if m.plain {
+				what = "rendered"
+			}
+			hints = append(hints, k(what, keymap.ToggleMD))
+		}
 	}
 	if m.cur == tabStarred {
 		hints = append(hints, k("mine", keymap.Mine))
@@ -156,11 +193,14 @@ var helpGroups = []helpGroup{
 	{"move", []helpRow{
 		{[]keymap.Action{keymap.Down, keymap.Up}, "down / up"},
 		{[]keymap.Action{keymap.Top, keymap.Bottom}, "top / bottom"},
+		{[]keymap.Action{keymap.ScrollDown, keymap.ScrollUp}, "scroll the preview"},
 		{[]keymap.Action{keymap.PrevFile, keymap.NextFile}, "prev / next file"},
 		{[]keymap.Action{keymap.Mine}, "mine"},
 		{[]keymap.Action{keymap.Starred}, "starred"},
 	}},
 	{"view", []helpRow{
+		{[]keymap.Action{keymap.ToggleSide}, "info / comments"},
+		{[]keymap.Action{keymap.ToggleMD}, "markdown / plain"},
 		{[]keymap.Action{keymap.Browse}, "open in the browser"},
 		{[]keymap.Action{keymap.CopyURL}, "copy the URL"},
 		{[]keymap.Action{keymap.Refresh}, "refresh now"},
