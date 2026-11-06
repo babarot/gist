@@ -187,6 +187,7 @@ func (m *Model) drawHeader(c *canvas) {
 // columns is where the columns of the list are, for a terminal of width w.
 // Narrow terminals lose COMMENTS, then FILES.
 type columns struct {
+	owner, ownerW   int // the owner, on the starred tab; 0 wide elsewhere
 	lead, leadW     int // the first column: the description, or the file
 	desc, descW     int // the description, when the first column is the file
 	files, comments int // right edges, or 0 when dropped
@@ -201,6 +202,8 @@ const (
 	visCol      = 6
 	updatedCol  = 7
 	fileColMax  = 32
+	ownerColMax = 16
+	ownerHeader = "OWNER"
 	// The widths under which a column goes.
 	commentsFrom = 90
 	filesFrom    = 80
@@ -221,7 +224,13 @@ func (m *Model) columns() columns {
 		right -= filesCol + colGap
 	}
 	c.lead = rowLead
-	room := max(0, right-rowLead)
+	// A third of what is left, and none on a terminal too narrow for its name:
+	// the info pane says the owner too
+	if w := min(m.ownerWidth(), (right-rowLead)/3); m.cur == tabStarred && w >= len(ownerHeader) {
+		c.owner, c.ownerW = rowLead, w
+		c.lead += w + colGap
+	}
+	room := max(0, right-c.lead)
 	c.leadW = room
 	if m.opt.Config.List.Lead == config.LeadFile {
 		c.leadW = min(fileColMax, room*3/10)
@@ -231,19 +240,28 @@ func (m *Model) columns() columns {
 	return c
 }
 
+// ownerWidth is the width of the OWNER column: as wide as the owners, within
+// reason, as a name can be 39 long.
+func (m *Model) ownerWidth() int {
+	w := len(ownerHeader)
+	for _, r := range m.tab().rows {
+		w = max(w, text.Width(text.Line(r.gist.Owner)))
+	}
+	return min(w, ownerColMax)
+}
+
 func (m *Model) drawColumns(c *canvas, y int) {
 	p := m.pal
 	cols := m.columns()
 	head := style{fg: p.subtext1, bold: true}
-	owner := ""
-	if m.cur == tabStarred {
-		owner = "OWNER / "
+	if cols.ownerW > 0 {
+		c.put(y, cols.owner, ownerHeader, head)
 	}
 	if m.opt.Config.List.Lead == config.LeadFile {
-		c.put(y, cols.lead, owner+"FILE", head)
+		c.put(y, cols.lead, "FILE", head)
 		c.put(y, cols.desc, "DESCRIPTION", head)
 	} else {
-		c.put(y, cols.lead, owner+"DESCRIPTION", head)
+		c.put(y, cols.lead, "DESCRIPTION", head)
 	}
 	if cols.comments > 0 {
 		c.put(y, cols.comments-len("COMMENTS"), "COMMENTS", head)
@@ -329,8 +347,8 @@ func (m *Model) drawRow(c *canvas, y int, r row, cols columns, bg color.Color, n
 	}
 	more := on(style{fg: p.overlay})
 	var lead []seg
-	if m.cur == tabStarred && g.Owner != "" {
-		lead = append(lead, seg{g.Owner + "  ", on(style{fg: p.overlay})})
+	if cols.ownerW > 0 {
+		c.putCut(y, cols.owner, []seg{{g.Owner, on(style{fg: p.overlay})}}, cols.ownerW, more)
 	}
 	first := ""
 	if len(g.Files) > 0 {

@@ -442,7 +442,8 @@ func TestStarredIsReadWhenFirstShown(t *testing.T) {
 	}
 	press(t, m, "2")
 	s := screen(m)
-	if !strings.Contains(s, "2 starred (1)") || !strings.Contains(s, "kanata-dev  tmux with vim keys") || !strings.Contains(s, "OWNER / DESCRIPTION") {
+	if !strings.Contains(s, "2 starred (1)") || !strings.Contains(s, "kanata-dev  tmux with vim keys") ||
+		!regexp.MustCompile(`OWNER +DESCRIPTION`).MatchString(s) {
 		t.Errorf("got:\n%s", s)
 	}
 	press(t, m, "1")
@@ -880,6 +881,57 @@ func TestSmallTerminalsDoNotBreak(t *testing.T) {
 		m := loaded(t, fixture(), size[0], size[1])
 		press(t, m, "j", "?")
 		_ = m.render()
+	}
+}
+
+func TestOwnerIsAColumnOfItsOwn(t *testing.T) {
+	src := &source{pages: onePage(manyGists(1))}
+	a := gist("7777777", "first", time.Hour, "tmux.conf")
+	a.Owner = "kanata-dev"
+	b := gist("8888888", "second", 2*time.Hour, "b.txt")
+	b.Owner = "bob"
+	long := gist("9999999", "third", 3*time.Hour, "c.txt")
+	long.Owner = strings.Repeat("x", 39)
+	src.starred = []model.Gist{a, b, long}
+	o := options(t, src)
+	o.Config.List.Lead = config.Default().List.Lead
+	m := newModel(t, o, 120, 34)
+	settle(t, m, m.Init())
+	press(t, m, "2")
+	s := screen(m)
+	if !regexp.MustCompile(`OWNER +FILE +DESCRIPTION`).MatchString(s) {
+		t.Errorf("got:\n%s", s)
+	}
+	lines := strings.Split(s, "\n")
+	col := strings.Index(lines[1], "FILE")
+	for _, l := range []string{lines[2], lines[3], lines[4]} {
+		if !strings.Contains(l[col:], ".") {
+			t.Errorf("the file is not under FILE: %q", l)
+		}
+	}
+	if !strings.Contains(s, "kanata-dev") || !strings.Contains(s, "bob") || !strings.Contains(s, "…") {
+		t.Errorf("got:\n%s", s)
+	}
+	press(t, m, "1")
+	if strings.Contains(screen(m), "OWNER") {
+		t.Errorf("mine has an owner column:\n%s", screen(m))
+	}
+}
+
+func TestOwnerColumnGoesOnANarrowTerminal(t *testing.T) {
+	src := &source{pages: onePage(manyGists(1))}
+	a := gist("7777777", "first", time.Hour, "tmux.conf")
+	a.Owner = strings.Repeat("x", 39)
+	src.starred = []model.Gist{a}
+	m := newModel(t, options(t, src), 35, 24)
+	settle(t, m, m.Init())
+	press(t, m, "2")
+	s := screen(m)
+	if strings.Contains(s, "OWNER") {
+		t.Errorf("got:\n%s", s)
+	}
+	if !strings.Contains(s, "secret") {
+		t.Errorf("the row lost its columns:\n%s", s)
 	}
 }
 
