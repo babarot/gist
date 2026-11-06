@@ -95,3 +95,35 @@ func (w *Workspace) ReadBack(s *Session) (bool, error) {
 	}
 	return len(s.Changed()) > 0, nil
 }
+
+// Scratch is a file for an editor to write what has no gist yet.
+type Scratch struct {
+	dir, path string
+}
+
+// NewScratch writes content to a file of this name, in a directory of its own
+// that only the user can read.
+func NewScratch(name, content string) (*Scratch, error) {
+	dir, err := os.MkdirTemp("", "gist-new-*")
+	if err != nil {
+		return nil, err
+	}
+	path := filepath.Join(dir, filepath.Base(name))
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		_ = os.RemoveAll(dir)
+		return nil, err
+	}
+	return &Scratch{dir, path}, nil
+}
+
+// Path is the file.
+func (s *Scratch) Path() string { return s.path }
+
+// Read reads what the editor left and removes it.
+func (s *Scratch) Read() (string, error) {
+	b, err := os.ReadFile(s.path)
+	if err != nil {
+		return "", err
+	}
+	return string(b), os.RemoveAll(s.dir)
+}

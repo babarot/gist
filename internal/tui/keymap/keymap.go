@@ -46,6 +46,10 @@ const (
 	Reload     Action = "reload"
 	OnlyFile   Action = "only_file"
 	EditAgain  Action = "edit_again"
+	Filter     Action = "filter"
+	New        Action = "new"
+	Create     Action = "create"
+	OpenEditor Action = "open_editor"
 )
 
 // Scope is where an action's keys are read. Two actions may share a key only
@@ -60,7 +64,7 @@ const (
 )
 
 // boxActions are read over the screen, not on the list.
-var boxActions = []Action{Confirm, Overwrite, Reload, OnlyFile, EditAgain}
+var boxActions = []Action{Confirm, Overwrite, Reload, OnlyFile, EditAgain, Create, OpenEditor}
 
 // ScopeOf is where action's keys are read.
 func ScopeOf(a Action) Scope {
@@ -106,6 +110,10 @@ var Defaults = []Def{
 	{Reload, []string{"r"}, "reload"},
 	{OnlyFile, []string{"f"}, "only this file"},
 	{EditAgain, []string{"e"}, "edit again"},
+	{Filter, []string{"/"}, "filter"},
+	{New, []string{"n"}, "new"},
+	{Create, []string{"ctrl+s"}, "create"},
+	{OpenEditor, []string{"ctrl+e"}, "$EDITOR"},
 }
 
 // The fixed keys are read before any action and cannot be bound.

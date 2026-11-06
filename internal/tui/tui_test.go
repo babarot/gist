@@ -151,6 +151,10 @@ func (s *source) listed() []model.Gist {
 
 func (s *source) Delete(context.Context, string) error { return nil }
 
+func (s *source) Create(context.Context, model.NewGist) (model.Gist, error) {
+	return model.Gist{}, errors.New("not in these tests")
+}
+
 func (s *source) Comments(_ context.Context, id string) ([]model.Comment, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -577,7 +581,7 @@ func keyMsg(k string) tea.KeyPressMsg {
 func TestKeysInTheConfig(t *testing.T) {
 	o := options(t, &source{pages: onePage(manyGists(3))})
 	var err error
-	if o.Keys, err = keymap.Default().With(map[string][]string{"down": {"n"}}); err != nil {
+	if o.Keys, err = keymap.Default().With(map[string][]string{"down": {"x"}}); err != nil {
 		t.Fatal(err)
 	}
 	m := newModel(t, o, 120, 34)
@@ -586,7 +590,7 @@ func TestKeysInTheConfig(t *testing.T) {
 	if m.tab().cur != 0 {
 		t.Error("the old key still moves")
 	}
-	press(t, m, "n")
+	press(t, m, "x")
 	if m.tab().cur != 1 {
 		t.Error("the new key does not move")
 	}
@@ -673,6 +677,14 @@ func states(t *testing.T, w, h int) map[uiState]*Model {
 	press(t, input.m, "E")
 	out[uiInput] = input.m
 
+	filtering := list()
+	press(t, filtering, "/")
+	out[uiFilter] = filtering
+
+	form := list()
+	press(t, form, "n")
+	out[uiNew] = form
+
 	inputConflict := world()
 	press(t, inputConflict.m, "E")
 	typeText(t, inputConflict.m, "x")
@@ -705,6 +717,20 @@ func TestKeyHintsSayWhereTheyAre(t *testing.T) {
 		case s != uiList && got == list:
 			t.Errorf("%s: the key hints are the list's", s)
 		}
+	}
+}
+
+func TestKeyLineKeepsWhereToFindTheRest(t *testing.T) {
+	long := []hint{{"a", "one"}, {"b", "two"}, {"c", "three"}, {"?", "keys"}}
+	got := fitHints(long, 16)
+	if len(got) != 2 || got[0].key != "a" || got[1].key != "?" {
+		t.Errorf("got %v", got)
+	}
+	if got := fitHints(long, 200); len(got) != 4 {
+		t.Errorf("got %v", got)
+	}
+	if got := fitHints(long, 1); len(got) != 1 || got[0].key != "?" {
+		t.Errorf("got %v", got)
 	}
 }
 
@@ -1008,6 +1034,7 @@ func TestGolden(t *testing.T) {
 	golden(t, "box-discard", stable(cases[uiConfirmDiscard]))
 	golden(t, "box-input", stable(cases[uiInput]))
 	golden(t, "box-input-conflict", stable(cases[uiInputConflict]))
+	golden(t, "box-new", stable(cases[uiNew]))
 }
 
 func TestGoldenThemes(t *testing.T) {

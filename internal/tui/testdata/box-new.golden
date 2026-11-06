@@ -1,0 +1,30 @@
+gist // @alice     1 mine (5)    2 starred (…)                                                                   via gh 
+    DESCRIPTION                                                                        FILES  COMMENTS  VIS     UPDATED
+▎   a public gist with a comment                                                           3         3  public       <age> 
+    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確かめるための…      2            secret       <age>
+    no-description.tx╭ new gist ──────────────────────────────────────────────────────────────────╮     secret       <age>
+    emoji ❤️ and a fa│                                                                            │     secret      <age>
+    escape sequence  │  filename    ┃                                                             │     secret      <age>
+                     │  description ┃ (optional)                                                  │
+                     │                                                                            │
+                     │  visibility    ● secret   ○ public                                         │
+                     │                only people with the URL can see it                         │
+╭  main.go   README.m│                                                                            │mments (3)  ────────╮
+│    1  content of ma│  content       empty               ctrl+e opens $EDITOR                    │ <id>            │
+│                    │                                                                            │ public             │
+│                    │                                                                            │ 3 · 3.6 KB         │
+│                    │                                                                            │ 2                  │
+│                    │                                                                            │ 3                  │
+│                    │  tab next · ctrl+e $EDITOR · ctrl+s create · esc cancel                    │ <age>            │
+│                    ╰────────────────────────────────────────────────────────────────────────────╯ <age>             │
+│                                                                                      │                               │
+│                                                                                      │ file       main.go            │
+│                                                                                      │ type       go                 │
+│                                                                                      │ size       1.2 KB · 1 lines   │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+╰──────────────────────────────────────────────────────────────────────────────────── <id> · h/l file · c comments ─╯
+✓ 5 gists · saved to the cache
+tab next · ctrl+e $EDITOR · ctrl+s create · esc cancel

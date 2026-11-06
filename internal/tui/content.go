@@ -156,12 +156,14 @@ func (m *Model) readContents() tea.Cmd {
 	}
 	var cmds []tea.Cmd
 	t := m.tab()
-	last := min(t.top+m.layout().listRows, len(t.gists))
-	wanted := make([]model.Gist, 0, last-t.top+1)
+	last := min(t.top+m.layout().listRows, len(t.rows))
+	wanted := make([]model.Gist, 0, max(0, last-t.top)+1)
 	if g, ok := m.selected(); ok {
 		wanted = append(wanted, g)
 	}
-	wanted = append(wanted, t.gists[min(t.top, last):last]...)
+	for _, r := range t.rows[min(t.top, last):last] {
+		wanted = append(wanted, r.gist)
+	}
 	for _, g := range wanted {
 		if m.preview.running == maxReads {
 			break

@@ -43,7 +43,7 @@ func (m *Model) gotViewer(msg viewerMsg) tea.Cmd {
 	if msg.login != m.login {
 		for i := range m.tabs {
 			t := &m.tabs[i]
-			t.gists, t.list, t.loaded, t.cur, t.top = nil, cache.List{}, false, 0, 0
+			t.gists, t.rows, t.list, t.loaded, t.cur, t.top = nil, nil, cache.List{}, false, 0, 0
 		}
 		// What was kept of another account's gists goes with its lists. Reads
 		// under way still end, and still count until they do

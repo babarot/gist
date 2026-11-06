@@ -30,6 +30,7 @@ var layers = []layer{
 	{"internal/near", 0, nil, nil, "The closest of a few names to one mistyped, for a did-you-mean"},
 	{"internal/text", 0, nil, []string{"github.com/charmbracelet/x/ansi"}, "Making text from GitHub fit to draw, and its width"},
 	{"internal/diff", 0, nil, []string{"github.com/pmezard/go-difflib"}, "What changed between two versions of a file"},
+	{"internal/filter", 0, nil, nil, "Fuzzy matching and the key:value terms of the filter"},
 	{"internal/fakegist", 0, nil, nil, "A made-up GitHub Gist API for tests; never built into gist"},
 	{"internal/tui/statusline", 0, nil, nil, "What the status line shows: events for a moment, then work in progress"},
 	{"internal/highlight", 0, nil, []string{"github.com/alecthomas/chroma/v2"}, "A file as lines of tokens, each saying what it is"},
@@ -42,9 +43,9 @@ var layers = []layer{
 	{"internal/markdown", 1, []string{"internal/text"}, []string{"github.com/kyokomi/emoji/v2", "golang.org/x/net/html"}, "Markdown and HTML drawn as lines, each piece saying what it is"},
 	{"internal/github", 2, []string{"internal/model", "internal/logging"}, []string{"github.com/cli/go-gh/v2"}, "GitHub's REST API"},
 	{"internal/cli", 3, []string{"internal/cache", "internal/diff", "internal/edit", "internal/github", "internal/model", "internal/resolve"}, nil, "What the subcommands do"},
-	{"internal/tui", 3, []string{"internal/cache", "internal/config", "internal/diff", "internal/edit", "internal/github", "internal/highlight", "internal/markdown", "internal/model", "internal/state", "internal/text", "internal/tui/keymap", "internal/tui/statusline"},
+	{"internal/tui", 3, []string{"internal/cache", "internal/config", "internal/diff", "internal/edit", "internal/filter", "internal/github", "internal/highlight", "internal/markdown", "internal/model", "internal/state", "internal/text", "internal/tui/keymap", "internal/tui/statusline"},
 		[]string{"charm.land/bubbles/v2", "charm.land/bubbletea/v2", "charm.land/lipgloss/v2", "github.com/rivo/uniseg"}, "The terminal UI"},
-	{"internal/app", 4, []string{"internal/cli", "internal/config", "internal/edit", "internal/github", "internal/logging", "internal/state", "internal/tui", "internal/tui/keymap", "internal/version", "internal/xdg"}, []string{"github.com/cli/go-gh/v2", "github.com/spf13/cobra"}, "Putting it together: commands and flags, the log, and what each command runs with"},
+	{"internal/app", 4, []string{"internal/cli", "internal/config", "internal/edit", "internal/github", "internal/logging", "internal/model", "internal/state", "internal/tui", "internal/tui/keymap", "internal/version", "internal/xdg"}, []string{"github.com/cli/go-gh/v2", "github.com/spf13/cobra"}, "Putting it together: commands and flags, the log, and what each command runs with"},
 	{"", 5, []string{"internal/app"}, nil, "Calls app.Run"},
 }
 

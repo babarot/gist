@@ -28,6 +28,7 @@ type Source interface {
 	Get(ctx context.Context, id string) (model.Gist, error)
 	Comments(ctx context.Context, id string) ([]model.Comment, error)
 	Delete(ctx context.Context, id string) error
+	Create(ctx context.Context, n model.NewGist) (model.Gist, error)
 }
 
 // Layout keeps how the screen was left, for the next launch. The app package
@@ -59,6 +60,8 @@ type Options struct {
 	Keys keymap.Map
 	// Select is the gist to put the cursor on, when it comes.
 	Select string
+	// FormOnly shows only the form of a new gist, and ends with it.
+	FormOnly bool
 	// Browse opens a URL in the browser.
 	Browse func(url string) error
 	// Log is the log.
@@ -88,7 +91,10 @@ type tab struct {
 	got, estimate int
 	// seq tells the reading under way from one given up.
 	seq int
-	// cur and top are the row of the cursor and the row shown first.
+	// query is the filter, and rows the gists it leaves, with what matched. cur
+	// and top are the row of the cursor and the row shown first.
+	query    string
+	rows     []row
 	cur, top int
 	// marks are the gists new or changed since last seen, and fresh when each
 	// last changed, for as long as it stands out.
@@ -121,11 +127,15 @@ type Model struct {
 	input                     *inputState
 	deleting                  *deleting
 	discarding                *discarding
+	filtering                 *filterState
+	form                      *formState
 	// sending says something is on its way that the screen depends on the end of,
 	// so that no key can act until it ends.
 	sending bool
 	// quitErr is what to say once the terminal is back.
-	quitErr      error
+	quitErr error
+	// created is the gist a FormOnly run made.
+	created      *model.Gist
 	warnedDrafts bool
 	// writing are the gists being written to, and drafts those with drafts.
 	writing map[string]string
@@ -186,6 +196,10 @@ func New(o Options) *Model {
 		m.tabs[i].marks, m.tabs[i].fresh = map[string]bool{}, map[string]time.Time{}
 	}
 	m.readDrafts()
+	if o.FormOnly {
+		_ = m.startForm()
+		return m
+	}
 	if !m.noToken {
 		m.openStores(cache.Viewer(m.storePath(tabMine)))
 	}
@@ -212,20 +226,26 @@ func (m *Model) openStores(login string) {
 		}
 		if ok {
 			t.list, t.gists, t.loaded = l, l.Gists, true
+			t.rows = rowsOf(t.gists, t.query)
 		}
 	}
 	m.applySelect()
 }
 
+// Result is what a run ended with.
+type Result struct {
+	// Created is the gist the form made, with FormOnly.
+	Created *model.Gist
+}
+
 // Run runs the TUI until the user quits.
-func Run(o Options) error {
+func Run(o Options) (Result, error) {
 	m := New(o)
 	defer m.cancel()
-	_, err := tea.NewProgram(m).Run()
-	if err != nil {
-		return err
+	if _, err := tea.NewProgram(m).Run(); err != nil {
+		return Result{}, err
 	}
-	return m.quitErr
+	return Result{m.created}, m.quitErr
 }
 
 // Init asks for the terminal's background and who the token belongs to, which
@@ -235,7 +255,7 @@ func (m *Model) Init() tea.Cmd {
 	if m.opt.Config.Theme == config.ThemeAuto {
 		cmds = append(cmds, tea.RequestBackgroundColor)
 	}
-	if !m.noToken {
+	if !m.noToken && !m.opt.FormOnly {
 		cmds = append(cmds, m.readViewer(), m.spin())
 	}
 	return tea.Batch(cmds...)
@@ -278,6 +298,10 @@ func (m *Model) update(msg tea.Msg) tea.Cmd {
 	case beganMsg:
 		return m.gotBegan(msg)
 	case editedMsg:
+		if m.form != nil {
+			m.gotFormEdited(msg)
+			return nil
+		}
 		return m.gotEdited(msg)
 	case pushedMsg:
 		return m.gotPushed(msg)
@@ -289,6 +313,8 @@ func (m *Model) update(msg tea.Msg) tea.Cmd {
 		m.gotDeleted(msg)
 	case fileRemovedMsg:
 		m.gotFileRemoved(msg)
+	case createdMsg:
+		return m.gotCreated(msg)
 	case spinMsg:
 		m.spinning = false
 		m.spinFrame++
@@ -353,10 +379,10 @@ func (m *Model) timer() tea.Cmd {
 // selected is the gist under the cursor.
 func (m *Model) selected() (model.Gist, bool) {
 	t := m.tab()
-	if t.cur < 0 || t.cur >= len(t.gists) {
+	if t.cur < 0 || t.cur >= len(t.rows) {
 		return model.Gist{}, false
 	}
-	return t.gists[t.cur], true
+	return t.rows[t.cur].gist, true
 }
 
 // selectedFile is the index of the file shown of g.
@@ -370,7 +396,7 @@ func (m *Model) applySelect() {
 		return
 	}
 	t := &m.tabs[tabMine]
-	i := slices.IndexFunc(t.gists, func(g model.Gist) bool { return g.ID == m.selectID })
+	i := slices.IndexFunc(t.rows, func(r row) bool { return r.gist.ID == m.selectID })
 	if i < 0 {
 		return
 	}
@@ -382,11 +408,11 @@ func (m *Model) applySelect() {
 // moveTo puts the cursor on row i of the tab, and marks that gist as seen.
 func (m *Model) moveTo(i int) {
 	t := m.tab()
-	if len(t.gists) == 0 {
+	if len(t.rows) == 0 {
 		return
 	}
-	t.cur = min(max(0, i), len(t.gists)-1)
-	delete(t.marks, t.gists[t.cur].ID)
+	t.cur = min(max(0, i), len(t.rows)-1)
+	delete(t.marks, t.rows[t.cur].gist.ID)
 	m.keepCursorShown()
 }
 
@@ -395,14 +421,14 @@ func (m *Model) keepCursorShown() {
 	rows := m.layout().listRows
 	for i := range m.tabs {
 		t := &m.tabs[i]
-		t.cur = max(0, min(t.cur, len(t.gists)-1))
+		t.cur = max(0, min(t.cur, len(t.rows)-1))
 		if t.cur < t.top {
 			t.top = t.cur
 		}
 		if rows > 0 && t.cur >= t.top+rows {
 			t.top = t.cur - rows + 1
 		}
-		t.top = max(0, min(t.top, max(0, len(t.gists)-rows)))
+		t.top = max(0, min(t.top, max(0, len(t.rows)-rows)))
 	}
 }
 
@@ -410,16 +436,22 @@ func (m *Model) keepCursorShown() {
 // gist, at the height it had on the screen. A row put in above it moves the
 // list instead of the cursor, so the next key acts on the gist it was going to.
 func (m *Model) replace(t *tab, gists []model.Gist) {
+	t.gists = gists
+	m.refilter(t)
+	m.applySelect()
+}
+
+// refilter works out the rows of the tab, keeping the cursor as replace says.
+func (m *Model) refilter(t *tab) {
 	var id string
-	if t.cur >= 0 && t.cur < len(t.gists) {
-		id = t.gists[t.cur].ID
+	if t.cur >= 0 && t.cur < len(t.rows) {
+		id = t.rows[t.cur].gist.ID
 	}
 	height := t.cur - t.top
-	t.gists = gists
-	if i := slices.IndexFunc(gists, func(g model.Gist) bool { return g.ID == id }); i >= 0 {
+	t.rows = rowsOf(t.gists, t.query)
+	if i := slices.IndexFunc(t.rows, func(r row) bool { return r.gist.ID == id }); i >= 0 {
 		t.cur = i
 		t.top = i - height
 	}
 	m.keepCursorShown()
-	m.applySelect()
 }
