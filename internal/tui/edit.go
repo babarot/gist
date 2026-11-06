@@ -178,7 +178,11 @@ func (m *Model) gotEdited(msg editedMsg) tea.Cmd {
 		return nil
 	}
 	if !changed {
-		m.line.Say(m.now(), "no changes · nothing pushed")
+		if msg.err != nil {
+			m.line.Fail(m.now(), "the editor failed: "+msg.err.Error())
+		} else {
+			m.line.Say(m.now(), "no changes · nothing pushed")
+		}
 		m.endEdit()
 		return nil
 	}

@@ -142,15 +142,19 @@ func (c *CLI) editInEditor(ctx context.Context, arg, file string, o EditOptions)
 			return err
 		}
 		args := edit.Command(c.EditorCommand, work.Paths()...)
-		if err := c.Run(args[0], args[1:]...); err != nil {
+		runErr := c.Run(args[0], args[1:]...)
+		if runErr != nil {
 			// What it left is read all the same: it may be all there is
-			c.Log.Warn("the editor ended badly", "err", err.Error())
+			c.Log.Warn("the editor ended badly", "err", runErr.Error())
 		}
 		changed, err := work.ReadBack(s)
 		if err != nil {
 			return err
 		}
 		if !changed {
+			if runErr != nil {
+				return fmt.Errorf("the editor failed: %w", runErr)
+			}
 			fmt.Fprintln(c.Stderr, "no changes · nothing sent")
 			return nil
 		}

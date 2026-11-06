@@ -248,6 +248,16 @@ func TestEditAnEditorThatFailsKeepsTheEdit(t *testing.T) {
 	}
 }
 
+func TestEditAnEditorThatDidNotRunSaysSo(t *testing.T) {
+	c, s, _, _ := terminal(t, "")
+	g := s.Add("", false, map[string]string{"a.txt": "a"})
+	c.Run = func(string, ...string) error { return errors.New("no such editor") }
+	err := c.Edit(ctx, g.ID, "", EditOptions{})
+	if err == nil || !strings.Contains(err.Error(), "the editor failed") {
+		t.Errorf("got %v", err)
+	}
+}
+
 func TestEditContinuesFromADraft(t *testing.T) {
 	c, s, _, _ := terminal(t, "n\n\ny\n")
 	g := s.Add("", false, map[string]string{"a.txt": "a"})

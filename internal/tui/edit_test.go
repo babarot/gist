@@ -221,6 +221,16 @@ func TestAnEditorThatFailsLosesNothing(t *testing.T) {
 	}
 }
 
+func TestAnEditorThatDidNotRunSaysSo(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	w.editorErr = errors.New("no such editor")
+	enter(t, w.m)
+	w.wants("the editor failed: no such editor")
+	if s := w.screen(); strings.Contains(s, "no changes") {
+		t.Errorf("got:\n%s", s)
+	}
+}
+
 func TestAFailedPushKeepsTheDraft(t *testing.T) {
 	w, g := one(t, map[string]string{"a.txt": "a\n"})
 	w.type_("edited\n")
