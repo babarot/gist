@@ -25,7 +25,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"testing"
 	"time"
 )
 
@@ -81,7 +80,7 @@ type Server struct {
 	// Releases are gist's own, as GitHub gives them.
 	Releases []Release
 
-	t        testing.TB
+	t        T
 	srv      *httptest.Server
 	mu       sync.Mutex
 	gists    []*Gist // newest created first, the order GitHub lists them in
@@ -107,8 +106,16 @@ type hook struct {
 	f      func()
 }
 
+// T is what the server needs of a test. The demo gives it too, and it is why a
+// failed call is not fatal here: it reports on whoever runs the server.
+type T interface {
+	Helper()
+	Errorf(format string, args ...any)
+	Cleanup(f func())
+}
+
 // New starts a server for the length of the test.
-func New(t testing.TB) *Server {
+func New(t T) *Server {
 	t.Helper()
 	s := &Server{
 		Login: "alice",
@@ -136,6 +143,13 @@ func (r rewrite) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set("X-Fake-Host", req.URL.Host)
 	req.URL.Scheme, req.URL.Host = to.Scheme, to.Host
 	return http.DefaultTransport.RoundTrip(req)
+}
+
+// SetClock sets the server's clock, for gists that are not all just made.
+func (s *Server) SetClock(now time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.now = now
 }
 
 // Add makes a gist with files and returns it, newest in the list.

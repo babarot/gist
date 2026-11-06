@@ -1,3 +1,6 @@
 /gist
 /dist/
 coverage.out
+/demo/recording/tapes/.gist-demo
+/demo/recording/tapes/*.mp4
+/demo/recording/tapes/*.gif
