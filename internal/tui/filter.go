@@ -1,8 +1,11 @@
 package tui
 
 import (
+	"cmp"
+	"fmt"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -45,6 +48,11 @@ func rowsOf(gists []model.Gist, query string) []row {
 // filterState is the filter being typed.
 type filterState struct {
 	box textinput.Model
+	// base is the filter as typed before tab filled in the first value, and at
+	// the value it is on now, while tab goes round them.
+	cycling bool
+	base    string
+	at      int
 }
 
 func (m *Model) openFilter() tea.Cmd {
@@ -54,7 +62,7 @@ func (m *Model) openFilter() tea.Cmd {
 	box.SetWidth(max(10, m.width-4))
 	box.SetValue(m.tab().query)
 	box.CursorEnd()
-	m.filtering = &filterState{box}
+	m.filtering = &filterState{box: box}
 	return m.filtering.box.Focus()
 }
 
@@ -83,6 +91,138 @@ func (m *Model) drawFilter(c *canvas) {
 		}
 		x = c.put(filterRow, x, word, style{fg: p.yellow})
 	}
+	c.put(filterRow, x, m.filterGhost(), style{fg: p.overlay})
+}
+
+// atEnd says the cursor is after the whole filter: what is completed is what it
+// ends with, so nothing is offered from the middle of it.
+func (f *filterState) atEnd() bool {
+	return f.box.Position() == utf8.RuneCountInString(f.box.Value())
+}
+
+// valueCandidates are the values the last word of query may be completed to,
+// from the gists the rest of the query leaves, so that a value never leaves no
+// rows. head is query up to the value; what most gists have comes first.
+func (m *Model) valueCandidates(query string) (head string, cands []string) {
+	word := filter.LastWord(query)
+	key, value, ok := filter.ValueTerm(word)
+	if !ok {
+		return "", nil
+	}
+	low := strings.ToLower(value)
+	seen := map[string]int{}
+	for _, r := range rowsOf(m.tab().gists, query[:len(query)-len(word)]) {
+		for _, v := range valuesOf(key, r.gist) {
+			if l := strings.ToLower(v); l != low && strings.HasPrefix(l, low) {
+				seen[v]++
+			}
+		}
+	}
+	for v := range seen {
+		cands = append(cands, v)
+	}
+	slices.SortFunc(cands, func(a, b string) int {
+		return cmp.Or(seen[b]-seen[a], cmp.Compare(strings.ToLower(a), strings.ToLower(b)))
+	})
+	return query[:len(query)-len(value)], cands
+}
+
+// valuesOf are what key can be completed to from g. A term ends at a space, and
+// its value is looked for inside the name, so a name with spaces gives its first
+// word: Vim Script is found by lang:vim.
+func valuesOf(key string, g model.Gist) []string {
+	if key == filter.VisKey {
+		if g.Public {
+			return []string{"public"}
+		}
+		return []string{"secret"}
+	}
+	var out []string
+	for _, f := range g.Files {
+		name := f.Language
+		if key == filter.FileKey {
+			name = text.Line(f.Name)
+		}
+		if w := strings.Fields(name); len(w) > 0 {
+			out = append(out, w[0])
+		}
+	}
+	return out
+}
+
+// cycled are the values tab is going round, while it still is: the filter is
+// still what tab left, and that value is still among them.
+func (m *Model) cycled() (head string, cands []string, ok bool) {
+	f := m.filtering
+	if !f.cycling {
+		return "", nil, false
+	}
+	head, cands = m.valueCandidates(f.base)
+	if f.at >= len(cands) || f.box.Value() != head+cands[f.at] {
+		return "", nil, false
+	}
+	return head, cands, true
+}
+
+// completeFilter fills in what the ghost offers: the rest of a key, a value,
+// and on the next tab the next value.
+func (m *Model) completeFilter() {
+	f := m.filtering
+	if !f.atEnd() {
+		return
+	}
+	set := func(s string) {
+		f.box.SetValue(s)
+		f.box.CursorEnd()
+		m.setFilter(s)
+	}
+	value := f.box.Value()
+	if rest := filter.KeyRest(value); rest != "" {
+		set(value + rest)
+		return
+	}
+	if head, cands, ok := m.cycled(); ok {
+		f.at = (f.at + 1) % len(cands)
+		set(head + cands[f.at])
+		return
+	}
+	f.cycling = false
+	if head, cands := m.valueCandidates(value); len(cands) > 0 {
+		f.cycling, f.base, f.at = true, value, 0
+		set(head + cands[0])
+	}
+}
+
+// filterGhost is what shows faint after the cursor: the keys while the filter is
+// empty, then what tab would fill in, and which of the values it is on.
+func (m *Model) filterGhost() string {
+	f := m.filtering
+	if f == nil || !f.atEnd() {
+		return ""
+	}
+	value := f.box.Value()
+	if value == "" {
+		return strings.Join(filter.Keys, " ")
+	}
+	if rest := filter.KeyRest(value); rest != "" {
+		return rest
+	}
+	count := func(i, n int) string {
+		if n < 2 {
+			return ""
+		}
+		return fmt.Sprintf(" (%d/%d)", i+1, n)
+	}
+	if _, cands, ok := m.cycled(); ok {
+		return count(f.at, len(cands))
+	}
+	_, cands := m.valueCandidates(value)
+	if len(cands) == 0 {
+		return ""
+	}
+	_, typed, _ := filter.ValueTerm(filter.LastWord(value))
+	first := []rune(cands[0])
+	return string(first[min(utf8.RuneCountInString(typed), len(first)):]) + count(0, len(cands))
 }
 
 // setFilter narrows the tab to query.
@@ -101,6 +241,9 @@ func (m *Model) filterKey(msg tea.KeyPressMsg) tea.Cmd {
 		return nil
 	case "enter":
 		m.filtering = nil
+		return nil
+	case "tab":
+		m.completeFilter()
 		return nil
 	case "up":
 		m.moveTo(t.cur - 1)

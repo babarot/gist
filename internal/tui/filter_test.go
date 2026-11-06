@@ -3,6 +3,7 @@ package tui
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/babarot/gist/v2/internal/config"
 	"github.com/babarot/gist/v2/internal/fakegist"
 	"github.com/babarot/gist/v2/internal/model"
+	"github.com/babarot/gist/v2/internal/text"
 )
 
 func filterGists() []model.Gist {
@@ -565,6 +567,138 @@ func TestFormFitsTheTerminal(t *testing.T) {
 		settle(t, w.m, cmd)
 		if got := len(strings.Split(screen(w.m), "\n")); got != size[1] {
 			t.Errorf("%v: %d lines", size, got)
+		}
+	}
+}
+
+func langGists() []model.Gist {
+	a := gist("1111111", "one", time.Minute, "main.go", "util.go")
+	a.Files[0].Language, a.Files[1].Language = "Go", "Go"
+	a.Public = true
+	b := gist("2222222", "two", time.Hour, "my notes.md")
+	b.Files[0].Language = "Markdown"
+	c := gist("3333333", "three", 2*time.Hour, "init.vim")
+	c.Files[0].Language = "Vim Script"
+	return []model.Gist{a, b, c}
+}
+
+func pressTab(t *testing.T, m *Model) {
+	t.Helper()
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+	settle(t, m, cmd)
+}
+
+func TestTabCompletesAKey(t *testing.T) {
+	m := loaded(t, langGists(), 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "la")
+	if !strings.Contains(screen(m), "/ lang:") {
+		t.Errorf("not offered:\n%s", screen(m))
+	}
+	pressTab(t, m)
+	if got := m.tab().query; got != "lang:" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestTabCompletesValuesAndGoesRound(t *testing.T) {
+	m := loaded(t, langGists(), 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "lang:")
+	var got []string
+	for range 4 {
+		pressTab(t, m)
+		got = append(got, m.tab().query)
+	}
+	// What most files have first; a name with a space by its first word
+	want := []string{"lang:Go", "lang:Markdown", "lang:Vim", "lang:Go"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v", got)
+	}
+	if !strings.Contains(screen(m), "(1/3)") {
+		t.Errorf("no count:\n%s", screen(m))
+	}
+	if len(m.tab().rows) != 1 {
+		t.Errorf("%d rows", len(m.tab().rows))
+	}
+}
+
+func TestAValueNeverLeavesNoRows(t *testing.T) {
+	m := loaded(t, langGists(), 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "file:init lang:")
+	pressTab(t, m)
+	if got := m.tab().query; got != "file:init lang:Vim" {
+		t.Errorf("got %q", got)
+	}
+	pressTab(t, m) // the only one
+	if got := m.tab().query; got != "file:init lang:Vim" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestVisAndFileValues(t *testing.T) {
+	m := loaded(t, langGists(), 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "vis:p")
+	pressTab(t, m)
+	if got := m.tab().query; got != "vis:public" {
+		t.Errorf("got %q", got)
+	}
+	press(t, m, "esc")
+	press(t, m, "/")
+	typeText(t, m, "file:my")
+	pressTab(t, m)
+	if got := m.tab().query; got != "file:my" || len(m.tab().rows) != 1 {
+		t.Errorf("got %q, %d rows", got, len(m.tab().rows))
+	}
+}
+
+func TestADescriptionHasNoValues(t *testing.T) {
+	m := loaded(t, langGists(), 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "desc:")
+	pressTab(t, m)
+	if got := m.tab().query; got != "desc:" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestTabInTheMiddleDoesNothing(t *testing.T) {
+	m := loaded(t, langGists(), 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "lang:")
+	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyLeft})
+	settle(t, m, cmd)
+	pressTab(t, m)
+	if got := m.tab().query; got != "lang:" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestTheKeysShowOnAnEmptyFilter(t *testing.T) {
+	m := loaded(t, langGists(), 120, 34)
+	press(t, m, "/")
+	if !strings.Contains(screen(m), "/ file: desc: vis: lang:") {
+		t.Errorf("got:\n%s", screen(m))
+	}
+	if m.tab().query != "" {
+		t.Error("the ghost is not the filter")
+	}
+	press(t, m, "esc")
+	if strings.Contains(screen(m), "file: desc:") {
+		t.Error("left behind")
+	}
+}
+
+func TestTheGhostFitsANarrowTerminal(t *testing.T) {
+	for w := range 40 {
+		m := loaded(t, langGists(), w+20, 20)
+		press(t, m, "/")
+		for line := range strings.SplitSeq(screen(m), "\n") {
+			if text.Width(line) > w+20 {
+				t.Errorf("width %d: %q", w+20, line)
+			}
 		}
 	}
 }

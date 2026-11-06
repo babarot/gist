@@ -94,3 +94,42 @@ func TestAWordOnlyInALaterFileHasNoHitToShow(t *testing.T) {
 		t.Errorf("got %+v, %v", h, ok)
 	}
 }
+
+func TestKeyRest(t *testing.T) {
+	for query, want := range map[string]string{
+		"":           "",
+		"f":          "", // too little to tell from a word
+		"fi":         "le:",
+		"FIL":        "e:",
+		"file":       ":",
+		"file:":      "",
+		"go de":      "sc:",
+		"la ":        "",
+		"日本語":        "",
+		"go\u3000la": "ng:",
+		"xy":         "",
+	} {
+		if got := KeyRest(query); got != want {
+			t.Errorf("%q: got %q, want %q", query, got, want)
+		}
+	}
+}
+
+func TestValueTerm(t *testing.T) {
+	for _, tt := range []struct {
+		word, key, value string
+		ok               bool
+	}{
+		{"lang:go", LangKey, "go", true},
+		{"VIS:", VisKey, "", true},
+		{"file:a:b", FileKey, "a:b", true},
+		{"desc:x", "", "", false},
+		{"http://a", "", "", false},
+		{"plain", "", "", false},
+	} {
+		key, value, ok := ValueTerm(tt.word)
+		if key != tt.key || value != tt.value || ok != tt.ok {
+			t.Errorf("%q: got %q %q %v", tt.word, key, value, ok)
+		}
+	}
+}

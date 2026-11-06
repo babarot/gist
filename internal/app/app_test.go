@@ -182,3 +182,67 @@ func TestAuthWithoutAToken(t *testing.T) {
 		t.Errorf("stderr is %q", stderr)
 	}
 }
+
+func TestLogPrintsWhereTheLogIs(t *testing.T) {
+	state := setHome(t)
+	stdout, stderr, code := gist(t, "log")
+	if code != 0 || stderr != "" {
+		t.Fatalf("exit %d, stderr %q", code, stderr)
+	}
+	if got := strings.TrimSpace(stdout); !strings.HasPrefix(got, state) || !strings.HasSuffix(got, ".log") {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestConfigCheck(t *testing.T) {
+	setHome(t)
+	dir := t.TempDir()
+	write := func(content string) string {
+		path := filepath.Join(dir, "config.toml")
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	if got, _, code := gist(t, "config", "check", filepath.Join(dir, "none.toml")); code != 0 || !strings.Contains(got, "the defaults are used") {
+		t.Errorf("missing: %d, %q", code, got)
+	}
+	if got, _, code := gist(t, "config", "check", write("theme = \"latte\"\n")); code != 0 || !strings.Contains(got, "no mistakes") {
+		t.Errorf("fine: %d, %q", code, got)
+	}
+	got, _, code := gist(t, "config", "check", write("theme = \"lattee\"\n[keys]\nqiut = [\"q\"]\nhelp = [\"esc\"]\n"))
+	if code != 1 {
+		t.Errorf("exit %d", code)
+	}
+	for _, want := range []string{
+		`config.toml:1:9: theme must be one of`,
+		`config.toml:3:1: keys: no action is named "qiut"; did you mean "quit"?`,
+		`config.toml:4:9: keys: esc is fixed`,
+		"3 | qiut = [\"q\"]\n  | ^~~~",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("no %q in\n%s", want, got)
+		}
+	}
+	// It reads the file it is given, and writes none
+	if _, err := os.Stat(filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "gist", "config.toml")); err == nil {
+		t.Error("the check wrote a config file")
+	}
+}
+
+func TestABadConfigStopsACommandAndSaysWhere(t *testing.T) {
+	setHome(t)
+	t.Setenv("GH_TOKEN", "x")
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("[keys]\nnope = [\"x\"]\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(t.TempDir(), "a.txt")
+	if err := os.WriteFile(file, []byte("a"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, stderr, code := gist(t, "--config", path, "new", file)
+	if code != 1 || !strings.Contains(stderr, "config.toml:2:1:") {
+		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+}

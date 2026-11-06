@@ -8,6 +8,7 @@ package keymap
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -19,39 +20,41 @@ type Action string
 
 // The actions.
 const (
-	Quit       Action = "quit"
-	Help       Action = "help"
-	Refresh    Action = "refresh"
-	Up         Action = "up"
-	Down       Action = "down"
-	Top        Action = "top"
-	Bottom     Action = "bottom"
-	PageUp     Action = "page_up"
-	PageDown   Action = "page_down"
-	PrevFile   Action = "prev_file"
-	NextFile   Action = "next_file"
-	Mine       Action = "tab_mine"
-	Starred    Action = "tab_starred"
-	Browse     Action = "browse"
-	CopyURL    Action = "copy_url"
-	ScrollDown Action = "scroll_down"
-	ScrollUp   Action = "scroll_up"
-	ToggleSide Action = "toggle_comments"
-	ToggleMD   Action = "toggle_markdown"
-	Edit       Action = "edit"
-	Delete     Action = "delete"
-	Describe   Action = "edit_description"
-	Rename     Action = "rename"
-	Discard    Action = "discard_draft"
-	Confirm    Action = "confirm"
-	Overwrite  Action = "overwrite"
-	Reload     Action = "reload"
-	OnlyFile   Action = "only_file"
-	EditAgain  Action = "edit_again"
-	Filter     Action = "filter"
-	New        Action = "new"
-	Create     Action = "create"
-	OpenEditor Action = "open_editor"
+	Quit          Action = "quit"
+	Help          Action = "help"
+	Refresh       Action = "refresh"
+	Up            Action = "up"
+	Down          Action = "down"
+	Top           Action = "top"
+	Bottom        Action = "bottom"
+	PageUp        Action = "page_up"
+	PageDown      Action = "page_down"
+	PrevFile      Action = "prev_file"
+	NextFile      Action = "next_file"
+	Mine          Action = "tab_mine"
+	Starred       Action = "tab_starred"
+	Browse        Action = "browse"
+	CopyURL       Action = "copy_url"
+	ScrollDown    Action = "scroll_down"
+	ScrollUp      Action = "scroll_up"
+	ToggleSide    Action = "toggle_comments"
+	ToggleMD      Action = "toggle_markdown"
+	PreviewGrow   Action = "preview_grow"
+	PreviewShrink Action = "preview_shrink"
+	Edit          Action = "edit"
+	Delete        Action = "delete"
+	Describe      Action = "edit_description"
+	Rename        Action = "rename"
+	Discard       Action = "discard_draft"
+	Confirm       Action = "confirm"
+	Overwrite     Action = "overwrite"
+	Reload        Action = "reload"
+	OnlyFile      Action = "only_file"
+	EditAgain     Action = "edit_again"
+	Filter        Action = "filter"
+	New           Action = "new"
+	Create        Action = "create"
+	OpenEditor    Action = "open_editor"
 )
 
 // Scope is where an action's keys are read. Two actions may share a key only
@@ -108,6 +111,8 @@ var Defaults = []Def{
 	{ScrollUp, []string{"K"}, "scroll up"},
 	{ToggleSide, []string{"c"}, "comments"},
 	{ToggleMD, []string{"m"}, "markdown"},
+	{PreviewGrow, []string{"+"}, "taller preview"},
+	{PreviewShrink, []string{"-"}, "shorter preview"},
 	{Edit, []string{"enter", "e"}, "edit"},
 	{Delete, []string{"D"}, "delete"},
 	{Describe, []string{"E"}, "desc"},
@@ -148,8 +153,29 @@ func Default() Map {
 	return m
 }
 
+// Problem is a mistake in [keys]: the action it is at, which of its keys or -1
+// for the whole setting, and whether it is the name that is wrong.
+type Problem struct {
+	Action  string
+	Index   int
+	AtKey   bool
+	Message string
+}
+
+// Problems are every mistake in [keys].
+type Problems []Problem
+
+func (ps Problems) Error() string {
+	msgs := make([]string, len(ps))
+	for i, p := range ps {
+		msgs[i] = p.Message
+	}
+	return strings.Join(msgs, "\n")
+}
+
 // With is m with the keys of the config file, each action's replacing its
-// defaults. A name that is no action, and a key two actions want, are mistakes.
+// defaults. A name that is no action, and a key two actions want, are mistakes:
+// the error is Problems, with all of them.
 func (m Map) With(over map[string][]string) (Map, error) {
 	out := Map{keys: map[Action][]string{}, help: m.help}
 	for a, k := range m.keys {
@@ -160,17 +186,20 @@ func (m Map) With(over map[string][]string) (Map, error) {
 		names = append(names, string(a))
 	}
 	slices.Sort(names)
-	for name, keys := range over {
+	var ps Problems
+	for _, name := range slices.Sorted(maps.Keys(over)) {
+		keys := over[name]
 		if !slices.Contains(names, name) {
 			msg := fmt.Sprintf("keys: no action is named %q", name)
 			if n, ok := near.Closest(name, names); ok {
 				msg += fmt.Sprintf("; did you mean %q?", n)
 			}
-			return m, fmt.Errorf("%s", msg)
+			ps = append(ps, Problem{Action: name, Index: -1, AtKey: true, Message: msg})
+			continue
 		}
-		for _, k := range keys {
+		for i, k := range keys {
 			if k == Interrupt || k == Back {
-				return m, fmt.Errorf("keys: %s is fixed and cannot be bound to %s", k, name)
+				ps = append(ps, Problem{Action: name, Index: i, Message: fmt.Sprintf("keys: %s is fixed and cannot be bound to %s", k, name)})
 			}
 		}
 		out.keys[Action(name)] = slices.Clone(keys)
@@ -182,15 +211,30 @@ func (m Map) With(over map[string][]string) (Map, error) {
 			scopes = append(scopes, ScopeBox)
 		}
 		for _, k := range out.keys[Action(name)] {
+			clash := false
 			for _, sc := range scopes {
-				if other, ok := bound[sc][k]; ok {
-					return m, fmt.Errorf("keys: %s is bound to both %s and %s", k, other, name)
+				if other, ok := bound[sc][k]; ok && !clash {
+					clash = true
+					ps = append(ps, conflict(over, k, string(other), name))
 				}
 				bound[sc][k] = Action(name)
 			}
 		}
 	}
+	if len(ps) > 0 {
+		return m, ps
+	}
 	return out, nil
+}
+
+// conflict is k wanted by two actions, placed at the one the file sets: the
+// other may be at its default, which is nowhere in the file.
+func conflict(over map[string][]string, k, first, second string) Problem {
+	at := second
+	if _, set := over[second]; !set {
+		at = first
+	}
+	return Problem{Action: at, Index: slices.Index(over[at], k), Message: fmt.Sprintf("keys: %s is bound to both %s and %s", k, first, second)}
 }
 
 // Matches says key is one of action's keys.

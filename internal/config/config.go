@@ -68,7 +68,16 @@ func Default() File {
 	}
 }
 
-// Load reads the file at path. A missing file is the defaults.
+// settings are the settings of each table, for naming a close one.
+var settings = map[string][]string{
+	"":        {"editor", "theme", "new", "list", "preview", "keys"},
+	"new":     {"visibility"},
+	"list":    {"lead"},
+	"preview": {"markdown"},
+}
+
+// Load reads the file at path. A missing file is the defaults. What is wrong in
+// the file comes as Problems, all of it, for Report to show.
 func Load(path string) (File, error) {
 	cfg := Default()
 	src, err := os.ReadFile(path)
@@ -78,28 +87,56 @@ func Load(path string) (File, error) {
 	if err != nil {
 		return cfg, err
 	}
+	var ps Problems
 	dec := toml.NewDecoder(bytes.NewReader(src)).DisallowUnknownFields()
 	if err := dec.Decode(&cfg); err != nil {
-		// The strict error alone does not say which key it is about
-		if strict, ok := errors.AsType[*toml.StrictMissingError](err); ok {
-			return cfg, fmt.Errorf("%s: unknown setting\n%s", path, strict.String())
+		ps = decodeProblems(err)
+		// The values are only all there when what was wrong was a name
+		if _, strict := errors.AsType[*toml.StrictMissingError](err); !strict {
+			return cfg, ps
 		}
-		return cfg, fmt.Errorf("%s: %w", path, err)
 	}
 	for _, c := range []struct {
-		key, got string
-		allowed  []string
+		key     []string
+		got     string
+		allowed []string
 	}{
-		{"theme", cfg.Theme, []string{ThemeAuto, ThemeDefault, ThemeLatte}},
-		{"new.visibility", cfg.New.Visibility, []string{VisibilitySecret, VisibilityPublic}},
-		{"list.lead", cfg.List.Lead, []string{LeadDescription, LeadFile}},
-		{"preview.markdown", cfg.Preview.Markdown, []string{MarkdownRendered, MarkdownPlain}},
+		{[]string{"theme"}, cfg.Theme, []string{ThemeAuto, ThemeDefault, ThemeLatte}},
+		{[]string{"new", "visibility"}, cfg.New.Visibility, []string{VisibilitySecret, VisibilityPublic}},
+		{[]string{"list", "lead"}, cfg.List.Lead, []string{LeadDescription, LeadFile}},
+		{[]string{"preview", "markdown"}, cfg.Preview.Markdown, []string{MarkdownRendered, MarkdownPlain}},
 	} {
 		if !slices.Contains(c.allowed, c.got) {
-			return cfg, fmt.Errorf("%s: %s", path, notOneOf(c.key, c.got, c.allowed))
+			ps = append(ps, Problem{Key: c.key, Index: -1, Message: notOneOf(strings.Join(c.key, "."), c.got, c.allowed)})
 		}
 	}
+	if len(ps) > 0 {
+		return cfg, ps
+	}
 	return cfg, nil
+}
+
+// decodeProblems are what the decoder found: a name that is no setting, each
+// with a close one, or the one place it stopped at.
+func decodeProblems(err error) Problems {
+	if strict, ok := errors.AsType[*toml.StrictMissingError](err); ok {
+		var ps Problems
+		for _, e := range strict.Errors {
+			key := e.Key()
+			msg := fmt.Sprintf("%s is not a setting", strings.Join(key, "."))
+			name := key[len(key)-1]
+			if n, ok := near.Closest(name, settings[strings.Join(key[:len(key)-1], ".")]); ok {
+				msg += fmt.Sprintf("; did you mean %q?", n)
+			}
+			ps = append(ps, Problem{Key: key, Index: -1, AtKey: true, Message: msg})
+		}
+		return ps
+	}
+	if d, ok := errors.AsType[*toml.DecodeError](err); ok {
+		line, col := d.Position()
+		return Problems{{Index: -1, Line: line, Col: col, Message: d.Error()}}
+	}
+	return Problems{{Index: -1, Message: err.Error()}}
 }
 
 func notOneOf(key, got string, allowed []string) string {

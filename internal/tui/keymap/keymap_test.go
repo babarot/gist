@@ -1,6 +1,7 @@
 package keymap
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -84,5 +85,35 @@ func TestHint(t *testing.T) {
 	}
 	if got := u.Hint(Browse); got != "" {
 		t.Errorf("got %q", got)
+	}
+}
+
+func TestEveryMistakeIsGiven(t *testing.T) {
+	_, err := Default().With(map[string][]string{
+		"qiut":   {"q"},
+		"help":   {"esc"},
+		"browse": {"x", "J"}, // the key of scroll_down, which the file does not set
+	})
+	var ps Problems
+	if !errors.As(err, &ps) || len(ps) != 3 {
+		t.Fatalf("got %v", err)
+	}
+	for _, p := range ps {
+		switch p.Action {
+		case "qiut":
+			if !p.AtKey || !strings.Contains(p.Message, `did you mean "quit"`) {
+				t.Errorf("got %+v", p)
+			}
+		case "help":
+			if p.Index != 0 {
+				t.Errorf("got %+v", p)
+			}
+		case "browse":
+			if p.Index != 1 {
+				t.Errorf("got %+v", p)
+			}
+		default:
+			t.Errorf("placed where the file does not set it: %+v", p)
+		}
 	}
 }

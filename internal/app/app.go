@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -134,6 +135,8 @@ func newRootCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobr
 
 	root.AddCommand(
 		newVersionCommand(stdout),
+		newLogCommand(stdout),
+		newConfigCommand(o, stdout),
 		newAuthCommand(o, stdout, stderr),
 		newListCommand(o, stdin, stdout, stderr),
 		newViewCommand(o, stdin, stdout, stderr),
@@ -156,6 +159,39 @@ func newVersionCommand(stdout io.Writer) *cobra.Command {
 			return err
 		},
 	}
+}
+
+func newLogCommand(stdout io.Writer) *cobra.Command {
+	return &cobra.Command{
+		Use:   "log",
+		Short: "print where the log file is",
+		Args:  cobra.NoArgs,
+		RunE: func(*cobra.Command, []string) error {
+			_, err := fmt.Fprintln(stdout, logging.DefaultPath())
+			return err
+		},
+	}
+}
+
+func newConfigCommand(o *options, stdout io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "config",
+		Short: "look at the config file",
+		Args:  cobra.NoArgs,
+	}
+	cmd.AddCommand(&cobra.Command{
+		Use:   "check [path]",
+		Short: "read the config file and print its mistakes, without starting; exits 1 when it has some",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			path := o.config
+			if len(args) == 1 {
+				path = args[0]
+			}
+			return exited(checkConfig(path, stdout))
+		},
+	})
+	return cmd
 }
 
 func newAuthCommand(o *options, stdout, stderr io.Writer) *cobra.Command {
@@ -221,7 +257,45 @@ func (o *options) readConfig() (config.File, error) {
 	if err := config.WriteTemplate(o.config); err != nil {
 		o.log.Warn("the config file cannot be written", "err", err.Error())
 	}
-	return config.Load(o.config)
+	return loadConfig(o.config)
+}
+
+// loadConfig reads the file at path, its keys too, and shows all that is wrong
+// in it, where it is.
+func loadConfig(path string) (config.File, error) {
+	cfg, err := config.Load(path)
+	var ps config.Problems
+	if err != nil && !errors.As(err, &ps) {
+		return cfg, err
+	}
+	if _, err := keymap.Default().With(cfg.Keys); err != nil {
+		var keys keymap.Problems
+		if !errors.As(err, &keys) {
+			return cfg, err
+		}
+		for _, p := range keys {
+			ps = append(ps, config.Problem{Key: []string{"keys", p.Action}, Index: p.Index, AtKey: p.AtKey, Message: p.Message})
+		}
+	}
+	if len(ps) > 0 {
+		return cfg, errors.New(config.Report(path, ps))
+	}
+	return cfg, nil
+}
+
+// checkConfig prints what is wrong in the file at path, and gives the exit code.
+func checkConfig(path string, stdout io.Writer) int {
+	shown := config.TildePath(path)
+	if _, err := os.Stat(path); errors.Is(err, fs.ErrNotExist) {
+		fmt.Fprintf(stdout, "%s is not there; the defaults are used\n", shown)
+		return 0
+	}
+	if _, err := loadConfig(path); err != nil {
+		fmt.Fprintln(stdout, err)
+		return 1
+	}
+	fmt.Fprintf(stdout, "%s: no mistakes\n", shown)
+	return 0
 }
 
 // runTUI runs the TUI, on the gist arg names when it names one.
