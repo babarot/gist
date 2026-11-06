@@ -4,7 +4,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/babarot/gist/v2/internal/text"
 )
@@ -104,17 +103,20 @@ func TestTableNarrowsItsWidestColumn(t *testing.T) {
 	}
 }
 
+// TestATableOfManyColumnsDoesNotTakeLong measures work rather than time: a slow
+// machine under the race detector must not fail it, and a cost that grows with
+// the table must.
 func TestATableOfManyColumnsDoesNotTakeLong(t *testing.T) {
-	src := "|" + strings.Repeat("x", 500000) + strings.Repeat("|x", 40000) + "|"
-	done := make(chan []Line, 1)
-	go func() { done <- Render(src, 80) }()
-	select {
-	case lines := <-done:
-		if w := text.Width(plain(lines)[0]); w > 80 {
-			t.Errorf("%d wide", w)
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("it took too long")
+	small := "|" + strings.Repeat("x", 500) + strings.Repeat("|x", 40) + "|"
+	large := "|" + strings.Repeat("x", 500000) + strings.Repeat("|x", 40000) + "|"
+	cost := func(src string) float64 {
+		return testing.AllocsPerRun(1, func() { Render(src, 80) })
+	}
+	if a, b := cost(small), cost(large); b > a*2 {
+		t.Errorf("%.0f allocations for a table a thousand times the size of one taking %.0f", b, a)
+	}
+	if w := text.Width(plain(Render(large, 80))[0]); w > 80 {
+		t.Errorf("%d wide", w)
 	}
 }
 

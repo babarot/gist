@@ -371,6 +371,21 @@ func cut(l Line, width int) Line {
 // minColumn is how narrow a table's column may be made to fit.
 const minColumn = 10
 
+// maxCellBytes is the most bytes read of a cell for each cell it can show, which
+// leaves room for what its Markdown takes.
+const maxCellBytes = 8
+
+// firstBytes is s up to n bytes, not ending inside a character.
+func firstBytes(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n]
+}
+
 // minColumnStep is the least a column can take: a cell and what is between
 // two.
 const minColumnStep = 4
@@ -379,6 +394,9 @@ const minColumnStep = 4
 // its widest column is narrowed, down to minColumn, so that every column shows.
 // A cell wider than its column is cut with "…", and so is a table still too wide.
 func table(rows []string, width int) []Line {
+	// Columns past the edge cannot show, and no cell shows wider than the edge:
+	// reading more would take as long as a table can be made to take
+	columns := width/minColumnStep + 1
 	var cells [][]string
 	for _, r := range rows {
 		if tableSep.MatchString(r) {
@@ -387,20 +405,20 @@ func table(rows []string, width int) []Line {
 		r = strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(r), "|"), "|")
 		var cs []string
 		for c := range strings.SplitSeq(r, "|") {
+			if len(cs) == columns {
+				break
+			}
 			var b strings.Builder
-			for _, s := range inline(strings.TrimSpace(c), Cell, false) {
+			for _, s := range inline(firstBytes(strings.TrimSpace(c), width*maxCellBytes), Cell, false) {
 				b.WriteString(s.Text)
 			}
 			cs = append(cs, b.String())
 		}
 		cells = append(cells, cs)
 	}
-	// Columns past the edge cannot show, and no cell shows wider than the edge:
-	// without this narrowing takes as long as a table can be made to take
-	columns := width/minColumnStep + 1
 	var ws []int
 	for _, cs := range cells {
-		for j, c := range cs[:min(len(cs), columns)] {
+		for j, c := range cs {
 			if j == len(ws) {
 				ws = append(ws, 0)
 			}
