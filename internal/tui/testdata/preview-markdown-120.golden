@@ -14,18 +14,18 @@ gist // @alice     1 mine (1)    2 starred (…)                                
 
 
 ╭  a.md   main.go  ────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
-│  設計書の見出し                                                                      │ gist       1111111            │
-│                                                                                      │ visibility secret             │
-│  これは日本語の段落で、幅で折り返す。太字 と コード と リンク を含む（かっこ）。     │ files      2 · 2.4 KB         │
-│                                                                                      │ revisions  2                  │
-│  リスト                                                                              │ comments   0                  │
-│                                                                                      │ created    2h ago             │
-│  • 項目その1                                                                         │ updated    1h ago             │
-│  • [✓] 済んだ                                                                        │                               │
-│  • [ ] まだ                                                                          │ file       a.md               │
-│                                                                                      │ type       markdown           │
-│  ▎ 引用の行                                                                          │ size       349 B · 21 lines   │
-│                                                                                      │                               │
+│  設計書の見出し                                                                      ┃ gist       1111111            │
+│                                                                                      ┃ visibility secret             │
+│  これは日本語の段落で、幅で折り返す。太字 と コード と リンク を含む（かっこ）。     ┃ files      2 · 2.4 KB         │
+│                                                                                      ┃ revisions  2                  │
+│  リスト                                                                              ┃ comments   0                  │
+│                                                                                      ┃ created    2h ago             │
+│  • 項目その1                                                                         ┃ updated    1h ago             │
+│  • [✓] 済んだ                                                                        ┃                               │
+│  • [ ] まだ                                                                          ┃ file       a.md               │
+│                                                                                      ┃ type       markdown           │
+│  ▎ 引用の行                                                                          ┃ size       349 B · 21 lines   │
+│                                                                                      ┃                               │
 │  列1 │ 列2                                                                           │                               │
 │  ────┼────                                                                           │                               │
 │  a   │ b                                                                             │                               │

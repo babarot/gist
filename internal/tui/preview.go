@@ -216,6 +216,11 @@ func (m *Model) drawPreview(c *canvas, l layout) {
 			m.drawInfo(c, l, g, f, read, dx+2)
 		}
 	}
+	if read && !f.Binary {
+		k := fileKey{g.ID, f.Name}
+		inner, rows := l.boxH-2, m.contentRows(g, f)
+		m.drawThumb(c, min(dx, c.w-1), l.boxY+1, inner, min(m.preview.scroll[k], max(0, rows-inner)), rows)
+	}
 	// Last, as they can run longer than the pane they end under
 	m.drawHints(c, l, g, f, read)
 }
@@ -590,7 +595,33 @@ func (m *Model) drawComments(c *canvas, l layout, g model.Gist, x int) {
 		}
 		c.putCut(top+i, x, lines[off+i], w, style{fg: p.overlay})
 	}
-	if off < limit {
-		c.put(top+rows-1, x+w-1, "↓", style{fg: p.overlay})
+	m.drawThumb(c, c.w-1, top, rows, off, len(lines))
+}
+
+// thumbAt places a scrollbar's thumb on a track of room rows, for a view of room
+// lines starting at first out of total, as the rows [from, to). It touches an
+// end of the track only when the view is at that end.
+func thumbAt(first, room, total int) (from, to int) {
+	size := max(1, (room*room+total/2)/total)
+	span, last := room-size, total-room
+	from = (first*span + last/2) / last
+	if first > 0 && from == 0 && span > 1 {
+		from = 1
+	}
+	if first < last && from == span && span > 1 {
+		from = span - 1
+	}
+	return from, from + size
+}
+
+// drawThumb draws a scrollbar on the line at column x, when there is more than
+// shows.
+func (m *Model) drawThumb(c *canvas, x, top, room, first, total int) {
+	if room <= 0 || total <= room {
+		return
+	}
+	from, to := thumbAt(first, room, total)
+	for i := from; i < to; i++ {
+		c.put(top+i, x, "┃", style{fg: m.pal.overlay})
 	}
 }

@@ -541,6 +541,75 @@ func TestScrollIsKeptForEachFile(t *testing.T) {
 	}
 }
 
+func TestThumbAt(t *testing.T) {
+	for _, tt := range []struct {
+		first, room, total, from, to int
+	}{
+		{0, 10, 100, 0, 1},   // a small thumb at the top
+		{90, 10, 100, 9, 10}, // at the very end
+		{1, 10, 100, 1, 2},   // moved at all, it leaves the top
+		{89, 10, 100, 8, 9},  // not at the end, it does not touch it
+		{0, 10, 20, 0, 5},    // half shows, half the track
+		{10, 10, 20, 5, 10},
+		{5, 10, 20, 3, 8},
+	} {
+		from, to := thumbAt(tt.first, tt.room, tt.total)
+		if from != tt.from || to != tt.to {
+			t.Errorf("%+v: got %d, %d", tt, from, to)
+		}
+	}
+}
+
+func thumbRows(m *Model, x int) []int {
+	var rows []int
+	for y, row := range strings.Split(screen(m), "\n") {
+		r := []rune(ansi.Cut(row, x, x+1))
+		if len(r) == 1 && r[0] == '┃' {
+			rows = append(rows, y)
+		}
+	}
+	return rows
+}
+
+func TestAScrollbarShowsWhereTheContentIs(t *testing.T) {
+	m, _ := preview(t, 120, 34, file("a.txt", strings.Repeat("line\n", 100)))
+	l := m.layout()
+	x := m.paneX()
+	top := thumbRows(m, x)
+	if len(top) == 0 || top[0] != l.boxY+1 {
+		t.Fatalf("at the top: %v", top)
+	}
+	for range 200 {
+		press(t, m, "J")
+	}
+	bottom := thumbRows(m, x)
+	if len(bottom) == 0 || bottom[len(bottom)-1] != l.boxY+l.boxH-2 {
+		t.Errorf("at the end: %v", bottom)
+	}
+}
+
+func TestNoScrollbarWhenAllShows(t *testing.T) {
+	m, _ := preview(t, 120, 34, file("a.txt", "one\ntwo\n"))
+	if s := screen(m); strings.Contains(s, "┃") {
+		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestScrollbarWithoutAPane(t *testing.T) {
+	m, _ := preview(t, 30, 24, file("a.txt", strings.Repeat("line\n", 100)))
+	if rows := thumbRows(m, 29); len(rows) == 0 {
+		t.Errorf("got:\n%s", screen(m))
+	}
+}
+
+func TestScrollbarOfComments(t *testing.T) {
+	m, _ := commented(t, 30)
+	press(t, m, "c")
+	if rows := thumbRows(m, 119); len(rows) == 0 {
+		t.Errorf("got:\n%s", screen(m))
+	}
+}
+
 func TestWheelOverTheContent(t *testing.T) {
 	m, _ := preview(t, 120, 34, file("a.txt", strings.Repeat("line\n", 40)))
 	l := m.layout()
@@ -710,7 +779,7 @@ func TestMouseWorksWithCommentsOpen(t *testing.T) {
 func TestCommentsScroll(t *testing.T) {
 	m, _ := commented(t, 30)
 	press(t, m, "c")
-	if !strings.Contains(screen(m), "↓") {
+	if !strings.Contains(screen(m), "┃") {
 		t.Errorf("no sign of more:\n%s", screen(m))
 	}
 	for range 40 {
