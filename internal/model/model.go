@@ -87,6 +87,9 @@ func (c Change) Empty() bool { return c.Description == nil && len(c.Files) == 0 
 // ListPage is a page of the list of the user's gists as read.
 type ListPage struct {
 	Number int
+	// Last is the number of the last page, when the page says, which only the
+	// first does and not when it is NotModified.
+	Last int
 	// ETag asks for the page again only if it changed.
 	ETag string
 	// NotModified says the page is as it was for ETag, and Gists is empty.

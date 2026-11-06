@@ -16,7 +16,7 @@ type ViewOptions struct {
 // View prints a gist's files as written. The content in GitHub's JSON is
 // rewritten by the API client and cut at 1 MB, so it is read from raw_url.
 func (c *CLI) View(ctx context.Context, arg, file string, o ViewOptions) error {
-	id, err := c.resolve(ctx, arg)
+	id, err := c.Resolve(ctx, arg)
 	if err != nil {
 		return err
 	}

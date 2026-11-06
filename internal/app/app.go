@@ -18,10 +18,13 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/babarot/gist/v2/internal/cli"
+	"github.com/babarot/gist/v2/internal/config"
 	"github.com/babarot/gist/v2/internal/edit"
 	"github.com/babarot/gist/v2/internal/github"
 	"github.com/babarot/gist/v2/internal/logging"
 	"github.com/babarot/gist/v2/internal/state"
+	"github.com/babarot/gist/v2/internal/tui"
+	"github.com/babarot/gist/v2/internal/tui/keymap"
 	"github.com/babarot/gist/v2/internal/version"
 	"github.com/babarot/gist/v2/internal/xdg"
 )
@@ -93,26 +96,26 @@ func run(o *options, args []string, stdin io.Reader, stdout, stderr io.Writer) i
 // newRootCommand is gist with its commands, writing to stdout and stderr.
 func newRootCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobra.Command {
 	root := &cobra.Command{
-		Use:           "gist",
 		Short:         "edit your GitHub Gists from the terminal",
 		SilenceErrors: true,
 		SilenceUsage:  true,
+		Use:           "gist [gist]",
 		Args: func(_ *cobra.Command, args []string) error {
-			if len(args) > 0 {
+			// On a terminal an argument is a gist to open
+			if onTerminal := isTerminal(stdin) && isTerminal(stdout); len(args) > 0 && !onTerminal {
 				return fmt.Errorf("unknown command %q", args[0])
 			}
-			return nil
+			return cobra.MaximumNArgs(1)(nil, args)
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			return o.prepare(cmd, stderr)
 		},
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if o.debug == debugLive {
 				return followLog(stdout, stderr)
 			}
-			// The TUI goes here. A pipe gets the list
 			if isTerminal(stdin) && isTerminal(stdout) {
-				return cmd.Help()
+				return o.runTUI(cmd, at(args, 0), stdout, stderr)
 			}
 			return o.run(cmd, stdin, stdout, stderr, func(ctx context.Context, c *cli.CLI) error {
 				return c.List(ctx, cli.ListOptions{})
@@ -174,10 +177,24 @@ func newAuthCommand(o *options, stdout, stderr io.Writer) *cobra.Command {
 func (o *options) client() (*github.Client, string, error) {
 	token, source := github.Token()
 	if token == "" {
-		return nil, "", errors.New(github.NoToken)
+		return nil, "", github.ErrNoToken
 	}
 	client, err := o.newClient(o.log, token)
 	return client, source, err
+}
+
+func (o *options) newCLI(client *github.Client, stdin io.Reader, stdout, stderr io.Writer) *cli.CLI {
+	return &cli.CLI{
+		Stdin: stdin, Stdout: stdout, Stderr: stderr,
+		StdinTTY: isTerminal(stdin), StdoutTTY: isTerminal(stdout),
+		API:      client,
+		Editor:   &edit.Editor{API: client, State: state.Open(xdg.StateDir())},
+		Log:      o.log,
+		Open:     func(url string) error { return github.Browse(url, stdout, stderr) },
+		Run:      runProgram,
+		CacheDir: xdg.CacheDir(),
+		Now:      time.Now,
+	}
 }
 
 // run runs f with what a command needs, and turns what it returns into the
@@ -185,17 +202,7 @@ func (o *options) client() (*github.Client, string, error) {
 func (o *options) run(cmd *cobra.Command, stdin io.Reader, stdout, stderr io.Writer, f func(context.Context, *cli.CLI) error) error {
 	client, _, err := o.client()
 	if err == nil {
-		err = f(cmd.Context(), &cli.CLI{
-			Stdin: stdin, Stdout: stdout, Stderr: stderr,
-			StdinTTY: isTerminal(stdin), StdoutTTY: isTerminal(stdout),
-			API:      client,
-			Editor:   &edit.Editor{API: client, State: state.Open(xdg.StateDir())},
-			Log:      o.log,
-			Open:     func(url string) error { return github.Browse(url, stdout, stderr) },
-			Run:      runProgram,
-			CacheDir: xdg.CacheDir(),
-			Now:      time.Now,
-		})
+		err = f(cmd.Context(), o.newCLI(client, stdin, stdout, stderr))
 	}
 	switch {
 	case err == nil:
@@ -205,6 +212,55 @@ func (o *options) run(cmd *cobra.Command, stdin io.Reader, stdout, stderr io.Wri
 	}
 	fmt.Fprintf(stderr, "gist: %v\n", err)
 	return exitCode(1)
+}
+
+// readConfig reads the config file, writing a commented one on first run. Not
+// being able to write it stops nothing.
+func (o *options) readConfig() (config.File, error) {
+	if err := config.WriteTemplate(o.config); err != nil {
+		o.log.Warn("the config file cannot be written", "err", err.Error())
+	}
+	return config.Load(o.config)
+}
+
+// runTUI runs the TUI, on the gist arg names when it names one.
+func (o *options) runTUI(cmd *cobra.Command, arg string, stdout, stderr io.Writer) error {
+	fail := func(err error) error {
+		fmt.Fprintf(stderr, "gist: %v\n", err)
+		return exitCode(1)
+	}
+	cfg, err := o.readConfig()
+	if err != nil {
+		return fail(err)
+	}
+	keys, err := keymap.Default().With(cfg.Keys)
+	if err != nil {
+		return fail(err)
+	}
+	store := state.Open(xdg.StateDir())
+	opt := tui.Options{
+		Host: github.Host, CacheDir: xdg.CacheDir(), Layout: store, Config: cfg, Keys: keys, Log: o.log,
+		Browse: func(url string) error { return github.Browse(url, io.Discard, io.Discard) },
+	}
+	client, source, err := o.client()
+	switch {
+	case errors.Is(err, github.ErrNoToken):
+		opt.NoToken = true
+	case err != nil:
+		return fail(err)
+	default:
+		opt.Source, opt.Via = client, github.Source(source)
+	}
+	if arg != "" && client != nil {
+		c := o.newCLI(client, nil, stdout, stderr)
+		if opt.Select, err = c.Resolve(cmd.Context(), arg); err != nil {
+			return fail(err)
+		}
+	}
+	if err := tui.Run(opt); err != nil {
+		return fail(err)
+	}
+	return nil
 }
 
 // isTerminal says v is a terminal.

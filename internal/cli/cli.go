@@ -69,11 +69,6 @@ func (c *CLI) store(ctx context.Context, name string) (*cache.Store, error) {
 	return cache.Open(filepath.Join(c.CacheDir, name), github.Host, login), nil
 }
 
-const (
-	gistsFile   = "gists.json"
-	starredFile = "starred.json"
-)
-
 // load is the list kept in the store. A list that cannot be read is logged
 // and read again, as it would be if it had never been kept.
 func (c *CLI) load(s *cache.Store) (cache.List, bool) {
@@ -87,7 +82,7 @@ func (c *CLI) load(s *cache.Store) (cache.List, bool) {
 // mine is the list of the user's gists: as kept, or read when there is none or
 // when refresh asks for it. Pages that did not change are not read again.
 func (c *CLI) mine(ctx context.Context, refresh bool) ([]model.Gist, error) {
-	s, err := c.store(ctx, gistsFile)
+	s, err := c.store(ctx, cache.MineFile)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +101,7 @@ func (c *CLI) mine(ctx context.Context, refresh bool) ([]model.Gist, error) {
 
 // starred is the list of the gists the user starred, kept the same way.
 func (c *CLI) starred(ctx context.Context, refresh bool) ([]model.Gist, error) {
-	s, err := c.store(ctx, starredFile)
+	s, err := c.store(ctx, cache.StarredFile)
 	if err != nil {
 		return nil, err
 	}
@@ -130,9 +125,9 @@ func (c *CLI) save(s *cache.Store, l cache.List) {
 	}
 }
 
-// resolve turns what the user wrote into a gist's ID. What is not found in the
+// Resolve turns what the user wrote into a gist's ID. What is not found in the
 // kept list is looked for in a fresh one, as it may have been made elsewhere.
-func (c *CLI) resolve(ctx context.Context, arg string) (string, error) {
+func (c *CLI) Resolve(ctx context.Context, arg string) (string, error) {
 	if id, ok := resolve.Direct(arg); ok {
 		return id, nil
 	}
@@ -154,7 +149,7 @@ func (c *CLI) resolve(ctx context.Context, arg string) (string, error) {
 // remember updates the kept list after a change made here, so the next read
 // is not of a list out of date.
 func (c *CLI) remember(ctx context.Context, change func(*cache.List)) {
-	s, err := c.store(ctx, gistsFile)
+	s, err := c.store(ctx, cache.MineFile)
 	if err != nil {
 		c.Log.Warn("the kept list cannot be updated", "err", err.Error())
 		return

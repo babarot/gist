@@ -3,11 +3,13 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/spf13/cobra"
 
 	"github.com/babarot/gist/v2/internal/cli"
+	"github.com/babarot/gist/v2/internal/config"
 )
 
 func newListCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobra.Command {
@@ -70,7 +72,12 @@ func newNewCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobra
 		Aliases: []string{"create"},
 		Short:   "create a gist and print its URL; it is secret unless --public",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			f.Public = public && !secret
+			cfg, err := o.readConfig()
+			if err != nil {
+				fmt.Fprintf(stderr, "gist: %v\n", err)
+				return exitCode(1)
+			}
+			f.Public = public || (!secret && cfg.New.Visibility == config.VisibilityPublic)
 			return o.run(cmd, stdin, stdout, stderr, func(ctx context.Context, c *cli.CLI) error {
 				return c.New(ctx, args, f)
 			})

@@ -1,0 +1,30 @@
+gist // @alice     1 mine (5)    2 starred (…)                                                                   via gh 
+    DESCRIPTION                                                                        FILES  COMMENTS  VIS     UPDATED
+▎   a public gist with a comment                                                           3         3  public       5m 
+    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確かめるための…      2            secret       3h
+    no-descr╭ keys ────────────────────────────────────────────────────────────────────────────────────────╮et       2d
+    emoji ❤️│                                                                                              │et      4mo
+    escape s│ move                                          view                                           │et      10y
+            │ j/k    down / up                              o      open in the browser                     │
+            │ g/G    top / bottom                           y      copy the URL                            │
+            │ h/l    prev / next file                       R      refresh now                             │
+            │ 1      mine                                   ?      this help                               │
+╭  main.go  │ 2      starred                                q      quit                                    │───────────╮
+│           │                                                                                              │           │
+│           │                                                                                              │           │
+│           ╰──────────────────────────────────────────────────────────────────────────────────────────────╯KB         │
+│                                                                                      │ comments   3                  │
+│                                                                                      │ created    10m ago            │
+│                                                                                      │ updated    5m ago             │
+│                                                                                      │                               │
+│                                                                                      │ file       main.go            │
+│                                                                                      │ type       Go                 │
+│                                                                                      │ size       1.2 KB             │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+╰──────────────────────────────────────────────────────────────────────────────────────┴────────── 1111111 · h/l file ─╯
+✓ 5 gists · saved to the cache
+esc close

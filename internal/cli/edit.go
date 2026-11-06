@@ -44,7 +44,7 @@ func (c *CLI) Edit(ctx context.Context, arg, file string, o EditOptions) error {
 	if !ops && !fromStdin {
 		return ErrNeedsEditor
 	}
-	id, err := c.resolve(ctx, arg)
+	id, err := c.Resolve(ctx, arg)
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func plan(g model.Gist, ch *model.Change, added map[string]string, removed []str
 func (c *CLI) Delete(ctx context.Context, args []string, yes bool) error {
 	ids := make([]string, len(args))
 	for i, arg := range args {
-		id, err := c.resolve(ctx, arg)
+		id, err := c.Resolve(ctx, arg)
 		if err != nil {
 			return err
 		}
@@ -262,7 +262,7 @@ func (c *CLI) OpenGist(ctx context.Context, arg string) error {
 		}
 		return c.Open("https://gist.github.com/" + login)
 	}
-	id, err := c.resolve(ctx, arg)
+	id, err := c.Resolve(ctx, arg)
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func (c *CLI) OpenGist(ctx context.Context, arg string) error {
 // Clone clones a gist with git, the way to work on images and many files,
 // which the API cannot carry.
 func (c *CLI) Clone(ctx context.Context, arg, dir string) error {
-	id, err := c.resolve(ctx, arg)
+	id, err := c.Resolve(ctx, arg)
 	if err != nil {
 		return err
 	}
