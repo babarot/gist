@@ -918,6 +918,23 @@ func TestOwnerIsAColumnOfItsOwn(t *testing.T) {
 	}
 }
 
+func TestOwnerColumnGoesOnANarrowTerminal(t *testing.T) {
+	src := &source{pages: onePage(manyGists(1))}
+	a := gist("7777777", "first", time.Hour, "tmux.conf")
+	a.Owner = strings.Repeat("x", 39)
+	src.starred = []model.Gist{a}
+	m := newModel(t, options(t, src), 35, 24)
+	settle(t, m, m.Init())
+	press(t, m, "2")
+	s := screen(m)
+	if strings.Contains(s, "OWNER") {
+		t.Errorf("got:\n%s", s)
+	}
+	if !strings.Contains(s, "secret") {
+		t.Errorf("the row lost its columns:\n%s", s)
+	}
+}
+
 func TestColumnsGoWhenNarrow(t *testing.T) {
 	for _, tt := range []struct {
 		w    int

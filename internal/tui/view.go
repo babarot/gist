@@ -224,9 +224,11 @@ func (m *Model) columns() columns {
 		right -= filesCol + colGap
 	}
 	c.lead = rowLead
-	if m.cur == tabStarred {
-		c.owner, c.ownerW = rowLead, m.ownerWidth()
-		c.lead += c.ownerW + colGap
+	// A third of what is left, and none on a terminal too narrow for its name:
+	// the info pane says the owner too
+	if w := min(m.ownerWidth(), (right-rowLead)/3); m.cur == tabStarred && w >= len(ownerHeader) {
+		c.owner, c.ownerW = rowLead, w
+		c.lead += w + colGap
 	}
 	room := max(0, right-c.lead)
 	c.leadW = room
