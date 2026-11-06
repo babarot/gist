@@ -183,17 +183,28 @@ func (m *Model) drawInput(c *canvas) {
 
 // cursor is where the terminal's cursor goes: in the text box, when one is open.
 func (m *Model) cursor() *tea.Cursor {
-	if m.uiState() != uiInput {
-		return nil
+	switch m.uiState() {
+	case uiInput:
+		cur := m.input.box.Cursor()
+		if cur == nil {
+			return nil
+		}
+		x, y, _, _ := m.inputBox()
+		cur.X += x + 5
+		cur.Y = y + inputRow
+		return cur
+	case uiFilter:
+		cur := m.filtering.box.Cursor()
+		if cur == nil {
+			return nil
+		}
+		cur.X += 2
+		cur.Y = filterRow
+		return cur
+	case uiNew:
+		return m.formCursor()
 	}
-	cur := m.input.box.Cursor()
-	if cur == nil {
-		return nil
-	}
-	x, y, _, _ := m.inputBox()
-	cur.X += x + 5
-	cur.Y = y + inputRow
-	return cur
+	return nil
 }
 
 func (m *Model) drawInputConflict(c *canvas) {

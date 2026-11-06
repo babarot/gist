@@ -120,3 +120,23 @@ func TestARemovedFileLeavesTheEdit(t *testing.T) {
 		t.Errorf("changed %v, %v", changed, err)
 	}
 }
+
+func TestScratch(t *testing.T) {
+	s, err := NewScratch("a.go", "first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filepath.Base(s.Path()) != "a.go" {
+		t.Errorf("path is %s", s.Path())
+	}
+	if err := os.WriteFile(s.Path(), []byte("second"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Read()
+	if err != nil || got != "second" {
+		t.Errorf("got %q, %v", got, err)
+	}
+	if _, err := os.Stat(s.Path()); !os.IsNotExist(err) {
+		t.Errorf("the file stayed: %v", err)
+	}
+}

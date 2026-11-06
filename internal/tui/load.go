@@ -43,7 +43,7 @@ func (m *Model) gotViewer(msg viewerMsg) tea.Cmd {
 	if msg.login != m.login {
 		for i := range m.tabs {
 			t := &m.tabs[i]
-			t.gists, t.list, t.loaded, t.cur, t.top = nil, cache.List{}, false, 0, 0
+			t.gists, t.rows, t.list, t.loaded, t.cur, t.top = nil, nil, cache.List{}, false, 0, 0
 		}
 		// What was kept of another account's gists goes with its lists. Reads
 		// under way still end, and still count until they do
@@ -142,6 +142,11 @@ func (m *Model) gotList(msg listDoneMsg) tea.Cmd {
 		return nil
 	}
 	t.reading = false
+	if t.changed {
+		// What came may be from before a change made here: read it again
+		t.changed, t.first = false, false
+		return m.readMine()
+	}
 	if msg.err != nil {
 		m.line.Fail(m.now(), msg.err.Error())
 		return nil
@@ -259,15 +264,19 @@ func (m *Model) readStarred() tea.Cmd {
 	}
 }
 
-func (m *Model) gotStarred(msg starredMsg) {
+func (m *Model) gotStarred(msg starredMsg) tea.Cmd {
 	t := &m.tabs[tabStarred]
 	if msg.seq != t.seq {
-		return
+		return nil
 	}
 	t.reading, t.readOnce = false, true
+	if t.changed {
+		t.changed = false
+		return m.readStarred()
+	}
 	if msg.err != nil {
 		m.line.Fail(m.now(), msg.err.Error())
-		return
+		return nil
 	}
 	cache.Sort(msg.gists)
 	had := t.loaded
@@ -285,4 +294,5 @@ func (m *Model) gotStarred(msg starredMsg) {
 	if had {
 		m.line.Say(m.now(), summary(added, updated, gone))
 	}
+	return nil
 }

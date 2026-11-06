@@ -6,16 +6,16 @@ gist // @alice     1 mine (5)    2 starred (…)                                
     emoji ❤️│                                                                                              │et      4mo
     escape s│ move                          act                           view                             │et      10y
             │ j/k    down / up              enter  edit, then push        c      info / comments           │
-            │ g/G    top / bottom           E      edit the description   m      markdown / plain          │
-            │ J/K    scroll the preview     r      rename the file        o      open in the browser       │
-            │ h/l    prev / next file       D      delete                 y      copy the URL              │
-╭  main.go  │ 1      mine                   X      discard the draft      R      refresh now               │)  ────────╮
-│    1  cont│ 2      starred                                              ?      this help                 │           │
-│           │                                                             q      quit                      │           │
-│           │                                                                                              │KB         │
+            │ g/G    top / bottom           n      new gist               m      markdown / plain          │
+            │ J/K    scroll the preview     E      edit the description   /      fuzzy filter              │
+            │ h/l    prev / next file       r      rename the file        o      open in the browser       │
+╭  main.go  │ 1      mine                   D      delete                 y      copy the URL              │)  ────────╮
+│    1  cont│ 2      starred                X      discard the draft      R      refresh now               │           │
+│           │                                                             ?      this help                 │           │
+│           │                                                             q      quit                      │KB         │
+│           │                                                                                              │           │
 │           │                                                                                              │           │
 │           ╰──────────────────────────────────────────────────────────────────────────────────────────────╯           │
-│                                                                                      │ created    10m ago            │
 │                                                                                      │ updated    5m ago             │
 │                                                                                      │                               │
 │                                                                                      │ file       main.go            │

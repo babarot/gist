@@ -155,7 +155,8 @@ func TestLoadingShowsTheFile(t *testing.T) {
 	g := gist("1111111", "d", time.Hour, "a.go")
 	m := newModel(t, options(t, &source{}), 120, 34)
 	m.login = "alice"
-	m.tabs[tabMine].gists, m.tabs[tabMine].loaded = []model.Gist{g}, true
+	m.tabs[tabMine].loaded = true
+	m.replace(&m.tabs[tabMine], []model.Gist{g})
 	if s := screen(m); !strings.Contains(s, "loading a.go…") {
 		t.Errorf("got:\n%s", s)
 	}
@@ -365,7 +366,8 @@ func TestContentIsNotReadTwice(t *testing.T) {
 
 func TestReadsAreLimited(t *testing.T) {
 	m := newModel(t, options(t, &source{}), 120, 34)
-	m.tabs[tabMine].gists, m.tabs[tabMine].loaded = manyGists(20), true
+	m.tabs[tabMine].loaded = true
+	m.replace(&m.tabs[tabMine], manyGists(20))
 	m.readContents()
 	if m.preview.running != maxReads {
 		t.Errorf("%d at once", m.preview.running)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/babarot/gist/v2/internal/cli"
 	"github.com/babarot/gist/v2/internal/config"
+	"github.com/babarot/gist/v2/internal/model"
 )
 
 func newListCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobra.Command {
@@ -79,6 +80,11 @@ func newNewCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobra
 			}
 			f.Public = public || (!secret && cfg.New.Visibility == config.VisibilityPublic)
 			return o.run(cmd, stdin, stdout, stderr, func(ctx context.Context, c *cli.CLI) error {
+				if len(args) == 0 && c.StdinTTY && c.StdoutTTY {
+					return c.NewInForm(ctx, f, func() (*model.Gist, error) {
+						return o.runForm(c, cfg, model.NewGist{Description: f.Description, Public: f.Public})
+					})
+				}
 				return c.New(ctx, args, f)
 			})
 		},

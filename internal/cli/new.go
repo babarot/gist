@@ -36,6 +36,11 @@ func (c *CLI) New(ctx context.Context, paths []string, o NewOptions) error {
 	if err != nil {
 		return err
 	}
+	return c.announce(ctx, g, o)
+}
+
+// announce keeps a new gist in the list and says where it is.
+func (c *CLI) announce(ctx context.Context, g model.Gist, o NewOptions) error {
 	c.remember(ctx, func(l *cache.List) {
 		g := g
 		g.History = nil
@@ -65,6 +70,18 @@ func (c *CLI) New(ctx context.Context, paths []string, o NewOptions) error {
 		return c.Open(g.URL)
 	}
 	return nil
+}
+
+// NewInForm runs the form, and says what the form made as New would.
+func (c *CLI) NewInForm(ctx context.Context, o NewOptions, form func() (*model.Gist, error)) error {
+	g, err := form()
+	if err != nil {
+		return err
+	}
+	if g == nil {
+		return ErrCanceled
+	}
+	return c.announce(ctx, *g, o)
 }
 
 func (c *CLI) newFiles(paths []string, filename string) (map[string]string, error) {

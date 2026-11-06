@@ -9,8 +9,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/babarot/gist/v2/internal/config"
-	"github.com/babarot/gist/v2/internal/model"
 	"github.com/babarot/gist/v2/internal/text"
+	"github.com/babarot/gist/v2/internal/tui/keymap"
 	"github.com/babarot/gist/v2/internal/tui/statusline"
 )
 
@@ -50,12 +50,16 @@ const (
 )
 
 func (m *Model) layout() layout {
-	room := m.height - headerRows - footerRows
+	head := headerRows
+	if m.filterShown() {
+		head++
+	}
+	room := m.height - head - footerRows
 	box := min(m.boxHeight, room-minListRows)
 	box = max(min(minBoxRows, room), box)
 	return layout{
-		listY: headerRows, listRows: max(0, room-box),
-		boxY: headerRows + max(0, room-box), boxH: max(0, box),
+		listY: head, listRows: max(0, room-box),
+		boxY: head + max(0, room-box), boxH: max(0, box),
 		statusY: m.height - footerRows, keysY: m.height - 1,
 	}
 }
@@ -71,9 +75,19 @@ func (m *Model) render() string {
 		m.drawFooter(c, m.layout())
 		return c.String()
 	}
+	if m.opt.FormOnly {
+		if m.form != nil {
+			m.drawForm(c)
+		}
+		m.drawFooter(c, m.layout())
+		return c.String()
+	}
 	l := m.layout()
 	m.drawHeader(c)
-	m.drawColumns(c)
+	if m.filterShown() {
+		m.drawFilter(c)
+	}
+	m.drawColumns(c, l.listY-1)
 	m.drawList(c, l)
 	m.drawPreview(c, l)
 	m.drawFooter(c, l)
@@ -92,6 +106,8 @@ func (m *Model) render() string {
 		m.drawInput(c)
 	case uiInputConflict:
 		m.drawInputConflict(c)
+	case uiNew:
+		m.drawForm(c)
 	}
 	return c.String()
 }
@@ -130,6 +146,7 @@ func (m *Model) drawHeader(c *canvas) {
 				return m.showStarred()
 			}
 			m.cur = i
+			m.keepCursorShown()
 			return nil
 		})
 		x += 2
@@ -147,6 +164,13 @@ func (m *Model) drawHeader(c *canvas) {
 			what = "loading"
 		}
 		right = append(right, seg{m.spinChar() + " ", style{fg: p.blue}}, seg{what, style{fg: p.subtext0}}, dot)
+	}
+	if t.query != "" {
+		count := fmt.Sprintf("%d of %d", len(t.rows), len(t.gists))
+		if t.reading && t.first {
+			count = fmt.Sprintf("%d (so far) of %d", len(t.rows), len(t.gists))
+		}
+		right = append(right, seg{count, style{fg: p.yellow}}, dot)
 	}
 	right = append(right, seg{"via " + m.via, style{fg: p.overlay}})
 	w := 0
@@ -207,7 +231,7 @@ func (m *Model) columns() columns {
 	return c
 }
 
-func (m *Model) drawColumns(c *canvas) {
+func (m *Model) drawColumns(c *canvas, y int) {
 	p := m.pal
 	cols := m.columns()
 	head := style{fg: p.subtext1, bold: true}
@@ -216,19 +240,19 @@ func (m *Model) drawColumns(c *canvas) {
 		owner = "OWNER / "
 	}
 	if m.opt.Config.List.Lead == config.LeadFile {
-		c.put(1, cols.lead, owner+"FILE", head)
-		c.put(1, cols.desc, "DESCRIPTION", head)
+		c.put(y, cols.lead, owner+"FILE", head)
+		c.put(y, cols.desc, "DESCRIPTION", head)
 	} else {
-		c.put(1, cols.lead, owner+"DESCRIPTION", head)
+		c.put(y, cols.lead, owner+"DESCRIPTION", head)
 	}
 	if cols.comments > 0 {
-		c.put(1, cols.comments-len("COMMENTS"), "COMMENTS", head)
+		c.put(y, cols.comments-len("COMMENTS"), "COMMENTS", head)
 	}
 	if cols.files > 0 {
-		c.put(1, cols.files-len("FILES"), "FILES", head)
+		c.put(y, cols.files-len("FILES"), "FILES", head)
 	}
-	c.put(1, cols.vis, "VIS", head)
-	c.put(1, cols.updated-len("UPDATED"), "UPDATED", head)
+	c.put(y, cols.vis, "VIS", head)
+	c.put(y, cols.updated-len("UPDATED"), "UPDATED", head)
 }
 
 func (m *Model) drawList(c *canvas, l layout) {
@@ -246,17 +270,26 @@ func (m *Model) drawList(c *canvas, l layout) {
 		return
 	}
 	if len(t.gists) == 0 {
-		c.put(l.listY+1, 4, "no gists yet", style{fg: p.dim})
+		hint := "no gists yet"
+		if m.cur == tabMine {
+			hint += " · " + m.keys.Hint(keymap.New) + " creates one"
+		}
+		c.put(l.listY+1, 4, hint, style{fg: p.dim})
+		return
+	}
+	if len(t.rows) == 0 {
+		c.put(l.listY+1, 4, "no gist matches /"+t.query, style{fg: p.dim})
 		return
 	}
 	cols := m.columns()
 	now := m.now()
 	for i := range l.listRows {
 		row := t.top + i
-		if row >= len(t.gists) {
+		if row >= len(t.rows) {
 			break
 		}
-		g := t.gists[row]
+		r := t.rows[row]
+		g := r.gist
 		y := l.listY + i
 		var bg color.Color
 		at, fresh := t.fresh[g.ID]
@@ -276,7 +309,7 @@ func (m *Model) drawList(c *canvas, l layout) {
 		case t.marks[g.ID]:
 			c.put(y, 2, "●", style{fg: p.blue, bg: bg})
 		}
-		m.drawRow(c, y, g, cols, bg, now)
+		m.drawRow(c, y, r, cols, bg, now)
 		m.addHit(y, 0, c.w, func() tea.Cmd {
 			if m.isDoubleClick(row) {
 				return m.startEdit()
@@ -287,8 +320,9 @@ func (m *Model) drawList(c *canvas, l layout) {
 	}
 }
 
-func (m *Model) drawRow(c *canvas, y int, g model.Gist, cols columns, bg color.Color, now time.Time) {
+func (m *Model) drawRow(c *canvas, y int, r row, cols columns, bg color.Color, now time.Time) {
 	p := m.pal
+	g := r.gist
 	on := func(st style) style {
 		st.bg = bg
 		return st
@@ -307,15 +341,15 @@ func (m *Model) drawRow(c *canvas, y int, g model.Gist, cols columns, bg color.C
 		extra = seg{fmt.Sprintf(" +%d", n), on(style{fg: p.dim})}
 	}
 	if m.opt.Config.List.Lead == config.LeadFile {
-		c.putCut(y, cols.lead, append(lead, seg{first, on(style{fg: p.text})}, extra), cols.leadW, more)
+		c.putCut(y, cols.lead, append(append(lead, m.marked(first, r.hits.File, on(style{fg: p.text}))...), extra), cols.leadW, more)
 		if g.Description != "" {
-			c.putCut(y, cols.desc, []seg{{g.Description, on(style{fg: p.subtext0})}}, cols.descW, more)
+			c.putCut(y, cols.desc, m.marked(g.Description, r.hits.Description, on(style{fg: p.subtext0})), cols.descW, more)
 		}
 	} else {
 		if g.Description != "" {
-			lead = append(lead, seg{g.Description, on(style{fg: p.text})})
+			lead = append(lead, m.marked(g.Description, r.hits.Description, on(style{fg: p.text}))...)
 		} else {
-			lead = append(lead, seg{first, on(style{fg: p.overlay})}, extra)
+			lead = append(append(lead, m.marked(first, r.hits.File, on(style{fg: p.overlay}))...), extra)
 		}
 		c.putCut(y, cols.lead, lead, cols.leadW, more)
 	}
@@ -392,7 +426,7 @@ func (m *Model) drawFooter(c *canvas, l layout) {
 	}
 	c.put(l.statusY, 0, s, st)
 	x := 0
-	for i, h := range m.keyHints() {
+	for i, h := range fitHints(m.keyHints(), c.w) {
 		if h.key == "" {
 			continue
 		}
@@ -402,6 +436,22 @@ func (m *Model) drawFooter(c *canvas, l layout) {
 		x = c.put(l.keysY, x, h.key, style{fg: p.blue, bold: true})
 		x = c.put(l.keysY, x, " "+h.what, style{fg: p.overlay})
 	}
+}
+
+// fitHints leaves out what does not fit from the end, but the last, which says
+// where to find the rest.
+func fitHints(hints []hint, width int) []hint {
+	size := func(hs []hint) int {
+		n := 0
+		for _, h := range hs {
+			n += text.Width(h.key) + 1 + text.Width(h.what) + len(" · ")
+		}
+		return n - len(" · ")
+	}
+	for len(hints) > 1 && size(hints) > width {
+		hints = append(hints[:len(hints)-2:len(hints)-2], hints[len(hints)-1])
+	}
+	return hints
 }
 
 func (m *Model) drawHelp(c *canvas) {

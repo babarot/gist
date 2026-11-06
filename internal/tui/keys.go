@@ -40,6 +40,10 @@ func (m *Model) key(msg tea.KeyPressMsg) tea.Cmd {
 	case uiConfirmDiscard:
 		m.discardKey(k)
 		return nil
+	case uiFilter:
+		return m.filterKey(msg)
+	case uiNew:
+		return m.formKey(msg)
 	}
 	return m.listKey(k)
 }
@@ -52,6 +56,10 @@ func (m *Model) quit() tea.Cmd {
 		if _, err := e.work.ReadBack(e.session); err != nil {
 			m.quitErr = err
 		}
+	}
+	// What the form had goes with it, as closing the form does
+	if m.form != nil && m.form.scratch != nil {
+		_ = m.form.scratch.Remove()
 	}
 	m.cancel()
 	return tea.Quit
@@ -72,13 +80,14 @@ func (m *Model) listKey(k string) tea.Cmd {
 	case on(keymap.Top):
 		m.moveTo(0)
 	case on(keymap.Bottom):
-		m.moveTo(len(t.gists) - 1)
+		m.moveTo(len(t.rows) - 1)
 	case on(keymap.NextFile):
 		m.stepFile(1)
 	case on(keymap.PrevFile):
 		m.stepFile(-1)
 	case on(keymap.Mine):
 		m.cur = tabMine
+		m.keepCursorShown()
 	case on(keymap.Starred):
 		return m.showStarred()
 	case on(keymap.Refresh):
@@ -106,6 +115,12 @@ func (m *Model) listKey(k string) tea.Cmd {
 		return m.openInput(inputFilename)
 	case on(keymap.Discard):
 		return m.openDiscard()
+	case on(keymap.Filter):
+		return m.openFilter()
+	case on(keymap.New):
+		return m.openForm()
+	case k == keymap.Back:
+		m.setFilter("")
 	}
 	return nil
 }
@@ -133,6 +148,7 @@ func (m *Model) stepFile(by int) {
 // showStarred shows the starred tab, reading it the first time it is shown.
 func (m *Model) showStarred() tea.Cmd {
 	m.cur = tabStarred
+	m.keepCursorShown()
 	if t := m.tab(); !t.readOnce && !t.reading && m.viewerRead {
 		return m.readStarred()
 	}
@@ -199,23 +215,27 @@ func (m *Model) keyHints() []hint {
 		return []hint{{"enter", "save"}, {keymap.Back, "cancel"}}
 	case uiInputConflict:
 		return []hint{k("overwrite", keymap.Overwrite), k("reload", keymap.Reload), {keymap.Back, "cancel"}}
+	case uiFilter:
+		return []hint{{"enter", "keep"}, {keymap.Back, "clear"}, {"↑/↓", "move"}}
+	case uiNew:
+		return []hint{{"tab", "next"}, k("$EDITOR", keymap.OpenEditor), k("create", keymap.Create), {keymap.Back, "cancel"}}
 	}
-	if m.cur == tabStarred {
-		return m.starredHints()
+	starred := m.cur == tabStarred
+	var hints []hint
+	if m.tab().query != "" {
+		hints = append(hints, hint{keymap.Back, "clear filter"})
 	}
-	hints := []hint{k("edit", keymap.Edit), k("delete", keymap.Delete), k("desc", keymap.Describe), k("rename", keymap.Rename)}
-	if g, ok := m.selected(); ok && m.drafts[g.ID] {
-		hints = append(hints, k("discard draft", keymap.Discard))
+	if !starred {
+		hints = append(hints, k("edit", keymap.Edit), k("new", keymap.New))
 	}
-	return append(hints, m.starredHints()...)
-}
-
-// starredHints are the keys that do not change a gist, which are all there are
-// on the starred tab.
-func (m *Model) starredHints() []hint {
-	k := func(what string, actions ...keymap.Action) hint { return hint{m.keys.Hint(actions...), what} }
-	hints := []hint{k("browser", keymap.Browse), k("copy url", keymap.CopyURL)}
+	hints = append(hints, k("browser", keymap.Browse), k("copy url", keymap.CopyURL))
+	if !starred {
+		hints = append(hints, k("delete", keymap.Delete), k("desc", keymap.Describe), k("rename", keymap.Rename))
+	}
 	if g, ok := m.selected(); ok {
+		if !starred && m.drafts[g.ID] {
+			hints = append(hints, k("discard draft", keymap.Discard))
+		}
 		if len(g.Files) > 1 {
 			hints = append(hints, k("file", keymap.PrevFile, keymap.NextFile))
 		}
@@ -232,12 +252,12 @@ func (m *Model) starredHints() []hint {
 			hints = append(hints, k(what, keymap.ToggleMD))
 		}
 	}
-	if m.cur == tabStarred {
+	hints = append(hints, k("filter", keymap.Filter))
+	if starred {
 		hints = append(hints, k("mine", keymap.Mine))
-	} else {
-		hints = append(hints, k("starred", keymap.Starred))
 	}
-	return append(hints, k("refresh", keymap.Refresh), k("keys", keymap.Help), k("quit", keymap.Quit))
+	hints = append(hints, k("refresh", keymap.Refresh))
+	return append(hints, k("keys", keymap.Help))
 }
 
 // helpGroup is a column of the key list.
@@ -263,6 +283,7 @@ var helpGroups = []helpGroup{
 	}},
 	{"act", []helpRow{
 		{[]keymap.Action{keymap.Edit}, "edit, then push"},
+		{[]keymap.Action{keymap.New}, "new gist"},
 		{[]keymap.Action{keymap.Describe}, "edit the description"},
 		{[]keymap.Action{keymap.Rename}, "rename the file"},
 		{[]keymap.Action{keymap.Delete}, "delete"},
@@ -271,6 +292,7 @@ var helpGroups = []helpGroup{
 	{"view", []helpRow{
 		{[]keymap.Action{keymap.ToggleSide}, "info / comments"},
 		{[]keymap.Action{keymap.ToggleMD}, "markdown / plain"},
+		{[]keymap.Action{keymap.Filter}, "fuzzy filter"},
 		{[]keymap.Action{keymap.Browse}, "open in the browser"},
 		{[]keymap.Action{keymap.CopyURL}, "copy the URL"},
 		{[]keymap.Action{keymap.Refresh}, "refresh now"},

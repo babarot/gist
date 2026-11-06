@@ -16,12 +16,14 @@ const (
 	uiConfirmDiscard                 // throwing away a draft
 	uiInput                          // typing a description or a file name
 	uiInputConflict                  // GitHub moved on from what was typed
+	uiFilter                         // typing the filter
+	uiNew                            // the form of a new gist
 	uiAuthFail                       // no token was found
 	numUIStates
 )
 
 var uiStateNames = [numUIStates]string{"list", "list, comments", "key list", "push", "conflict", "delete",
-	"discard", "input", "input conflict", "no token"}
+	"discard", "input", "input conflict", "filter", "new", "no token"}
 
 func (s uiState) String() string { return uiStateNames[s] }
 
@@ -29,6 +31,10 @@ func (m *Model) uiState() uiState {
 	switch {
 	case m.noToken:
 		return uiAuthFail
+	case m.form != nil:
+		return uiNew
+	case m.filtering != nil:
+		return uiFilter
 	case m.editing != nil && m.editing.conflict != nil:
 		return uiConfirmConflict
 	case m.editing != nil && m.editing.ready:
