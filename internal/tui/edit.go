@@ -393,6 +393,10 @@ func (m *Model) diffKey(k string) tea.Cmd {
 		m.scrollDiff(1)
 	case m.keys.Matches(keymap.ScrollUp, k), m.keys.Matches(keymap.Up, k):
 		m.scrollDiff(-1)
+	case m.keys.Matches(keymap.PageDown, k):
+		m.scrollDiff(m.diffRows())
+	case m.keys.Matches(keymap.PageUp, k):
+		m.scrollDiff(-m.diffRows())
 	}
 	return nil
 }

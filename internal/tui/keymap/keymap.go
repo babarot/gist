@@ -26,6 +26,8 @@ const (
 	Down       Action = "down"
 	Top        Action = "top"
 	Bottom     Action = "bottom"
+	PageUp     Action = "page_up"
+	PageDown   Action = "page_down"
 	PrevFile   Action = "prev_file"
 	NextFile   Action = "next_file"
 	Mine       Action = "tab_mine"
@@ -90,6 +92,8 @@ var Defaults = []Def{
 	{Down, []string{"j", "down"}, "down"},
 	{Top, []string{"g", "home"}, "top"},
 	{Bottom, []string{"G", "end"}, "bottom"},
+	{PageUp, []string{"pgup", "ctrl+u"}, "page up"},
+	{PageDown, []string{"pgdown", "ctrl+d"}, "page down"},
 	{PrevFile, []string{"h", "left", "["}, "previous file"},
 	{NextFile, []string{"l", "right", "]"}, "next file"},
 	{Mine, []string{"1"}, "mine"},

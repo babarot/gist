@@ -174,6 +174,8 @@ func options(t *testing.T, src Source) Options {
 	t.Helper()
 	cfg := config.Default()
 	cfg.Theme = config.ThemeDefault
+	// Most of the screens here are of the description, which is long
+	cfg.List.Lead = config.LeadDescription
 	return Options{
 		Source: src, Via: "gh", Host: "github.com", CacheDir: t.TempDir(), Config: cfg, Keys: keymap.Default(),
 		Log: logging.Discard(), Now: func() time.Time { return now },
@@ -488,6 +490,53 @@ func TestListScrolls(t *testing.T) {
 	if !strings.Contains(screen(m), fmt.Sprintf("gist number %d", rows+2)) {
 		t.Errorf("the cursor's row is not shown:\n%s", screen(m))
 	}
+}
+
+func TestPageKeys(t *testing.T) {
+	for _, tt := range []struct{ down, up string }{{"pgdown", "pgup"}, {"ctrl+d", "ctrl+u"}} {
+		m := loaded(t, manyGists(40), 120, 34)
+		rows := m.layout().listRows
+		page(t, m, tt.down)
+		if m.tab().cur != rows {
+			t.Errorf("%s: cursor at %d, want %d", tt.down, m.tab().cur, rows)
+		}
+		page(t, m, tt.down)
+		page(t, m, tt.up)
+		if m.tab().cur != rows {
+			t.Errorf("%s: cursor at %d, want %d", tt.up, m.tab().cur, rows)
+		}
+		if got := m.tab().cur; got < m.tab().top || got >= m.tab().top+rows {
+			t.Errorf("the cursor's row is not shown: %d from %d", got, m.tab().top)
+		}
+	}
+}
+
+func TestPageKeysStopAtTheEnds(t *testing.T) {
+	m := loaded(t, manyGists(3), 120, 34)
+	page(t, m, "pgdown")
+	if m.tab().cur != 2 {
+		t.Errorf("cursor at %d", m.tab().cur)
+	}
+	page(t, m, "ctrl+u")
+	if m.tab().cur != 0 {
+		t.Errorf("cursor at %d", m.tab().cur)
+	}
+}
+
+// page presses a key of those press does not write.
+func page(t *testing.T, m *Model, k string) {
+	t.Helper()
+	msg := map[string]tea.KeyPressMsg{
+		"pgdown": {Code: tea.KeyPgDown},
+		"pgup":   {Code: tea.KeyPgUp},
+		"ctrl+d": {Code: 'd', Mod: tea.ModCtrl},
+		"ctrl+u": {Code: 'u', Mod: tea.ModCtrl},
+	}[k]
+	if got := msg.String(); got != k {
+		t.Fatalf("the key reads %q, not %q", got, k)
+	}
+	_, cmd := m.Update(msg)
+	settle(t, m, cmd)
 }
 
 func TestFileTabsStopAtTheEnds(t *testing.T) {
@@ -858,9 +907,9 @@ func TestColumnsGoWhenNarrow(t *testing.T) {
 	}
 }
 
-func TestLeadColumnCanBeTheFile(t *testing.T) {
+func TestLeadColumnIsTheFileByDefault(t *testing.T) {
 	o := options(t, &source{pages: onePage(fixture())})
-	o.Config.List.Lead = config.LeadFile
+	o.Config.List.Lead = config.Default().List.Lead
 	m := newModel(t, o, 120, 34)
 	settle(t, m, m.Init())
 	s := screen(m)
