@@ -1,15 +1,12 @@
+// gist edits your GitHub Gists from the terminal.
 package main
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/babarot/gist/cmd"
+	"github.com/babarot/gist/v2/internal/app"
 )
 
 func main() {
-	if err := cmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "[ERROR]: %v\n", err)
-		os.Exit(1)
-	}
+	os.Exit(app.Run(os.Args[1:], os.Stdout, os.Stderr))
 }
