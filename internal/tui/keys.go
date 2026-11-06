@@ -78,15 +78,18 @@ func (m *Model) stepFile(by int) {
 
 func (m *Model) showStarred() tea.Cmd {
 	m.cur = tabStarred
-	if t := m.tab(); !t.loaded && !t.reading && m.login != "" {
+	if t := m.tab(); !t.loaded && !t.reading && m.viewerRead {
 		return m.readStarred()
 	}
 	return nil
 }
 
 func (m *Model) refresh() tea.Cmd {
-	if m.login == "" {
-		return nil
+	if !m.viewerRead {
+		if m.readingViewer {
+			return nil
+		}
+		return m.readViewer()
 	}
 	if m.cur == tabStarred {
 		return m.readStarred()

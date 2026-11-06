@@ -90,14 +90,16 @@ func TestPutCut(t *testing.T) {
 }
 
 func TestBoxOverSomething(t *testing.T) {
-	c := newCanvas(6, 3)
-	for y := range 3 {
-		c.put(y, 0, "日本語", style{})
-	}
-	c.box(1, 0, 4, 3, nil, nil)
-	for y := range 3 {
-		if w := ansi.StringWidth(line(c, y)); w > 6 {
-			t.Errorf("row %d is %d wide", y, w)
+	for _, x := range []int{0, 1, 2, 3, 4} {
+		c := newCanvas(8, 3)
+		for y := range 3 {
+			c.put(y, 0, "日本語ab", style{})
+		}
+		c.box(x, 0, 4, 3, nil, nil)
+		for y, l := range strings.Split(c.String(), "\n") {
+			if w := ansi.StringWidth(l); w != 8 {
+				t.Errorf("a box at %d: row %d is %d wide: %q", x, y, w, l)
+			}
 		}
 	}
 }

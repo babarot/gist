@@ -220,7 +220,7 @@ func (m *Model) drawList(c *canvas, l layout) {
 	p := m.pal
 	t := m.tab()
 	if !t.loaded {
-		if t.reading || m.login == "" {
+		if t.reading || m.readingViewer {
 			what := "loading your gists…"
 			if m.cur == tabStarred {
 				what = "loading starred gists…"

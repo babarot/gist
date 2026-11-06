@@ -68,9 +68,14 @@ type source struct {
 	starred []model.Gist
 	err     error
 	calls   [][]string
+	// viewerErr fails the question of who the token belongs to.
+	viewerErr error
 }
 
 func (s *source) Viewer(context.Context) (string, error) {
+	if s.viewerErr != nil {
+		return "", s.viewerErr
+	}
 	if s.login == "" {
 		return "alice", nil
 	}
@@ -337,6 +342,23 @@ func TestFailedReadSaysSoAndKeepsTheList(t *testing.T) {
 	press(t, m, "R")
 	s := screen(m)
 	if !strings.Contains(s, "the network went away") || !strings.Contains(s, "gist number 0") {
+		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestAFailedStartCanBeTriedAgain(t *testing.T) {
+	src := &source{viewerErr: errors.New("the network went away"), pages: onePage(manyGists(1))}
+	m := newModel(t, options(t, src), 120, 34)
+	settle(t, m, m.Init())
+	if s := screen(m); !strings.Contains(s, "the network went away") {
+		t.Errorf("got:\n%s", s)
+	}
+	if m.busy() {
+		t.Error("it looks busy with nothing going on")
+	}
+	src.viewerErr = nil
+	press(t, m, "R")
+	if s := screen(m); !strings.Contains(s, "gist number 0") {
 		t.Errorf("got:\n%s", s)
 	}
 }
@@ -625,6 +647,27 @@ func TestEveryLineFitsTheTerminal(t *testing.T) {
 					if got := ansi.StringWidth(l); got > w {
 						t.Errorf("%s %dx%d: line %d is %d wide: %q", s, w, h, i, got, ansi.Strip(l))
 					}
+				}
+			}
+		}
+	}
+}
+
+func TestTheKeyListOverWideCharacters(t *testing.T) {
+	var gists []model.Gist
+	for i := range 20 {
+		gists = append(gists, gist(fmt.Sprintf("%07x", i+1), strings.Repeat("日本語", 40), time.Hour, "日本語のファイル名.md"))
+	}
+	for w := 60; w <= 130; w++ {
+		for _, shift := range []string{"", "a"} {
+			for i := range gists {
+				gists[i].Description = shift + strings.Repeat("日本語", 40)
+			}
+			m := loaded(t, gists, w, 34)
+			press(t, m, "?")
+			for i, l := range strings.Split(m.render(), "\n") {
+				if got := ansi.StringWidth(l); got > w {
+					t.Errorf("%d: line %d is %d wide", w, i, got)
 				}
 			}
 		}

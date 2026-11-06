@@ -102,13 +102,15 @@ type Model struct {
 
 	width, height int
 	login         string
-	tabs          [numTabs]tab
-	cur           int
-	fileTab       map[string]int
-	selectID      string
-	helpOpen      bool
-	boxHeight     int
-	dragging      bool
+	// viewerRead says GitHub confirmed login. Nothing is read until it has.
+	viewerRead, readingViewer bool
+	tabs                      [numTabs]tab
+	cur                       int
+	fileTab                   map[string]int
+	selectID                  string
+	helpOpen                  bool
+	boxHeight                 int
+	dragging                  bool
 
 	spinFrame int
 	spinning  bool
@@ -250,7 +252,7 @@ func (m *Model) tab() *tab { return &m.tabs[m.cur] }
 
 // busy says something is being read, for which the spinner turns.
 func (m *Model) busy() bool {
-	return m.login == "" && !m.noToken || m.tabs[tabMine].reading || m.tabs[tabStarred].reading
+	return m.readingViewer || m.tabs[tabMine].reading || m.tabs[tabStarred].reading
 }
 
 type spinMsg struct{}

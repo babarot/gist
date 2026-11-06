@@ -25,6 +25,7 @@ type viewerMsg struct {
 }
 
 func (m *Model) readViewer() tea.Cmd {
+	m.readingViewer = true
 	return func() tea.Msg {
 		login, err := m.opt.Source.Viewer(m.ctx)
 		return viewerMsg{login, err}
@@ -33,6 +34,8 @@ func (m *Model) readViewer() tea.Cmd {
 
 // gotViewer starts the reading. Lists kept for another account are dropped.
 func (m *Model) gotViewer(msg viewerMsg) tea.Cmd {
+	m.readingViewer = false
+	m.viewerRead = msg.err == nil
 	if msg.err != nil {
 		m.line.Fail(m.now(), msg.err.Error())
 		return nil

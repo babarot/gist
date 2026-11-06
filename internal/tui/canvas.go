@@ -102,9 +102,7 @@ func (c *canvas) breakWide(y, x int) {
 func (c *canvas) clear(y, x0, x1 int, bg color.Color) {
 	x0, x1 = max(0, x0), min(c.w, x1)
 	for x := x0; x < x1; x++ {
-		if c.rows[y][x].width != 0 || c.rows[y][x].text != "" {
-			c.breakWide(y, x)
-		}
+		c.breakWide(y, x)
 		c.rows[y][x] = cell{text: " ", width: 1, style: style{bg: bg}}
 	}
 }
