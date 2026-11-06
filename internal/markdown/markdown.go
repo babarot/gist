@@ -10,10 +10,10 @@ package markdown
 import (
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/charmbracelet/x/ansi"
 	"github.com/kyokomi/emoji/v2"
 
 	"github.com/babarot/gist/v2/internal/text"
@@ -59,7 +59,13 @@ type Line []Span
 
 // token is a word, a run of spaces, or one other character, such as one of a
 // Japanese sentence, which may break anywhere.
-var token = regexp.MustCompile(`[!-~]+|\s+|.`)
+var token = regexp.MustCompile(`[!-~]+\p{M}*|\s+\p{M}*|` + character)
+
+// character is one character as it shows: with the marks on it, and what a
+// zero-width joiner joins it to. Their width is that of the whole.
+const character = `.\p{M}*(?:\x{200D}.\p{M}*)*`
+
+var oneCharacter = regexp.MustCompile(character)
 
 // noLineStart are the characters a line may not start with; each goes to the
 // next line with what comes before it.
@@ -110,6 +116,7 @@ func ascii(s string) bool {
 // wrap breaks spans into lines width cells wide. Lines after the first are
 // indented by hang cells, under the text after a bullet.
 func wrap(ss []Span, width, hang int) []Line {
+	hang = min(hang, width/2)
 	var out []Line
 	var cur Line
 	n := 0
@@ -149,11 +156,11 @@ func wrap(ss []Span, width, hang int) []Line {
 		case n+w > width && w > width-hang:
 			// A word longer than a line breaks where it reaches the edge
 			for _, p := range u {
-				for _, r := range p.text {
-					if n+text.Width(string(r)) > width && n > hang {
+				for _, r := range oneCharacter.FindAllString(p.text, -1) {
+					if n+text.Width(r) > width && n > hang {
 						newLine()
 					}
-					add(string(r), ss[p.from], p.from)
+					add(r, ss[p.from], p.from)
 				}
 			}
 			continue
@@ -164,7 +171,13 @@ func wrap(ss []Span, width, hang int) []Line {
 			add(p.text, ss[p.from], p.from)
 		}
 	}
-	return append(out, cur)
+	// The widths of tokens added up can fall short of the width of the line, as
+	// what joins characters can do so across tokens
+	out = append(out, cur)
+	for i := range out {
+		out[i] = cut(out[i], width)
+	}
+	return out
 }
 
 var (
@@ -292,17 +305,19 @@ func Render(body string, width int) []Line {
 			if g[2] != " " {
 				box, role = Span{Text: "[✓] ", Role: Done}, Finished
 			}
-			lead := []Span{{Text: g[1]}, {Text: "• ", Role: Mark, Bold: true}, box}
-			add(append(lead, inline(g[3], role, false)...), len(g[1])+6)
+			in := indent(g[1])
+			lead := []Span{{Text: in}, {Text: "• ", Role: Mark, Bold: true}, box}
+			add(append(lead, inline(g[3], role, false)...), len(in)+6)
 			continue
 		}
 		if g := bullet.FindStringSubmatch(l); g != nil {
-			add(append([]Span{{Text: g[1]}, {Text: "• ", Role: Mark, Bold: true}}, inline(g[2], Text, false)...), len(g[1])+2)
+			in := indent(g[1])
+			add(append([]Span{{Text: in}, {Text: "• ", Role: Mark, Bold: true}}, inline(g[2], Text, false)...), len(in)+2)
 			continue
 		}
 		if g := ordered.FindStringSubmatch(l); g != nil {
-			mark := g[2] + " "
-			add(append([]Span{{Text: g[1]}, {Text: mark, Role: Mark, Bold: true}}, inline(g[3], Text, false)...), len(g[1])+len(mark))
+			in, mark := indent(g[1]), g[2]+" "
+			add(append([]Span{{Text: in}, {Text: mark, Role: Mark, Bold: true}}, inline(g[3], Text, false)...), len(in)+len(mark))
 			continue
 		}
 		if strings.HasPrefix(l, "    ") {
@@ -323,9 +338,18 @@ func Render(body string, width int) []Line {
 	return out
 }
 
+// maxIndent is how far a list goes right.
+const maxIndent = 8
+
+func indent(s string) string { return s[:min(len(s), maxIndent)] }
+
 // fit pads s to width cells, or cuts it with "…".
 func fit(s string, width int) string {
-	s = ansi.Truncate(s, width, "…")
+	var b strings.Builder
+	for _, sp := range cut(Line{{Text: s}}, width) {
+		b.WriteString(sp.Text)
+	}
+	s = b.String()
 	return s + strings.Repeat(" ", max(0, width-text.Width(s)))
 }
 
@@ -352,20 +376,36 @@ func codeBlock(code []string, lang string, width int) []Line {
 	return out
 }
 
-// cut shortens a line to width cells: what is left of a table too wide for its
-// columns to be narrowed further.
+// cut shortens a line to width cells, ending in "…". It measures the line as a
+// whole, as that is how it will show: what joins characters can do so across the
+// pieces, so their widths added up can fall short.
 func cut(l Line, width int) Line {
-	var out Line
-	for _, s := range l {
-		w := text.Width(s.Text)
-		if w > width {
-			s.Text = ansi.Truncate(s.Text, width, "…")
-			return append(out, s)
-		}
-		out = append(out, s)
-		width -= w
+	if lineWidth(l) <= width {
+		return l
 	}
-	return out
+	l = slices.Clone(l)
+	for len(l) > 0 && lineWidth(l) > width-1 {
+		last := &l[len(l)-1]
+		_, n := utf8.DecodeLastRuneInString(last.Text)
+		last.Text = last.Text[:len(last.Text)-n]
+		if last.Text == "" {
+			l = l[:len(l)-1]
+		}
+	}
+	if len(l) == 0 {
+		return Line{{Text: "…"}}
+	}
+	end := l[len(l)-1]
+	end.Text = "…"
+	return append(l, end)
+}
+
+func lineWidth(l Line) int {
+	var b strings.Builder
+	for _, s := range l {
+		b.WriteString(s.Text)
+	}
+	return text.Width(b.String())
 }
 
 // minColumn is how narrow a table's column may be made to fit.

@@ -20,7 +20,7 @@ The packages are layered: a package imports only from lower layers, and only the
 | 1 | `internal/edit` | Changing a gist: the lock, the base, drafts, and checking it did not move | `internal/model`, `internal/state` | - |
 | 1 | `internal/config` | Reading the config file | `internal/near` | `github.com/pelletier/go-toml/v2` |
 | 1 | `internal/tui/keymap` | Keys bound to actions by name | `internal/near` | - |
-| 1 | `internal/markdown` | Markdown and HTML drawn as lines, each piece saying what it is | `internal/text` | `github.com/charmbracelet/x/ansi`, `github.com/kyokomi/emoji/v2`, `golang.org/x/net/html` |
+| 1 | `internal/markdown` | Markdown and HTML drawn as lines, each piece saying what it is | `internal/text` | `github.com/kyokomi/emoji/v2`, `golang.org/x/net/html` |
 | 2 | `internal/github` | GitHub's REST API | `internal/model`, `internal/logging` | `github.com/cli/go-gh/v2` |
 | 3 | `internal/cli` | What the subcommands do | `internal/cache`, `internal/edit`, `internal/github`, `internal/model`, `internal/resolve` | - |
 | 3 | `internal/tui` | The terminal UI | `internal/cache`, `internal/config`, `internal/highlight`, `internal/markdown`, `internal/model`, `internal/text`, `internal/tui/keymap`, `internal/tui/statusline` | `charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`, `github.com/rivo/uniseg` |

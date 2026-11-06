@@ -38,7 +38,7 @@ var layers = []layer{
 	{"internal/edit", 1, []string{"internal/model", "internal/state"}, nil, "Changing a gist: the lock, the base, drafts, and checking it did not move"},
 	{"internal/config", 1, []string{"internal/near"}, []string{"github.com/pelletier/go-toml/v2"}, "Reading the config file"},
 	{"internal/tui/keymap", 1, []string{"internal/near"}, nil, "Keys bound to actions by name"},
-	{"internal/markdown", 1, []string{"internal/text"}, []string{"github.com/charmbracelet/x/ansi", "github.com/kyokomi/emoji/v2", "golang.org/x/net/html"}, "Markdown and HTML drawn as lines, each piece saying what it is"},
+	{"internal/markdown", 1, []string{"internal/text"}, []string{"github.com/kyokomi/emoji/v2", "golang.org/x/net/html"}, "Markdown and HTML drawn as lines, each piece saying what it is"},
 	{"internal/github", 2, []string{"internal/model", "internal/logging"}, []string{"github.com/cli/go-gh/v2"}, "GitHub's REST API"},
 	{"internal/cli", 3, []string{"internal/cache", "internal/edit", "internal/github", "internal/model", "internal/resolve"}, nil, "What the subcommands do"},
 	{"internal/tui", 3, []string{"internal/cache", "internal/config", "internal/highlight", "internal/markdown", "internal/model", "internal/text", "internal/tui/keymap", "internal/tui/statusline"},

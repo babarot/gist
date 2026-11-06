@@ -30,6 +30,7 @@ func TestRender(t *testing.T) {
 	}{
 		{"heading", "# Title #\n\nbody", 20, []string{"Title", "", "body"}},
 		{"bullets", "- one\n  - two\n* three", 20, []string{"• one", "  • two", "• three"}},
+		{"a list goes only so far right", strings.Repeat(" ", 30) + "- x", 40, []string{"        • x"}},
 		{"bullet wraps under its text", "- aaaa bbbb cccc", 8, []string{"• aaaa", "  bbbb", "  cccc"}},
 		{"ordered", "1. one\n2) two", 20, []string{"1. one", "2) two"}},
 		{"tasks", "- [ ] todo\n- [x] done", 20, []string{"• [ ] todo", "• [✓] done"}},
@@ -61,6 +62,21 @@ func TestJapaneseWraps(t *testing.T) {
 	want := []string{"これはとて", "も長い日本", "語の文章で", "す。"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestCharactersOfManyPartsAreCountedWhole(t *testing.T) {
+	for _, src := range []string{
+		strings.Repeat("\u24c2\ufe0f", 30),
+		strings.Repeat("\U0001F468\u200d\U0001F469\u200d\U0001F466", 30),
+		strings.Repeat("e\u0301", 30),
+		strings.Repeat("1\ufe0f\u20e3", 30),
+	} {
+		for _, l := range plain(Render(src, 11)) {
+			if w := text.Width(l); w > 11 {
+				t.Errorf("%d wide: %q", w, l)
+			}
+		}
 	}
 }
 
