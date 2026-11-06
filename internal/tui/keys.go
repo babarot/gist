@@ -14,6 +14,10 @@ func (m *Model) key(msg tea.KeyPressMsg) tea.Cmd {
 	if k == keymap.Interrupt {
 		return m.quit()
 	}
+	// What is on its way must end first: nothing is sure of its state until then
+	if m.sending {
+		return nil
+	}
 	switch m.uiState() {
 	case uiAuthFail:
 		if m.keys.Matches(keymap.Quit, k) {
@@ -35,10 +39,6 @@ func (m *Model) key(msg tea.KeyPressMsg) tea.Cmd {
 		return m.deleteKey(k)
 	case uiConfirmDiscard:
 		m.discardKey(k)
-		return nil
-	}
-	if m.editing != nil {
-		// The edit is on its way to the editor
 		return nil
 	}
 	return m.listKey(k)

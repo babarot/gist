@@ -75,6 +75,21 @@ func TestDeleteAsksOnATerminal(t *testing.T) {
 	}
 }
 
+func TestDeleteTakesTheDrafts(t *testing.T) {
+	c, s, _, _ := terminal(t, "n\n")
+	g := s.Add("", false, map[string]string{"a.txt": "a"})
+	editing(c, map[string]string{"a.txt": "edited"})
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); !errors.Is(err, ErrCanceled) {
+		t.Fatalf("got %v", err)
+	}
+	if err := c.Delete(ctx, []string{g.ID}, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := c.Editor.Draft(g.ID, "a.txt"); ok {
+		t.Error("the draft stayed")
+	}
+}
+
 func TestListTableOnATerminal(t *testing.T) {
 	c, s, out, _ := terminal(t, "")
 	s.Add("a long description "+strings.Repeat("x", 80), true, map[string]string{"a.txt": "a"})

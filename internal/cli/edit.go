@@ -384,6 +384,12 @@ func (c *CLI) Delete(ctx context.Context, args []string, yes bool) error {
 			return fmt.Errorf("%s: %w", id, err)
 		}
 		err = c.API.Delete(ctx, id)
+		if err == nil || github.IsNotFound(err) {
+			// There is nothing left to send them to
+			if derr := l.DeleteDrafts(); derr != nil {
+				c.Log.Warn("the drafts cannot be removed", "gist", id, "err", derr.Error())
+			}
+		}
 		if releaseErr := l.Release(); err == nil {
 			err = releaseErr
 		}

@@ -103,7 +103,7 @@ type Draft struct {
 	Created time.Time `json:"created"`
 }
 
-func (s *Store) draftDir(gist string) string { return filepath.Join(s.dir, "drafts", gist) }
+func (s *Store) draftDir(gist string) string { return filepath.Join(s.DraftsDir(), gist) }
 
 func (s *Store) draftPath(gist, file string) string {
 	return filepath.Join(s.draftDir(gist), url.PathEscape(file)+".json")
@@ -190,9 +190,21 @@ func readDraft(path string) (Draft, bool, error) {
 	return d, true, nil
 }
 
+// DeleteDrafts removes all the drafts of the lock's gist.
+func (l *Lock) DeleteDrafts() error { return os.RemoveAll(l.store.draftDir(l.gist)) }
+
+// HasDraft says a file has a draft, without reading it.
+func (s *Store) HasDraft(gist, file string) bool {
+	_, err := os.Stat(s.draftPath(gist, file))
+	return err == nil
+}
+
+// DraftsDir is where drafts are kept.
+func (s *Store) DraftsDir() string { return filepath.Join(s.dir, "drafts") }
+
 // DraftGists are the gists that have drafts.
 func (s *Store) DraftGists() ([]string, error) {
-	entries, err := os.ReadDir(filepath.Join(s.dir, "drafts"))
+	entries, err := os.ReadDir(s.DraftsDir())
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}

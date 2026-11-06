@@ -108,6 +108,7 @@ func (m *Model) startEdit() tea.Cmd {
 		m.line.Refuse(m.now(), "a binary file cannot be edited here: use gist clone")
 		return nil
 	}
+	m.sending = true
 	editor, ctx := m.opt.Editor, m.ctx
 	return func() tea.Msg {
 		s, err := editor.Begin(ctx, g.ID, f.Name)
@@ -116,6 +117,7 @@ func (m *Model) startEdit() tea.Cmd {
 }
 
 func (m *Model) gotBegan(msg beganMsg) tea.Cmd {
+	m.sending = false
 	if msg.err != nil {
 		m.fail(msg.err)
 		return nil
@@ -208,6 +210,25 @@ func (m *Model) endEdit() {
 	m.readDrafts()
 }
 
+// warnLostDrafts says once which drafts belong to gists no longer there. They
+// stay, as they may be all there is of an edit.
+func (m *Model) warnLostDrafts() {
+	if m.warnedDrafts {
+		return
+	}
+	m.warnedDrafts = true
+	lost := 0
+	for id := range m.drafts {
+		if !m.listed(id) {
+			lost++
+		}
+	}
+	if lost > 0 {
+		m.line.Say(m.now(), fmt.Sprintf("drafts of %d %s no longer on GitHub are kept in %s", lost,
+			plural(lost, "gist", "gists"), m.opt.Editor.State.DraftsDir()))
+	}
+}
+
 // readDrafts learns which gists have drafts.
 func (m *Model) readDrafts() {
 	if m.opt.Editor == nil {
@@ -225,6 +246,7 @@ func (m *Model) readDrafts() {
 }
 
 type pushedMsg struct {
+	gist   string
 	result edit.Result
 	err    error
 }
@@ -233,19 +255,21 @@ type pushedMsg struct {
 func (m *Model) push(overwrite bool) tea.Cmd {
 	e := m.editing
 	m.writing[e.gist.ID] = "push"
-	s, ctx := e.session, m.ctx
+	m.sending = true
+	s, ctx, id := e.session, m.ctx, e.gist.ID
 	return func() tea.Msg {
 		res, err := s.Push(ctx, overwrite)
-		return pushedMsg{res, err}
+		return pushedMsg{id, res, err}
 	}
 }
 
 func (m *Model) gotPushed(msg pushedMsg) tea.Cmd {
+	m.sending = false
+	delete(m.writing, msg.gist)
 	e := m.editing
 	if e == nil {
 		return nil
 	}
-	delete(m.writing, e.gist.ID)
 	if changed, ok := errors.AsType[*edit.ChangedError](msg.err); ok {
 		e.conflict = changed
 		return nil
@@ -271,8 +295,8 @@ func (m *Model) warnOverwritten(r edit.Result) {
 	}
 }
 
-// showResult puts a gist as GitHub returned it in the list, which moves it to
-// the top with the cursor, and keeps the list.
+// showResult puts a gist as GitHub returned it in the lists that have it, which
+// moves it to the top with the cursor, and keeps them.
 func (m *Model) showResult(g model.Gist) {
 	m.preview.contents[g.ID] = g
 	if err := m.preview.disk.Save(g); err != nil {
@@ -284,14 +308,14 @@ func (m *Model) showResult(g model.Gist) {
 	for i := range row.Files {
 		row.Files[i].Content = ""
 	}
-	t := m.tab()
-	gists := slices.Clone(t.gists)
-	if i := slices.IndexFunc(gists, func(o model.Gist) bool { return o.ID == g.ID }); i >= 0 {
-		gists[i] = row
-	} else {
-		gists = append(gists, row)
+	for i := range m.tabs {
+		t := &m.tabs[i]
+		if j := slices.IndexFunc(t.gists, func(o model.Gist) bool { return o.ID == g.ID }); j >= 0 {
+			gists := slices.Clone(t.gists)
+			gists[j] = row
+			m.afterChange(t, gists)
+		}
 	}
-	m.afterChange(t, gists)
 }
 
 // afterChange shows and keeps a list after a change made here.
@@ -313,6 +337,7 @@ func (m *Model) conflictKey(k string) tea.Cmd {
 		e.conflict = nil
 		return m.push(true)
 	case m.keys.Matches(keymap.Reload, k):
+		m.sending = true
 		s, ctx := e.session, m.ctx
 		return func() tea.Msg {
 			changed, err := s.Reload(ctx)
@@ -330,6 +355,7 @@ type reloadedMsg struct {
 // gotReloaded shows the edit against the new base, or ends if that makes it the
 // same: the same change was sent from elsewhere.
 func (m *Model) gotReloaded(msg reloadedMsg) {
+	m.sending = false
 	if m.editing == nil {
 		return
 	}
@@ -429,11 +455,10 @@ func (m *Model) inputConflictKey(k string) tea.Cmd {
 		in.conflict = nil
 		return m.sendInput(false)
 	case m.keys.Matches(keymap.Reload, k):
-		// Start again from what GitHub has
+		// What was typed stays, now based on what GitHub has
 		g := in.conflict.Current
 		if in.kind == inputDescription {
 			in.base = g.Description
-			in.box.SetValue(g.Description)
 		} else {
 			in.base = g.Revision()
 		}
@@ -448,6 +473,9 @@ func always(ch model.Change) func(context.Context, model.Gist) (model.Change, er
 }
 
 type inputSentMsg struct {
+	gist   string
+	kind   inputKind
+	value  string
 	result edit.Result
 	err    error
 }
@@ -488,21 +516,21 @@ func (m *Model) sendInput(checked bool) tea.Cmd {
 		req.Build = always(model.Change{Files: map[string]model.FileChange{from: {Name: &value}}})
 	}
 	m.writing[in.gist.ID] = "change"
-	editor, ctx := m.opt.Editor, m.ctx
+	m.sending = true
+	editor, ctx, id, kind := m.opt.Editor, m.ctx, in.gist.ID, in.kind
 	return func() tea.Msg {
 		res, err := editor.Apply(ctx, req)
-		return inputSentMsg{res, err}
+		return inputSentMsg{id, kind, value, res, err}
 	}
 }
 
 func (m *Model) gotInputSent(msg inputSentMsg) {
-	in := m.input
-	if in == nil {
-		return
-	}
-	delete(m.writing, in.gist.ID)
+	m.sending = false
+	delete(m.writing, msg.gist)
 	if changed, ok := errors.AsType[*edit.ChangedError](msg.err); ok {
-		in.conflict = changed
+		if m.input != nil {
+			m.input.conflict = changed
+		}
 		return
 	}
 	m.input = nil
@@ -511,9 +539,9 @@ func (m *Model) gotInputSent(msg inputSentMsg) {
 		return
 	}
 	m.showResult(msg.result.Gist)
-	if in.kind == inputFilename {
-		m.fileTab[in.gist.ID] = slices.IndexFunc(msg.result.Gist.Files, func(f model.File) bool { return f.Name == in.box.Value() })
-		m.line.Say(m.now(), "✓ renamed to "+in.box.Value())
+	if msg.kind == inputFilename {
+		m.fileTab[msg.gist] = max(0, slices.IndexFunc(msg.result.Gist.Files, func(f model.File) bool { return f.Name == msg.value }))
+		m.line.Say(m.now(), "✓ renamed to "+msg.value)
 	} else {
 		m.line.Say(m.now(), "✓ description changed")
 	}
@@ -564,7 +592,12 @@ func (m *Model) deleteGist(g model.Gist) tea.Cmd {
 			return deletedMsg{g.ID, err}
 		}
 		defer func() { _ = l.Release() }()
-		return deletedMsg{g.ID, src.Delete(ctx, g.ID)}
+		err = src.Delete(ctx, g.ID)
+		if err == nil || github.IsNotFound(err) {
+			// There is nothing left to send them to
+			_ = l.DeleteDrafts()
+		}
+		return deletedMsg{g.ID, err}
 	}
 }
 
@@ -582,6 +615,7 @@ func (m *Model) gotDeleted(msg deletedMsg) {
 	}
 	m.preview.forget(msg.gist)
 	m.removeKept(msg.gist)
+	m.readDrafts()
 	m.line.Say(m.now(), "✓ deleted "+shortID(msg.gist))
 }
 

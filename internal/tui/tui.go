@@ -121,6 +121,10 @@ type Model struct {
 	input                     *inputState
 	deleting                  *deleting
 	discarding                *discarding
+	// sending says something is on its way that the screen depends on the end of,
+	// so that no key can act until it ends.
+	sending      bool
+	warnedDrafts bool
 	// writing are the gists being written to, and drafts those with drafts.
 	writing map[string]string
 	drafts  map[string]bool
@@ -300,7 +304,7 @@ func (m *Model) tab() *tab { return &m.tabs[m.cur] }
 // busy says something is being read, for which the spinner turns.
 func (m *Model) busy() bool {
 	return m.readingViewer || m.tabs[tabMine].reading || m.tabs[tabStarred].reading ||
-		m.preview.running > 0 || len(m.preview.readingComments) > 0 || len(m.writing) > 0
+		m.preview.running > 0 || len(m.preview.readingComments) > 0 || len(m.writing) > 0 || m.sending
 }
 
 type spinMsg struct{}

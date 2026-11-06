@@ -21,6 +21,9 @@ func (m *Model) addHit(y, x0, x1 int, act func() tea.Cmd) {
 // mouse handles a click, the wheel and dragging the top edge of the preview.
 // What is open over the screen keeps the mouse from the list under it.
 func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
+	if m.sending {
+		return nil
+	}
 	st := m.uiState()
 	if st == uiConfirmPush {
 		if w, ok := msg.(tea.MouseWheelMsg); ok {

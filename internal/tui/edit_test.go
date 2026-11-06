@@ -628,12 +628,12 @@ func TestDescriptionConflictReload(t *testing.T) {
 	w.s.SetDescription(g.ID, "theirs")
 	enter(t, w.m)
 	press(t, w.m, "r")
-	if w.m.uiState() != uiInput || w.m.input.box.Value() != "theirs" {
+	if w.m.uiState() != uiInput || w.m.input.box.Value() != "the description mine" {
 		t.Fatalf("state is %s, value %q", w.m.uiState(), w.m.input.box.Value())
 	}
 	typeText(t, w.m, " too")
 	enter(t, w.m)
-	if got := w.s.Get(g.ID).Description; got != "theirs too" {
+	if got := w.s.Get(g.ID).Description; got != "the description mine too" {
 		t.Errorf("got %q", got)
 	}
 }
@@ -725,6 +725,142 @@ func TestDoubleClickEdits(t *testing.T) {
 	click(t, w.m, 20, y)
 	if w.opened != 1 {
 		t.Errorf("opened %d times", w.opened)
+	}
+}
+
+// hold presses a key and keeps what it starts from running, for keys that come
+// while it is on its way.
+func hold(m *Model, k tea.KeyPressMsg) tea.Cmd {
+	_, cmd := m.Update(k)
+	return cmd
+}
+
+func TestKeysWaitForAnEditToBegin(t *testing.T) {
+	var a *fakegist.Gist
+	w := newWorld(t, func(s *fakegist.Server) {
+		a = s.Add("a", false, map[string]string{"a.txt": "a\n"})
+		s.Add("b", false, map[string]string{"b.txt": "b\n"})
+	})
+	began := hold(w.m, tea.KeyPressMsg{Code: tea.KeyEnter})
+	press(t, w.m, "j")
+	if second := hold(w.m, tea.KeyPressMsg{Code: tea.KeyEnter}); second != nil {
+		t.Error("a second edit began")
+	}
+	settle(t, w.m, began)
+	if w.opened != 1 {
+		t.Errorf("opened %d times", w.opened)
+	}
+	if l, err := w.m.opt.Editor.State.Lock(a.ID); err == nil {
+		_ = l.Release()
+	} else {
+		t.Errorf("a lock stayed: %v", err)
+	}
+}
+
+func TestKeysWaitForAPush(t *testing.T) {
+	for _, k := range []string{"esc", "e", "y", "J"} {
+		t.Run(k, func(t *testing.T) {
+			w, g := one(t, map[string]string{"a.txt": "a\n"})
+			w.type_("edited\n")
+			enter(t, w.m)
+			pushing := hold(w.m, keyMsg("y"))
+			press(t, w.m, k)
+			settle(t, w.m, pushing)
+			if got := len(w.s.Get(g.ID).Revisions); got != 2 {
+				t.Errorf("%d revisions", got)
+			}
+			if w.opened != 1 {
+				t.Errorf("opened %d times", w.opened)
+			}
+			if len(w.m.writing) != 0 {
+				t.Errorf("still writing: %v", w.m.writing)
+			}
+			if w.m.uiState() != uiList {
+				t.Errorf("state is %s", w.m.uiState())
+			}
+			enter(t, w.m)
+			if w.opened != 2 {
+				t.Error("the gist cannot be edited again")
+			}
+		})
+	}
+}
+
+func TestKeysWaitForAnInputToBeSent(t *testing.T) {
+	w, g := one(t, map[string]string{"a.txt": "a\n", "b.txt": "b\n"})
+	press(t, w.m, "r")
+	clearInput(t, w.m)
+	typeText(t, w.m, "c.txt")
+	sending := hold(w.m, tea.KeyPressMsg{Code: tea.KeyEnter})
+	press(t, w.m, "esc", "x")
+	settle(t, w.m, sending)
+	if _, ok := w.s.Get(g.ID).Revisions[0].Files["c.txt"]; !ok {
+		t.Error("not renamed")
+	}
+	if len(w.m.writing) != 0 {
+		t.Errorf("still writing: %v", w.m.writing)
+	}
+	_ = screen(w.m)
+}
+
+func TestAResultGoesToTheListsThatHaveTheGist(t *testing.T) {
+	w, g := one(t, map[string]string{"a.txt": "a\n", "b.txt": "b\n"})
+	press(t, w.m, "D")
+	removing := hold(w.m, keyMsg("f"))
+	press(t, w.m, "2")
+	settle(t, w.m, removing)
+	if got := len(w.m.tabs[tabStarred].gists); got != 0 {
+		t.Errorf("my gist went into the starred list: %d", got)
+	}
+	if got := len(w.m.tabs[tabMine].gists[0].Files); got != 1 {
+		t.Errorf("%d files in my list", got)
+	}
+	_ = g
+}
+
+func TestDeletingAGistTakesItsDrafts(t *testing.T) {
+	w, g := one(t, map[string]string{"a.txt": "a\n"})
+	w.type_("edited\n")
+	enter(t, w.m)
+	press(t, w.m, "esc", "D", "y")
+	if _, ok := w.draft(g.ID, "a.txt"); ok {
+		t.Error("the draft stayed")
+	}
+	if len(w.m.drafts) != 0 {
+		t.Errorf("drafts are %v", w.m.drafts)
+	}
+}
+
+func TestDraftsOfAGistGoneAreToldOf(t *testing.T) {
+	w, g := one(t, map[string]string{"a.txt": "a\n"})
+	w.type_("edited\n")
+	enter(t, w.m)
+	press(t, w.m, "esc")
+	w.s.Remove(g.ID)
+	m := New(w.m.opt)
+	m.clockless = true
+	t.Cleanup(m.cancel)
+	_, cmd := m.Update(tea.WindowSizeMsg{Width: 120, Height: 34})
+	settle(t, m, cmd)
+	settle(t, m, m.Init())
+	if s := screen(m); !strings.Contains(s, "drafts of 1 gist no longer on GitHub are kept in") {
+		t.Errorf("got:\n%s", s)
+	}
+	if _, ok := w.draft(g.ID, "a.txt"); !ok {
+		t.Error("the draft went")
+	}
+}
+
+func TestQuittingAtTheDiffKeepsTheDraft(t *testing.T) {
+	w, g := one(t, map[string]string{"a.txt": "a\n"})
+	w.type_("edited\n")
+	enter(t, w.m)
+	_, cmd := w.m.Update(keyMsg("ctrl+c"))
+	if !isQuit(cmd) {
+		t.Fatal("did not quit")
+	}
+	if d, ok := w.draft(g.ID, "a.txt"); !ok || d != "edited\n" {
+		t.Errorf("got %q, %v", d, ok)
 	}
 }
 
