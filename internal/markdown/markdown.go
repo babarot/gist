@@ -10,7 +10,6 @@ package markdown
 import (
 	"net/url"
 	"regexp"
-	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -383,7 +382,7 @@ func cut(l Line, width int) Line {
 	if lineWidth(l) <= width {
 		return l
 	}
-	l = slices.Clone(l)
+	l = firstOfLine(l, width*maxCellBytes)
 	for len(l) > 0 && lineWidth(l) > width-1 {
 		last := &l[len(l)-1]
 		_, n := utf8.DecodeLastRuneInString(last.Text)
@@ -398,6 +397,21 @@ func cut(l Line, width int) Line {
 	end := l[len(l)-1]
 	end.Text = "…"
 	return append(l, end)
+}
+
+// firstOfLine is the start of l, up to n bytes. Cutting measures after each
+// character it takes off, so what it starts from has to be short.
+func firstOfLine(l Line, n int) Line {
+	var out Line
+	for _, s := range l {
+		if n <= 0 {
+			break
+		}
+		s.Text = firstBytes(s.Text, n)
+		n -= len(s.Text)
+		out = append(out, s)
+	}
+	return out
 }
 
 func lineWidth(l Line) int {

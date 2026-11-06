@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/babarot/gist/v2/internal/text"
 )
@@ -133,6 +134,32 @@ func TestATableOfManyColumnsDoesNotTakeLong(t *testing.T) {
 	}
 	if w := text.Width(plain(Render(large, 80))[0]); w > 80 {
 		t.Errorf("%d wide", w)
+	}
+}
+
+// TestALongLineDoesNotTakeLong gives each a minute, far more than any machine
+// needs: without the bound on cutting a line, these take hours.
+func TestALongLineDoesNotTakeLong(t *testing.T) {
+	line := strings.Repeat("日本語 x", 200000)
+	for name, src := range map[string]string{
+		"code block":  "```\n" + line + "\n```",
+		"indented":    "    " + line,
+		"prose":       line,
+		"table":       "|" + line + "|",
+		"a long word": strings.ReplaceAll(line, " ", ""),
+	} {
+		t.Run(name, func(t *testing.T) {
+			done := make(chan struct{})
+			go func() {
+				Render(src, 80)
+				close(done)
+			}()
+			select {
+			case <-done:
+			case <-time.After(time.Minute):
+				t.Fatal("it took too long")
+			}
+		})
 	}
 }
 
