@@ -177,6 +177,18 @@ func (c *canvas) box(x, y, w, h int, border, bg color.Color) {
 }
 
 // String is the screen, as the terminal is to draw it.
+// dim takes the colors from the rows above bottom: text in fg, and no background.
+func (c *canvas) dim(bottom int, fg color.Color) {
+	for _, row := range c.rows[:max(0, min(bottom, c.h))] {
+		for i := range row {
+			row[i].style = style{}
+			if row[i].text != " " {
+				row[i].style.fg = fg
+			}
+		}
+	}
+}
+
 func (c *canvas) String() string {
 	var b strings.Builder
 	for y, row := range c.rows {

@@ -1205,3 +1205,39 @@ func TestGoldenThemes(t *testing.T) {
 	light.pal = themes[config.ThemeLatte]
 	golden(t, "theme-light", light.render())
 }
+
+func TestWhatIsUnderABoxIsDimmed(t *testing.T) {
+	cases := states(t, 120, 34)
+	for st, m := range cases {
+		c := m.paint()
+		if st == uiAuthFail {
+			continue
+		}
+		over := st != uiList && st != uiListComments && st != uiFilter
+		l := m.layout()
+		cl := c.rows[l.listY][1] // at the left of the list, where no box reaches
+		foot := c.rows[l.keysY][0]
+		if foot.text != " " && foot.style.fg == m.pal.dim {
+			t.Errorf("%s: the key line is dimmed", st)
+		}
+		if got := c.rows[0][0].style.fg == m.pal.dim; got != over {
+			t.Errorf("%s: the header dimmed: %v", st, got)
+		}
+		if over && cl.style.bg != nil {
+			t.Errorf("%s: a background stayed under the box: %+v", st, cl.style)
+		}
+	}
+}
+
+func TestTheKeyListIsDimmedUnderTheNotes(t *testing.T) {
+	m := releaseModel(t, &Release{Version: "2.0.0", Running: "2.0.0", Source: twoReleases()}, 120, 34)
+	press(t, m, "?")
+	x := (120 - 96) / 2 // the left of the key list's frame, on its top row
+	if got := m.paint().rows[4][x]; got.style.fg != m.pal.blue {
+		t.Fatalf("the frame of the key list is %+v", got)
+	}
+	press(t, m, "w")
+	if got := m.paint().rows[4][x]; got.style.fg != m.pal.dim {
+		t.Errorf("under the notes it is %+v", got)
+	}
+}

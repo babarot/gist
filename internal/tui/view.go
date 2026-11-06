@@ -65,22 +65,33 @@ func (m *Model) layout() layout {
 }
 
 func (m *Model) render() string {
+	c := m.paint()
+	if c == nil {
+		return ""
+	}
+	return c.String()
+}
+
+// paint draws the screen. What is open over it goes last, with what is under it
+// dimmed, as it takes no keys while the box is open. The two lines at the foot
+// stay as they are: they say what the box does.
+func (m *Model) paint() *canvas {
 	m.hits = nil
 	if m.width <= 0 || m.height <= 0 {
-		return ""
+		return nil
 	}
 	c := newCanvas(m.width, m.height)
 	if m.uiState() == uiAuthFail {
 		m.drawAuthFail(c)
 		m.drawFooter(c, m.layout())
-		return c.String()
+		return c
 	}
 	if m.opt.FormOnly {
 		if m.form != nil {
 			m.drawForm(c)
 		}
 		m.drawFooter(c, m.layout())
-		return c.String()
+		return c
 	}
 	l := m.layout()
 	m.drawHeader(c)
@@ -91,11 +102,16 @@ func (m *Model) render() string {
 	m.drawList(c, l)
 	m.drawPreview(c, l)
 	m.drawFooter(c, l)
-	switch m.uiState() {
+	st := m.uiState()
+	if st != uiList && st != uiListComments && st != uiFilter {
+		c.dim(l.statusY, m.pal.dim)
+	}
+	switch st {
 	case uiHelp:
 		m.drawHelp(c)
 	case uiReleaseNotes:
 		m.drawHelp(c)
+		c.dim(l.statusY, m.pal.dim)
 		m.drawReleases(c)
 	case uiConfirmPush:
 		m.drawDiff(c)
@@ -112,7 +128,7 @@ func (m *Model) render() string {
 	case uiNew:
 		m.drawForm(c)
 	}
-	return c.String()
+	return c
 }
 
 func (m *Model) drawHeader(c *canvas) {
