@@ -144,13 +144,34 @@ func (m *Model) gotList(msg listDoneMsg) tea.Cmd {
 	m.keep(t, l)
 	if first {
 		m.replace(t, l.Gists)
-		m.line.Say(m.now(), fmt.Sprintf("✓ %d gists · saved to the cache", len(l.Gists)))
+		m.line.Say(m.now(), fmt.Sprintf("✓ %s · saved to the cache", gistCount(len(l.Gists))))
 		return nil
 	}
 	added, updated, gone := m.compare(t, old, l.Gists)
+	m.forgetGone(old, l.Gists)
 	m.replace(t, l.Gists)
 	m.line.Say(m.now(), summary(added, updated, gone))
 	return nil
+}
+
+// forgetGone drops what is kept of gists no longer there, which may be secret
+// and should not stay on the disk.
+func (m *Model) forgetGone(old, now []model.Gist) {
+	for _, g := range old {
+		if !slices.ContainsFunc(now, func(n model.Gist) bool { return n.ID == g.ID }) {
+			m.preview.forget(g.ID)
+			if err := m.preview.disk.Remove(g.ID); err != nil {
+				m.opt.Log.Warn("the kept content cannot be removed", "gist", g.ID, "err", err.Error())
+			}
+		}
+	}
+}
+
+func gistCount(n int) string {
+	if n == 1 {
+		return "1 gist"
+	}
+	return fmt.Sprintf("%d gists", n)
 }
 
 // keep saves the list. A list not kept costs the next launch a reading, which
@@ -183,6 +204,9 @@ func (m *Model) compare(t *tab, old, now []model.Gist) (added, updated, gone int
 		case g.Updated.After(was.Updated):
 			updated++
 			mark(g.ID)
+		}
+		if ok && g.Comments != was.Comments {
+			delete(m.preview.comments, g.ID)
 		}
 		delete(before, g.ID)
 	}
@@ -230,7 +254,7 @@ func (m *Model) gotStarred(msg starredMsg) {
 	if msg.seq != t.seq {
 		return
 	}
-	t.reading = false
+	t.reading, t.readOnce = false, true
 	if msg.err != nil {
 		m.line.Fail(m.now(), msg.err.Error())
 		return

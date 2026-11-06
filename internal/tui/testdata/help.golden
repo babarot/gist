@@ -5,26 +5,26 @@ gist // @alice     1 mine (5)    2 starred (…)                                
     no-descr╭ keys ────────────────────────────────────────────────────────────────────────────────────────╮et       2d
     emoji ❤️│                                                                                              │et      4mo
     escape s│ move                                          view                                           │et      10y
-            │ j/k    down / up                              o      open in the browser                     │
-            │ g/G    top / bottom                           y      copy the URL                            │
-            │ h/l    prev / next file                       R      refresh now                             │
-            │ 1      mine                                   ?      this help                               │
-╭  main.go  │ 2      starred                                q      quit                                    │───────────╮
+            │ j/k    down / up                              c      info / comments                         │
+            │ g/G    top / bottom                           m      markdown / plain                        │
+            │ J/K    scroll the preview                     o      open in the browser                     │
+            │ h/l    prev / next file                       y      copy the URL                            │
+╭  main.go  │ 1      mine                                   R      refresh now                             │)  ────────╮
+│    1  cont│ 2      starred                                ?      this help                               │           │
+│           │                                               q      quit                                    │           │
+│           │                                                                                              │KB         │
 │           │                                                                                              │           │
-│           │                                                                                              │           │
-│           ╰──────────────────────────────────────────────────────────────────────────────────────────────╯KB         │
-│                                                                                      │ comments   3                  │
+│           ╰──────────────────────────────────────────────────────────────────────────────────────────────╯           │
 │                                                                                      │ created    10m ago            │
 │                                                                                      │ updated    5m ago             │
 │                                                                                      │                               │
 │                                                                                      │ file       main.go            │
-│                                                                                      │ type       Go                 │
-│                                                                                      │ size       1.2 KB             │
+│                                                                                      │ type       go                 │
+│                                                                                      │ size       1.2 KB · 1 lines   │
 │                                                                                      │                               │
 │                                                                                      │                               │
 │                                                                                      │                               │
 │                                                                                      │                               │
-│                                                                                      │                               │
-╰──────────────────────────────────────────────────────────────────────────────────────┴────────── 1111111 · h/l file ─╯
+╰──────────────────────────────────────────────────────────────────────────────────── 1111111 · h/l file · c comments ─╯
 ✓ 5 gists · saved to the cache
 esc close

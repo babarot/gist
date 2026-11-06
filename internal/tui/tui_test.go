@@ -70,6 +70,13 @@ type source struct {
 	calls   [][]string
 	// viewerErr fails the question of who the token belongs to.
 	viewerErr error
+	// files are the files Get gives, by name, and gets the gists it was asked for.
+	files  map[string]model.File
+	gets   []string
+	getErr error
+	// comments are by gist, and commentReads the gists they were asked for.
+	comments     map[string][]model.Comment
+	commentReads []string
 }
 
 func (s *source) Viewer(context.Context) (string, error) {
@@ -96,6 +103,48 @@ func (s *source) List(_ context.Context, etags []string, got func(model.ListPage
 }
 
 func (s *source) Starred(context.Context) ([]model.Gist, error) { return s.starred, s.err }
+
+// Get is the gist with content for each file, from s.files by name.
+func (s *source) Get(_ context.Context, id string) (model.Gist, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.gets = append(s.gets, id)
+	if s.getErr != nil {
+		return model.Gist{}, s.getErr
+	}
+	for _, g := range slices.Concat(s.listed(), s.starred) {
+		if g.ID != id {
+			continue
+		}
+		g.History = []string{"r2", "r1"}
+		g.Files = slices.Clone(g.Files)
+		for i := range g.Files {
+			f := &g.Files[i]
+			if c, ok := s.files[f.Name]; ok {
+				*f = c
+				continue
+			}
+			f.Content = "content of " + f.Name + "\n"
+		}
+		return g, nil
+	}
+	return model.Gist{}, errors.New("no such gist")
+}
+
+func (s *source) listed() []model.Gist {
+	var out []model.Gist
+	for _, p := range s.pages {
+		out = append(out, p.Gists...)
+	}
+	return out
+}
+
+func (s *source) Comments(_ context.Context, id string) ([]model.Comment, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.commentReads = append(s.commentReads, id)
+	return s.comments[id], nil
+}
 
 type layoutStore struct{ h int }
 
@@ -125,7 +174,8 @@ func newModel(t *testing.T, o Options, w, h int) *Model {
 	m := New(o)
 	m.clockless = true
 	t.Cleanup(m.cancel)
-	m.Update(tea.WindowSizeMsg{Width: w, Height: h})
+	_, cmd := m.Update(tea.WindowSizeMsg{Width: w, Height: h})
+	settle(t, m, cmd)
 	return m
 }
 
@@ -557,6 +607,9 @@ func states(t *testing.T, w, h int) map[uiState]*Model {
 	t.Helper()
 	list := func() *Model { return loaded(t, fixture(), w, h) }
 	out := map[uiState]*Model{uiList: list()}
+	comments := list()
+	press(t, comments, "c")
+	out[uiListComments] = comments
 	help := list()
 	press(t, help, "?")
 	out[uiHelp] = help
@@ -566,6 +619,7 @@ func states(t *testing.T, w, h int) map[uiState]*Model {
 	return out
 }
 
+// TestEveryStateHasAModelHere needs the states named here.
 func TestEveryStateHasAModelHere(t *testing.T) {
 	got := states(t, 120, 34)
 	for s := range numUIStates {
@@ -782,7 +836,7 @@ func TestDragThePreviewsEdge(t *testing.T) {
 	m := newModel(t, o, 120, 34)
 	settle(t, m, m.Init())
 	l := m.layout()
-	click(t, m, 100, l.boxY)
+	click(t, m, 60, l.boxY)
 	if !m.dragging {
 		t.Fatal("not dragging")
 	}
@@ -802,7 +856,7 @@ func TestDragThePreviewsEdge(t *testing.T) {
 
 func TestDragStopsWhereThePartsWouldGo(t *testing.T) {
 	m := loaded(t, manyGists(1), 120, 34)
-	click(t, m, 100, m.layout().boxY)
+	click(t, m, 60, m.layout().boxY)
 	m.Update(tea.MouseMotionMsg{X: 100, Y: 0})
 	if got := m.layout().listRows; got != minListRows {
 		t.Errorf("list has %d rows", got)

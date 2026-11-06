@@ -43,6 +43,8 @@ type File struct {
 	// Truncated cuts it. Editing and printing use the raw content instead.
 	Content   string `json:"content,omitempty"`
 	Truncated bool   `json:"truncated,omitempty"`
+	// Binary says a file read whole is not text. Content then means nothing.
+	Binary bool `json:"binary,omitempty"`
 }
 
 // Comment is a comment on a gist.
