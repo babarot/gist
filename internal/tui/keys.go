@@ -109,6 +109,10 @@ func (m *Model) listKey(k string) tea.Cmd {
 		return m.readCommentsNow()
 	case on(keymap.ToggleMD):
 		m.plain = !m.plain
+	case on(keymap.PreviewGrow):
+		m.resizeBox(m.layout().boxH + 1)
+	case on(keymap.PreviewShrink):
+		m.resizeBox(m.layout().boxH - 1)
 	case on(keymap.Edit):
 		return m.startEdit()
 	case on(keymap.Delete):
@@ -220,7 +224,7 @@ func (m *Model) keyHints() []hint {
 	case uiInputConflict:
 		return []hint{k("overwrite", keymap.Overwrite), k("reload", keymap.Reload), {keymap.Back, "cancel"}}
 	case uiFilter:
-		return []hint{{"enter", "keep"}, {keymap.Back, "clear"}, {"↑/↓", "move"}}
+		return []hint{{"enter", "keep"}, {"tab", "complete"}, {keymap.Back, "clear"}, {"↑/↓", "move"}}
 	case uiNew:
 		return []hint{{"tab", "next"}, k("$EDITOR", keymap.OpenEditor), k("create", keymap.Create), {keymap.Back, "cancel"}}
 	}
@@ -297,6 +301,7 @@ var helpGroups = []helpGroup{
 	{"view", []helpRow{
 		{[]keymap.Action{keymap.ToggleSide}, "info / comments"},
 		{[]keymap.Action{keymap.ToggleMD}, "markdown / plain"},
+		{[]keymap.Action{keymap.PreviewGrow, keymap.PreviewShrink}, "preview height"},
 		{[]keymap.Action{keymap.Filter}, "fuzzy filter"},
 		{[]keymap.Action{keymap.Browse}, "open in the browser"},
 		{[]keymap.Action{keymap.CopyURL}, "copy the URL"},

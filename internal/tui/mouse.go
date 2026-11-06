@@ -104,10 +104,23 @@ func (m *Model) wheel(msg tea.MouseWheelMsg, x, y int) {
 
 // dragTo sets the preview's height from the row its top edge was dragged to.
 func (m *Model) dragTo(y int) {
-	l := m.layout()
-	m.boxHeight = max(minBoxRows, l.statusY-y)
+	m.setBoxHeight(m.layout().statusY - y)
+}
+
+// setBoxHeight sets the preview's height, as far as the terminal has room.
+func (m *Model) setBoxHeight(h int) {
+	m.boxHeight = max(minBoxRows, h)
 	m.boxHeight = m.layout().boxH
 	m.keepCursorShown()
+}
+
+// resizeBox sets the preview's height and keeps it for the next start.
+func (m *Model) resizeBox(h int) {
+	was := m.boxHeight
+	m.setBoxHeight(h)
+	if m.boxHeight != was {
+		m.keepBoxHeight()
+	}
 }
 
 func (m *Model) keepBoxHeight() {

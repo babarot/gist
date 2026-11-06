@@ -6,6 +6,8 @@ package filter
 import (
 	"slices"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // The keys, with their colon.
@@ -45,6 +47,48 @@ func Parse(s string) Query {
 		q.Words = append(q.Words, w)
 	}
 	return q
+}
+
+// LastWord is the word query ends with, "" after a space.
+func LastWord(query string) string {
+	i := strings.LastIndexFunc(query, unicode.IsSpace)
+	if i < 0 {
+		return query
+	}
+	_, n := utf8.DecodeRuneInString(query[i:])
+	return query[i+n:]
+}
+
+// KeyRest is what is left to type of the key the last word of query starts,
+// with its colon, once that word has two letters and fits one key only. A word
+// of a description often starts like a key, so one letter is too little.
+func KeyRest(query string) string {
+	w := strings.ToLower(LastWord(query))
+	if utf8.RuneCountInString(w) < 2 || strings.Contains(w, ":") {
+		return ""
+	}
+	rest, found := "", 0
+	for _, k := range Keys {
+		if strings.HasPrefix(k, w) {
+			rest = k[len(w):]
+			found++
+		}
+	}
+	if found != 1 {
+		return ""
+	}
+	return rest
+}
+
+// ValueTerm says word is a key whose values can be listed, with what it has of
+// a value so far. A description has none: it is whatever was written.
+func ValueTerm(word string) (key, value string, ok bool) {
+	k, v, found := strings.Cut(word, ":")
+	key = strings.ToLower(k) + ":"
+	if !found || !slices.Contains([]string{FileKey, VisKey, LangKey}, key) {
+		return "", "", false
+	}
+	return key, v, true
 }
 
 // Empty says the query narrows nothing.

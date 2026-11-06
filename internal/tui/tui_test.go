@@ -1046,6 +1046,50 @@ func TestDragThePreviewsEdge(t *testing.T) {
 	}
 }
 
+func TestKeysChangeThePreviewsHeight(t *testing.T) {
+	store := &layoutStore{}
+	o := options(t, &source{pages: onePage(manyGists(1))})
+	o.Layout = store
+	m := newModel(t, o, 120, 34)
+	settle(t, m, m.Init())
+	was := m.layout().boxH
+	press(t, m, "+")
+	press(t, m, "+")
+	if got := m.layout().boxH; got != was+2 || store.h != was+2 {
+		t.Errorf("height is %d, kept %d, was %d", got, store.h, was)
+	}
+	press(t, m, "-")
+	if got := m.layout().boxH; got != was+1 || store.h != was+1 {
+		t.Errorf("height is %d, kept %d, was %d", got, store.h, was)
+	}
+}
+
+func TestHeightKeysStopAtTheEnds(t *testing.T) {
+	store := &layoutStore{}
+	o := options(t, &source{pages: onePage(manyGists(1))})
+	o.Layout = store
+	m := newModel(t, o, 120, 34)
+	settle(t, m, m.Init())
+	for range 60 {
+		press(t, m, "+")
+	}
+	top := m.layout().boxH
+	if m.layout().listRows < minListRows {
+		t.Errorf("%d rows of the list left", m.layout().listRows)
+	}
+	store.h = -1
+	press(t, m, "+")
+	if m.layout().boxH != top || store.h != -1 {
+		t.Errorf("height is %d, kept %d", m.layout().boxH, store.h)
+	}
+	for range 60 {
+		press(t, m, "-")
+	}
+	if got := m.layout().boxH; got != minBoxRows {
+		t.Errorf("height is %d", got)
+	}
+}
+
 func TestDragStopsWhereThePartsWouldGo(t *testing.T) {
 	m := loaded(t, manyGists(1), 120, 34)
 	click(t, m, 60, m.layout().boxY)

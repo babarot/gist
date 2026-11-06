@@ -7,16 +7,16 @@ gist // @alice     1 mine (5)    2 starred (…)                                
     escape s│ move                          act                           view                             │et      10y
             │ j/k       down / up           enter     edit, then push     c         info / comments        │
             │ g/G       top / bottom        n         new gist            m         markdown / plain       │
-            │ PgDn/PgUp page down / up      E         edit the descripti… /         fuzzy filter           │
-            │ J/K       scroll the preview  r         rename the file     o         open in the browser    │
-╭  main.go  │ h/l       prev / next file    D         delete              y         copy the URL           │)  ────────╮
-│    1  cont│ 1         mine                X         discard the draft   R         refresh now            │           │
-│           │ 2         starred                                           ?         this help              │           │
-│           │                                                             q         quit                   │KB         │
+            │ PgDn/PgUp page down / up      E         edit the descripti… +/-       preview height         │
+            │ J/K       scroll the preview  r         rename the file     /         fuzzy filter           │
+╭  main.go  │ h/l       prev / next file    D         delete              o         open in the browser    │)  ────────╮
+│    1  cont│ 1         mine                X         discard the draft   y         copy the URL           │           │
+│           │ 2         starred                                           R         refresh now            │           │
+│           │                                                             ?         this help              │KB         │
+│           │                                                             q         quit                   │           │
 │           │                                                                                              │           │
 │           │                                                                                              │           │
 │           ╰──────────────────────────────────────────────────────────────────────────────────────────────╯           │
-│                                                                                      │ updated    5m ago             │
 │                                                                                      │                               │
 │                                                                                      │ file       main.go            │
 │                                                                                      │ type       go                 │
