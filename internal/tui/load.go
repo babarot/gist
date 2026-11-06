@@ -45,10 +45,15 @@ func (m *Model) gotViewer(msg viewerMsg) tea.Cmd {
 			t := &m.tabs[i]
 			t.gists, t.list, t.loaded, t.cur, t.top = nil, cache.List{}, false, 0, 0
 		}
-		// What was kept of another account's gists goes with its lists
-		m.preview = newPreviewState(m.preview.dir)
-		if err := m.preview.disk.Clear(); err != nil {
-			m.opt.Log.Warn("the kept contents cannot be removed", "err", err.Error())
+		// What was kept of another account's gists goes with its lists. Reads
+		// under way still end, and still count until they do
+		if m.login != "" {
+			running, reading := m.preview.running, m.preview.reading
+			m.preview = newPreviewState(m.preview.dir)
+			m.preview.running, m.preview.reading = running, reading
+			if err := m.preview.disk.Clear(); err != nil {
+				m.opt.Log.Warn("the kept contents cannot be removed", "err", err.Error())
+			}
 		}
 		m.openStores(msg.login)
 	}

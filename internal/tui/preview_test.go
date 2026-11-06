@@ -246,6 +246,21 @@ func TestAnotherAccountsContentGoes(t *testing.T) {
 	}
 }
 
+func TestReadsUnderWayStillCountAfterTheAccountChanged(t *testing.T) {
+	src := &source{login: "bob", pages: onePage(nil)}
+	m := newModel(t, options(t, src), 120, 34)
+	m.login = "alice"
+	m.preview.running, m.preview.reading["x"] = 1, true
+	m.Update(viewerMsg{login: "bob"})
+	if m.preview.running != 1 {
+		t.Fatalf("%d running", m.preview.running)
+	}
+	m.Update(contentMsg{id: "x", notKept: true})
+	if m.preview.running != 0 {
+		t.Errorf("%d running", m.preview.running)
+	}
+}
+
 func TestNothingIsAskedBeforeTheAccountIsKnown(t *testing.T) {
 	src := &source{login: "bob", pages: onePage(nil)}
 	o := options(t, src)
