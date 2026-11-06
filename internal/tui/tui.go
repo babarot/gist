@@ -123,7 +123,9 @@ type Model struct {
 	discarding                *discarding
 	// sending says something is on its way that the screen depends on the end of,
 	// so that no key can act until it ends.
-	sending      bool
+	sending bool
+	// quitErr is what to say once the terminal is back.
+	quitErr      error
 	warnedDrafts bool
 	// writing are the gists being written to, and drafts those with drafts.
 	writing map[string]string
@@ -220,7 +222,10 @@ func Run(o Options) error {
 	m := New(o)
 	defer m.cancel()
 	_, err := tea.NewProgram(m).Run()
-	return err
+	if err != nil {
+		return err
+	}
+	return m.quitErr
 }
 
 // Init asks for the terminal's background and who the token belongs to, which

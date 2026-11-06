@@ -44,9 +44,15 @@ func (m *Model) key(msg tea.KeyPressMsg) tea.Cmd {
 	return m.listKey(k)
 }
 
-// quit ends. An edit in progress has its draft and lock taken care of: the
-// draft is on disk, and the lock goes with the process.
+// quit ends. An edit past the editor is in a draft already, and the lock goes
+// with the process. One whose files were not read back yet is read back first:
+// they would be left where nobody knows of them.
 func (m *Model) quit() tea.Cmd {
+	if e := m.editing; e != nil && e.work != nil && !e.ready {
+		if _, err := e.work.ReadBack(e.session); err != nil {
+			m.quitErr = err
+		}
+	}
 	m.cancel()
 	return tea.Quit
 }
