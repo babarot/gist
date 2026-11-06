@@ -665,9 +665,16 @@ func TestTheKeyListOverWideCharacters(t *testing.T) {
 			}
 			m := loaded(t, gists, w, 34)
 			press(t, m, "?")
-			for i, l := range strings.Split(m.render(), "\n") {
-				if got := ansi.StringWidth(l); got > w {
-					t.Errorf("%d: line %d is %d wide", w, i, got)
+			// A cell too many on a row moves the frame's right edge out of line
+			boxW := min(96, w-8)
+			edge := (w-boxW)/2 + boxW - 1
+			for i, l := range strings.Split(screen(m), "\n") {
+				at := strings.LastIndexAny(l, "│╮╯")
+				if i < 4 || at < 0 || i > 11 {
+					continue
+				}
+				if got := ansi.StringWidth(l[:at]); got != edge {
+					t.Errorf("%d%s: row %d has the frame's edge at %d, want %d", w, shift, i, got, edge)
 				}
 			}
 		}
