@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/babarot/gist/v2/internal/fakegist"
 	"github.com/babarot/gist/v2/internal/logging"
@@ -508,5 +509,22 @@ func TestLogHoldsNoBodies(t *testing.T) {
 		if strings.Contains(log, secret) {
 			t.Errorf("the log holds %q: %s", secret, log)
 		}
+	}
+}
+
+func TestReleases(t *testing.T) {
+	c, srv := client(t)
+	at := time.Date(2026, 11, 7, 0, 0, 0, 0, time.UTC)
+	srv.Releases = []fakegist.Release{
+		{TagName: "v2.1.0", Draft: true},
+		{TagName: "v2.1.0-rc.1", Prerelease: true},
+		{TagName: "v2.0.0", PublishedAt: at, Body: "notes"},
+	}
+	got, err := c.Releases(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].Version != "2.0.0" || got[0].Body != "notes" || !got[0].Published.Equal(at) {
+		t.Errorf("got %+v", got)
 	}
 }

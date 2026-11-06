@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"image/color"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -219,7 +220,7 @@ func (m *Model) drawPreview(c *canvas, l layout) {
 	if read && !f.Binary {
 		k := fileKey{g.ID, f.Name}
 		inner, rows := l.boxH-2, m.contentRows(g, f)
-		m.drawThumb(c, min(dx, c.w-1), l.boxY+1, inner, min(m.preview.scroll[k], max(0, rows-inner)), rows)
+		m.drawThumb(c, min(dx, c.w-1), l.boxY+1, inner, min(m.preview.scroll[k], max(0, rows-inner)), rows, p.overlay)
 	}
 	// Last, as they can run longer than the pane they end under
 	m.drawHints(c, l, g, f, read)
@@ -595,7 +596,7 @@ func (m *Model) drawComments(c *canvas, l layout, g model.Gist, x int) {
 		}
 		c.putCut(top+i, x, lines[off+i], w, style{fg: p.overlay})
 	}
-	m.drawThumb(c, c.w-1, top, rows, off, len(lines))
+	m.drawThumb(c, c.w-1, top, rows, off, len(lines), m.pal.overlay)
 }
 
 // thumbAt places a scrollbar's thumb on a track of room rows, for a view of room
@@ -614,14 +615,14 @@ func thumbAt(first, room, total int) (from, to int) {
 	return from, from + size
 }
 
-// drawThumb draws a scrollbar on the line at column x, when there is more than
-// shows.
-func (m *Model) drawThumb(c *canvas, x, top, room, first, total int) {
+// drawThumb draws a scrollbar on the line at column x, in fg, when there is more
+// than shows. It has to stand out from the frame it is drawn on.
+func (m *Model) drawThumb(c *canvas, x, top, room, first, total int, fg color.Color) {
 	if room <= 0 || total <= room {
 		return
 	}
 	from, to := thumbAt(first, room, total)
 	for i := from; i < to; i++ {
-		c.put(top+i, x, "┃", style{fg: m.pal.overlay})
+		c.put(top+i, x, "┃", style{fg: fg})
 	}
 }

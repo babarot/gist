@@ -41,6 +41,7 @@ const (
 	ToggleMD      Action = "toggle_markdown"
 	PreviewGrow   Action = "preview_grow"
 	PreviewShrink Action = "preview_shrink"
+	ReleaseNotes  Action = "release_notes"
 	Edit          Action = "edit"
 	Delete        Action = "delete"
 	Describe      Action = "edit_description"
@@ -69,7 +70,7 @@ const (
 )
 
 // boxActions are read over the screen, not on the list.
-var boxActions = []Action{Confirm, Overwrite, Reload, OnlyFile, EditAgain, Create, OpenEditor}
+var boxActions = []Action{Confirm, Overwrite, Reload, OnlyFile, EditAgain, Create, OpenEditor, ReleaseNotes}
 
 // sharedActions are read on the list and in the box of a diff, so their keys
 // must not be those of what that box does.
@@ -113,6 +114,7 @@ var Defaults = []Def{
 	{ToggleMD, []string{"m"}, "markdown"},
 	{PreviewGrow, []string{"+"}, "taller preview"},
 	{PreviewShrink, []string{"-"}, "shorter preview"},
+	{ReleaseNotes, []string{"w"}, "release notes"},
 	{Edit, []string{"enter", "e"}, "edit"},
 	{Delete, []string{"D"}, "delete"},
 	{Describe, []string{"E"}, "desc"},

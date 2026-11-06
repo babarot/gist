@@ -94,6 +94,9 @@ func (m *Model) render() string {
 	switch m.uiState() {
 	case uiHelp:
 		m.drawHelp(c)
+	case uiReleaseNotes:
+		m.drawHelp(c)
+		m.drawReleases(c)
 	case uiConfirmPush:
 		m.drawDiff(c)
 	case uiConfirmConflict:
@@ -495,6 +498,9 @@ func (m *Model) drawHelp(c *canvas) {
 			c.putCut(y+3+i, gx, []seg{{keys, style{fg: p.blue, bold: true}}}, helpKeys, style{fg: p.overlay})
 			c.putCut(y+3+i, gx+helpKeys+1, []seg{{r.what, style{fg: p.text}}}, colW-helpKeys-2, style{fg: p.overlay})
 		}
+	}
+	if h == rows+6 {
+		m.drawAbout(c, x+2, y+h-2, w-4)
 	}
 }
 

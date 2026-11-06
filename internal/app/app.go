@@ -24,6 +24,7 @@ import (
 	"github.com/babarot/gist/v2/internal/github"
 	"github.com/babarot/gist/v2/internal/logging"
 	"github.com/babarot/gist/v2/internal/model"
+	"github.com/babarot/gist/v2/internal/release"
 	"github.com/babarot/gist/v2/internal/state"
 	"github.com/babarot/gist/v2/internal/tui"
 	"github.com/babarot/gist/v2/internal/tui/keymap"
@@ -134,7 +135,7 @@ func newRootCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobr
 	flags.BoolVar(&o.noColor, "no-color", false, "print no colors (the NO_COLOR environment variable does the same)")
 
 	root.AddCommand(
-		newVersionCommand(stdout),
+		newVersionCommand(stdout, stderr),
 		newLogCommand(stdout),
 		newConfigCommand(o, stdout),
 		newAuthCommand(o, stdout, stderr),
@@ -149,14 +150,21 @@ func newRootCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobr
 	return root
 }
 
-func newVersionCommand(stdout io.Writer) *cobra.Command {
+func newVersionCommand(stdout, stderr io.Writer) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "print the version and revision",
 		Args:  cobra.NoArgs,
 		RunE: func(*cobra.Command, []string) error {
-			_, err := fmt.Fprintln(stdout, version.String())
-			return err
+			if _, err := fmt.Fprintln(stdout, version.String()); err != nil {
+				return err
+			}
+			// Only what was found before: this reads nothing
+			seen := state.Open(xdg.StateDir()).ReleaseSeen()
+			if version.IsRelease() && release.Newer(seen.Latest, version.Version) {
+				fmt.Fprintf(stderr, "gist %s is out · %s\n", seen.Latest, updateHow())
+			}
+			return nil
 		},
 	}
 }
@@ -318,6 +326,9 @@ func (o *options) runTUI(cmd *cobra.Command, arg string, stdout, stderr io.Write
 		Browse: func(url string) error { return github.Browse(url, io.Discard, io.Discard) },
 	}
 	client, source, err := o.client()
+	if err == nil {
+		opt.Release = releaseOptions(&releaseSource{client, store}, os.Getenv(EnvNoUpdateCheck) == "", time.Now())
+	}
 	switch {
 	case errors.Is(err, github.ErrNoToken):
 		opt.NoToken = true

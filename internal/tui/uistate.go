@@ -10,6 +10,7 @@ const (
 	uiList            uiState = iota // the list, with info beside the preview
 	uiListComments                   // the list, with comments beside the preview
 	uiHelp                           // the key list
+	uiReleaseNotes                   // the release notes, over the key list
 	uiConfirmPush                    // the diff of an edit
 	uiConfirmConflict                // GitHub moved on from an edit
 	uiConfirmDelete                  // deleting a gist or a file
@@ -22,7 +23,7 @@ const (
 	numUIStates
 )
 
-var uiStateNames = [numUIStates]string{"list", "list, comments", "key list", "push", "conflict", "delete",
+var uiStateNames = [numUIStates]string{"list", "list, comments", "key list", "release notes", "push", "conflict", "delete",
 	"discard", "input", "input conflict", "filter", "new", "no token"}
 
 func (s uiState) String() string { return uiStateNames[s] }
@@ -47,6 +48,8 @@ func (m *Model) uiState() uiState {
 		return uiConfirmDelete
 	case m.discarding != nil:
 		return uiConfirmDiscard
+	case m.relBox != nil:
+		return uiReleaseNotes
 	case m.helpOpen:
 		return uiHelp
 	case m.side == sideComments:

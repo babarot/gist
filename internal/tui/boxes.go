@@ -67,6 +67,7 @@ func (m *Model) drawDiff(c *canvas) {
 		}
 		c.putCut(y+1+i, x+2, []seg{{mark + l.Text, st}}, w-4, style{fg: p.overlay})
 	}
+	m.drawThumb(c, x+w-1, y+1, rows, e.scroll, len(e.diff.Lines), p.text)
 	fy := y + h - 2
 	fx := c.put(fy, x+2, "push this change to GitHub? ", style{fg: p.text})
 	m.keyLine(c, fy, fx, []hint{{m.keys.Hint(keymap.Confirm), "push"}, {m.keys.Hint(keymap.EditAgain), "edit again"}, {keymap.Back, "keep as draft"}})

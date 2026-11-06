@@ -28,6 +28,12 @@ func (m *Model) key(msg tea.KeyPressMsg) tea.Cmd {
 		if k == keymap.Back || m.keys.Matches(keymap.Help, k) {
 			m.helpOpen = false
 		}
+		if m.keys.Matches(keymap.ReleaseNotes, k) {
+			return m.openReleaseNotes()
+		}
+		return nil
+	case uiReleaseNotes:
+		m.releaseBoxKey(k)
 		return nil
 	case uiConfirmPush:
 		return m.diffKey(k)
@@ -207,7 +213,12 @@ func (m *Model) keyHints() []hint {
 	case uiAuthFail:
 		return []hint{k("quit", keymap.Quit)}
 	case uiHelp:
+		if m.opt.Release != nil {
+			return []hint{k("release notes", keymap.ReleaseNotes), {keymap.Back, "close"}}
+		}
 		return []hint{{keymap.Back, "close"}}
+	case uiReleaseNotes:
+		return []hint{k("scroll", keymap.Down, keymap.Up), k("top / bottom", keymap.Top, keymap.Bottom), {keymap.Back, "back"}}
 	case uiConfirmPush:
 		return []hint{k("push", keymap.Confirm), k("edit again", keymap.EditAgain), k("scroll", keymap.ScrollDown, keymap.ScrollUp), {keymap.Back, "keep as draft"}}
 	case uiConfirmConflict:

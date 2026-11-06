@@ -779,6 +779,46 @@ func TestDiffScrolls(t *testing.T) {
 	}
 }
 
+// diffThumb is the rows of column x of the diff box with a thumb on them.
+func diffThumb(m *Model, x int) []int {
+	c := newCanvas(m.width, m.height)
+	m.drawDiff(c)
+	var out []int
+	for y, row := range c.rows {
+		if row[x].text == "┃" {
+			out = append(out, y)
+		}
+	}
+	return out
+}
+
+func TestALongDiffShowsAThumb(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	w.type_(strings.Repeat("x\n", 200))
+	enter(t, w.m)
+	x := w.m.width - 5
+	top := diffThumb(w.m, x)
+	if len(top) == 0 || top[0] != 3 {
+		t.Fatalf("at the top: %v", top)
+	}
+	for range 300 {
+		press(t, w.m, "J")
+	}
+	bottom := diffThumb(w.m, x)
+	if len(bottom) == 0 || bottom[len(bottom)-1] != 2+w.m.diffRows() {
+		t.Errorf("at the end: %v, rows %d", bottom, w.m.diffRows())
+	}
+}
+
+func TestAShortDiffShowsNoThumb(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	w.type_("b\n")
+	enter(t, w.m)
+	if got := diffThumb(w.m, w.m.width-5); len(got) != 0 {
+		t.Errorf("got %v", got)
+	}
+}
+
 func TestDiffPages(t *testing.T) {
 	w, _ := one(t, map[string]string{"a.txt": "a\n"})
 	w.type_(strings.Repeat("x\n", 200))
