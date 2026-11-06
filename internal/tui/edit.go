@@ -354,7 +354,7 @@ func (m *Model) diffKey(k string) tea.Cmd {
 		m.endEdit()
 	case m.keys.Matches(keymap.Confirm, k):
 		return m.push(false)
-	case m.keys.Matches(keymap.Edit, k):
+	case m.keys.Matches(keymap.EditAgain, k):
 		return m.openEditor()
 	case m.keys.Matches(keymap.ScrollDown, k), m.keys.Matches(keymap.Down, k):
 		m.scrollDiff(1)

@@ -179,7 +179,7 @@ func (m *Model) keyHints() []hint {
 	case uiHelp:
 		return []hint{{keymap.Back, "close"}}
 	case uiConfirmPush:
-		return []hint{k("push", keymap.Confirm), k("edit again", keymap.Edit), k("scroll", keymap.ScrollDown, keymap.ScrollUp), {keymap.Back, "keep as draft"}}
+		return []hint{k("push", keymap.Confirm), k("edit again", keymap.EditAgain), k("scroll", keymap.ScrollDown, keymap.ScrollUp), {keymap.Back, "keep as draft"}}
 	case uiConfirmConflict:
 		return []hint{k("overwrite", keymap.Overwrite), k("reload", keymap.Reload), {keymap.Back, "keep as draft"}}
 	case uiConfirmDelete:

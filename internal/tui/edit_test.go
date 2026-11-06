@@ -208,6 +208,17 @@ func TestEditAgainFromTheDiff(t *testing.T) {
 	}
 }
 
+func TestEnterDoesNotReopenTheEditorFromTheDiff(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	w.type_("edited\n")
+	enter(t, w.m)
+	enter(t, w.m)
+	if w.opened != 1 {
+		t.Errorf("opened %d times", w.opened)
+	}
+	w.wants("e edit again")
+}
+
 func TestAnEditorThatFailsLosesNothing(t *testing.T) {
 	w, g := one(t, map[string]string{"a.txt": "a\n"})
 	w.type_("edited\n")

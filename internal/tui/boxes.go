@@ -68,7 +68,7 @@ func (m *Model) drawDiff(c *canvas) {
 	}
 	fy := y + h - 2
 	fx := c.put(fy, x+2, "push this change to GitHub? ", style{fg: p.text})
-	m.keyLine(c, fy, fx, []hint{{m.keys.Hint(keymap.Confirm), "push"}, {m.keys.Hint(keymap.Edit), "edit again"}, {keymap.Back, "keep as draft"}})
+	m.keyLine(c, fy, fx, []hint{{m.keys.Hint(keymap.Confirm), "push"}, {m.keys.Hint(keymap.EditAgain), "edit again"}, {keymap.Back, "keep as draft"}})
 }
 
 func (m *Model) drawConflict(c *canvas) {
