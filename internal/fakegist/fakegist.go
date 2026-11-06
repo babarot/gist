@@ -6,8 +6,10 @@
 // test. GitHub's behaviors that gist depends on are reproduced, as seen on
 // the real API: pages with Link headers, weak ETags, a 304 with neither Link
 // nor the weak form of the ETag, raw_url served by URL alone, file content cut
-// at 1 MB, and a change of description alone making no revision. What it
-// cannot catch is a wrong assumption about GitHub shared by gist and this fake.
+// at 1 MB, a change of description alone making no revision, a PATCH of the same
+// content making one, empty content removing a file, and a rename onto a taken
+// name doing nothing. What it cannot catch is a wrong assumption about GitHub
+// shared by gist and this fake.
 package fakegist
 
 import (
@@ -29,6 +31,9 @@ import (
 
 // MaxContent is how much of a file's content GET /gists/{id} gives.
 const MaxContent = 1 << 20
+
+// Epoch is when the server's clock starts. It moves a minute at each change.
+var Epoch = time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 
 const (
 	apiHost = "api.github.com"
@@ -82,6 +87,12 @@ type Server struct {
 	next     int
 	fail     map[string]int
 	requests []string
+	before   []hook
+}
+
+type hook struct {
+	prefix string
+	f      func()
 }
 
 // New starts a server for the length of the test.
@@ -90,7 +101,7 @@ func New(t testing.TB) *Server {
 	s := &Server{
 		Login: "alice",
 		t:     t,
-		now:   time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC),
+		now:   Epoch,
 		fail:  map[string]int{},
 	}
 	s.srv = httptest.NewServer(http.HandlerFunc(s.serve))
@@ -172,6 +183,24 @@ func (s *Server) Edit(id, name, content string) {
 	s.commit(g, files)
 }
 
+// SetDescription changes the description as from elsewhere.
+func (s *Server) SetDescription(id, description string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	g := s.find(id)
+	g.Description = description
+	g.Updated = s.tick()
+}
+
+// Before calls f before answering each request whose "METHOD path" starts
+// with prefix, without the server's lock, so f may change the state: the moment
+// between one request of the client and its next.
+func (s *Server) Before(prefix string, f func()) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.before = append(s.before, hook{prefix, f})
+}
+
 // Fail has requests whose "METHOD path" starts with prefix answered with
 // status.
 func (s *Server) Fail(prefix string, status int) {
@@ -220,9 +249,17 @@ func (s *Server) commit(g *Gist, files map[string]string) {
 }
 
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
+	route := r.Method + " " + r.URL.Path
+	s.mu.Lock()
+	hooks := slices.Clone(s.before)
+	s.mu.Unlock()
+	for _, h := range hooks {
+		if strings.HasPrefix(route, h.prefix) {
+			h.f()
+		}
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	route := r.Method + " " + r.URL.Path
 	s.requests = append(s.requests, r.Method+" "+r.URL.RequestURI())
 	for prefix, status := range s.fail {
 		if strings.HasPrefix(route, prefix) {
@@ -362,12 +399,20 @@ func (s *Server) update(w http.ResponseWriter, r *http.Request, g *Gist) {
 		if f.Content != nil {
 			content = *f.Content
 		}
+		// Empty content removes the file, and a name already taken leaves it
+		// under the name it had
+		if content == "" {
+			continue
+		}
 		if f.Filename != nil {
-			name = *f.Filename
+			if _, taken := g.files()[*f.Filename]; !taken {
+				name = *f.Filename
+			}
 		}
 		files[name] = content
 	}
-	if !maps.Equal(files, g.files()) {
+	// Any change of files makes a revision, even one that changes nothing
+	if len(body.Files) > 0 {
 		s.commit(g, files)
 	}
 	if body.Description != nil && *body.Description != g.Description {

@@ -11,11 +11,11 @@ import (
 	"github.com/babarot/gist/v2/internal/version"
 )
 
-// run runs gist and returns what it printed and its exit code.
-func run(t *testing.T, args ...string) (stdout, stderr string, code int) {
+// gist runs gist and returns what it printed and its exit code.
+func gist(t *testing.T, args ...string) (stdout, stderr string, code int) {
 	t.Helper()
 	var out, errOut bytes.Buffer
-	code = Run(args, &out, &errOut)
+	code = Run(args, strings.NewReader(""), &out, &errOut)
 	return out.String(), errOut.String(), code
 }
 
@@ -33,7 +33,7 @@ func setHome(t *testing.T) (stateHome string) {
 
 func TestVersion(t *testing.T) {
 	setHome(t)
-	stdout, stderr, code := run(t, "version")
+	stdout, stderr, code := gist(t, "version")
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit %d, stderr %q", code, stderr)
 	}
@@ -42,9 +42,9 @@ func TestVersion(t *testing.T) {
 	}
 }
 
-func TestNoArgumentsPrintsHelp(t *testing.T) {
+func TestHelp(t *testing.T) {
 	setHome(t)
-	stdout, _, code := run(t)
+	stdout, _, code := gist(t, "--help")
 	if code != 0 || !strings.Contains(stdout, "edit your GitHub Gists") {
 		t.Errorf("exit %d, stdout %q", code, stdout)
 	}
@@ -64,7 +64,7 @@ func TestCalledWrongly(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			setHome(t)
-			stdout, stderr, code := run(t, tt.args...)
+			stdout, stderr, code := gist(t, tt.args...)
 			if code != 2 {
 				t.Errorf("exit %d, want 2", code)
 			}
@@ -98,8 +98,8 @@ func logLines(t *testing.T, stateHome string) []map[string]any {
 
 func TestLogsEachRun(t *testing.T) {
 	state := setHome(t)
-	run(t, "version")
-	run(t, "version")
+	gist(t, "version")
+	gist(t, "version")
 	lines := logLines(t, state)
 	if len(lines) != 4 {
 		t.Fatalf("got %d lines, want a start and an exit for each run: %v", len(lines), lines)
@@ -133,7 +133,7 @@ func TestLogLevel(t *testing.T) {
 			if tt.flag != "" {
 				args = append(args, tt.flag)
 			}
-			if _, stderr, code := run(t, args...); code != 0 {
+			if _, stderr, code := gist(t, args...); code != 0 {
 				t.Fatalf("exit %d, stderr %q", code, stderr)
 			}
 			if got := len(logLines(t, state)); got != tt.want {
@@ -146,7 +146,7 @@ func TestLogLevel(t *testing.T) {
 func TestBadLogLevelFails(t *testing.T) {
 	setHome(t)
 	t.Setenv(EnvLogLevel, "loud")
-	stdout, stderr, code := run(t, "version")
+	stdout, stderr, code := gist(t, "version")
 	if code != 1 || stdout != "" || !strings.Contains(stderr, EnvLogLevel) {
 		t.Errorf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 	}
@@ -158,7 +158,7 @@ func TestRunsWithoutALog(t *testing.T) {
 	if err := os.WriteFile(state, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	stdout, stderr, code := run(t, "version")
+	stdout, stderr, code := gist(t, "version")
 	if code != 0 || stdout == "" {
 		t.Errorf("exit %d, stdout %q", code, stdout)
 	}
@@ -174,7 +174,7 @@ func TestAuthWithoutAToken(t *testing.T) {
 	t.Setenv("GH_CONFIG_DIR", t.TempDir())
 	t.Setenv("GH_PATH", "")
 	t.Setenv("PATH", "")
-	stdout, stderr, code := run(t, "auth")
+	stdout, stderr, code := gist(t, "auth")
 	if code != 1 || stdout != "" {
 		t.Errorf("exit %d, stdout %q", code, stdout)
 	}

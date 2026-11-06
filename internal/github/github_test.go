@@ -295,7 +295,7 @@ func TestRawRefuses(t *testing.T) {
 
 func TestCreate(t *testing.T) {
 	c, s := client(t)
-	got, err := c.Create(ctx, NewGist{Description: "d", Files: map[string]string{"a.txt": raw}})
+	got, err := c.Create(ctx, model.NewGist{Description: "d", Files: map[string]string{"a.txt": raw}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -313,7 +313,7 @@ func TestUpdate(t *testing.T) {
 	g := s.Add("old", false, map[string]string{"a.txt": "a", "b.txt": "b", "c.txt": "c"})
 	first := g.Revisions[0].Version
 
-	got, err := c.Update(ctx, g.ID, Change{Description: str("new")})
+	got, err := c.Update(ctx, g.ID, model.Change{Description: str("new")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,9 +321,9 @@ func TestUpdate(t *testing.T) {
 		t.Errorf("a change of description alone: %+v", got)
 	}
 
-	got, err = c.Update(ctx, g.ID, Change{Files: map[string]FileChange{
+	got, err = c.Update(ctx, g.ID, model.Change{Files: map[string]model.FileChange{
 		"a.txt": {Content: str(raw)},
-		"b.txt": {},
+		"b.txt": {Remove: true},
 		"c.txt": {Name: str("d.txt")},
 	}})
 	if err != nil {
@@ -342,7 +342,7 @@ func TestUpdateAddsAFile(t *testing.T) {
 	c, s := client(t)
 	g := s.Add("", false, map[string]string{"a.txt": "a"})
 	content := "b"
-	if _, err := c.Update(ctx, g.ID, Change{Files: map[string]FileChange{"b.txt": {Content: &content}}}); err != nil {
+	if _, err := c.Update(ctx, g.ID, model.Change{Files: map[string]model.FileChange{"b.txt": {Content: &content}}}); err != nil {
 		t.Fatal(err)
 	}
 	if got := s.Get(g.ID).Revisions[0].Files; len(got) != 2 || got["b.txt"] != "b" {
@@ -354,11 +354,11 @@ func TestInvalidUTF8IsNotSent(t *testing.T) {
 	c, s := client(t)
 	g := s.Add("", false, map[string]string{"a.txt": "a"})
 	bad := "\xff"
-	_, err := c.Update(ctx, g.ID, Change{Files: map[string]FileChange{"a.txt": {Content: &bad}}})
+	_, err := c.Update(ctx, g.ID, model.Change{Files: map[string]model.FileChange{"a.txt": {Content: &bad}}})
 	if !errors.Is(err, errInvalidUTF8) {
 		t.Errorf("update: got %v", err)
 	}
-	_, err = c.Create(ctx, NewGist{Files: map[string]string{"a.txt": bad}})
+	_, err = c.Create(ctx, model.NewGist{Files: map[string]string{"a.txt": bad}})
 	if !errors.Is(err, errInvalidUTF8) {
 		t.Errorf("create: got %v", err)
 	}
@@ -366,6 +366,19 @@ func TestInvalidUTF8IsNotSent(t *testing.T) {
 		if !strings.HasPrefix(r, "GET") {
 			t.Errorf("sent %s", r)
 		}
+	}
+}
+
+func TestEmptyContentIsNotSent(t *testing.T) {
+	c, s := client(t)
+	g := s.Add("", false, map[string]string{"a.txt": "a", "b.txt": "b"})
+	empty := ""
+	_, err := c.Update(ctx, g.ID, model.Change{Files: map[string]model.FileChange{"a.txt": {Content: &empty}}})
+	if !errors.Is(err, ErrEmptyContent) {
+		t.Errorf("got %v", err)
+	}
+	if _, ok := s.Get(g.ID).Revisions[0].Files["a.txt"]; !ok {
+		t.Error("the file is gone")
 	}
 }
 
@@ -484,7 +497,7 @@ func TestLogHoldsNoBodies(t *testing.T) {
 		t.Fatal(err)
 	}
 	content := "the new content"
-	if _, err := c.Update(ctx, g.ID, Change{Files: map[string]FileChange{"a.txt": {Content: &content}}}); err != nil {
+	if _, err := c.Update(ctx, g.ID, model.Change{Files: map[string]model.FileChange{"a.txt": {Content: &content}}}); err != nil {
 		t.Fatal(err)
 	}
 	log := buf.String()

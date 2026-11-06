@@ -54,6 +54,36 @@ type Comment struct {
 	Updated time.Time `json:"updated"`
 }
 
+// NewGist is a gist to create.
+type NewGist struct {
+	Description string
+	Public      bool
+	// Files are the names and contents.
+	Files map[string]string
+}
+
+// FileChange is what to do to a file of a gist.
+type FileChange struct {
+	// Remove removes the file. The other fields are then not used.
+	Remove bool
+	// Content is the new content, nil to leave it.
+	Content *string
+	// Name is the new name, nil to leave it.
+	Name *string
+}
+
+// Change is what to change in a gist.
+type Change struct {
+	// Description is nil to leave it.
+	Description *string
+	// Files are by the name the file has now. A name the gist does not have
+	// adds a file, which takes Content.
+	Files map[string]FileChange
+}
+
+// Empty says the change changes nothing.
+func (c Change) Empty() bool { return c.Description == nil && len(c.Files) == 0 }
+
 // ListPage is a page of the list of the user's gists as read.
 type ListPage struct {
 	Number int
