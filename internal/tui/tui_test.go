@@ -1090,6 +1090,18 @@ func TestHeightKeysStopAtTheEnds(t *testing.T) {
 	}
 }
 
+func TestAKeyAtTheEndKeepsWhatWasKept(t *testing.T) {
+	store := &layoutStore{h: 100}
+	o := options(t, &source{pages: onePage(manyGists(1))})
+	o.Layout = store
+	m := newModel(t, o, 120, 34)
+	settle(t, m, m.Init())
+	press(t, m, "+")
+	if store.h != 100 {
+		t.Errorf("kept %d", store.h)
+	}
+}
+
 func TestDragStopsWhereThePartsWouldGo(t *testing.T) {
 	m := loaded(t, manyGists(1), 120, 34)
 	click(t, m, 60, m.layout().boxY)

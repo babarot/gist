@@ -116,9 +116,11 @@ func (m *Model) setBoxHeight(h int) {
 
 // resizeBox sets the preview's height and keeps it for the next start.
 func (m *Model) resizeBox(h int) {
-	was := m.boxHeight
+	// What shows is what the key moved from: what was kept may be more than this
+	// terminal has room for, and must not be lost to a key that did nothing
+	was := m.layout().boxH
 	m.setBoxHeight(h)
-	if m.boxHeight != was {
+	if m.layout().boxH != was {
 		m.keepBoxHeight()
 	}
 }
