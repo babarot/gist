@@ -168,7 +168,8 @@ func (c *Client) CheckAccess(ctx context.Context) (Access, error) {
 // List reads every page of the user's gists. etags are those of the pages as
 // last read, the first page's first, each asking for its page only if it
 // changed. got is called with each page as it comes, in no order, never twice
-// at once. What List returns is in order.
+// at once; it must not block, as the pages being read wait for it. What List
+// returns is in order.
 func (c *Client) List(ctx context.Context, etags []string, got func(model.ListPage)) ([]model.ListPage, error) {
 	etag := func(n int) string {
 		if n <= len(etags) {

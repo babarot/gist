@@ -63,6 +63,17 @@ func TestMergeKeepsPagesNotModified(t *testing.T) {
 	}
 }
 
+func TestMergeFindsAPageNotModifiedByItsNumber(t *testing.T) {
+	old := Merge(List{}, []model.ListPage{
+		{Number: 1, ETag: "e1", Gists: []model.Gist{gist("a", t0)}},
+		{Number: 2, ETag: "e2", Gists: []model.Gist{gist("b", t0)}},
+	}, t0)
+	got := Merge(old, []model.ListPage{{Number: 2, ETag: "e2", NotModified: true}}, t1)
+	if ids(got.Gists) != "b" {
+		t.Errorf("got %s", ids(got.Gists))
+	}
+}
+
 func TestMergeTakesAGistMovedBetweenPagesOnce(t *testing.T) {
 	got := Merge(List{}, []model.ListPage{
 		{Number: 1, Gists: []model.Gist{gist("a", t0)}},

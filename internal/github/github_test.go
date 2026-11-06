@@ -338,6 +338,18 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
+func TestUpdateAddsAFile(t *testing.T) {
+	c, s := client(t)
+	g := s.Add("", false, map[string]string{"a.txt": "a"})
+	content := "b"
+	if _, err := c.Update(ctx, g.ID, Change{Files: map[string]FileChange{"b.txt": {Content: &content}}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.Get(g.ID).Revisions[0].Files; len(got) != 2 || got["b.txt"] != "b" {
+		t.Errorf("files are %q", got)
+	}
+}
+
 func TestInvalidUTF8IsNotSent(t *testing.T) {
 	c, s := client(t)
 	g := s.Add("", false, map[string]string{"a.txt": "a"})

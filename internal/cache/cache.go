@@ -42,8 +42,8 @@ func (l List) ETags() []string {
 	return etags
 }
 
-// Merge is the list that pages, just read, make of the list l. A page that
-// was not modified holds what it held in l.
+// Merge is the list that pages, just read and in any order, make of the list
+// l. A page that was not modified holds what it held in l.
 func Merge(l List, pages []model.ListPage, read time.Time) List {
 	known := make(map[string]model.Gist, len(l.Gists))
 	for _, g := range l.Gists {
@@ -58,10 +58,10 @@ func Merge(l List, pages []model.ListPage, read time.Time) List {
 			out.Gists = append(out.Gists, g)
 		}
 	}
-	for i, p := range pages {
+	for _, p := range pages {
 		page := Page{ETag: p.ETag}
-		if p.NotModified && i < len(l.Pages) {
-			page.IDs = l.Pages[i].IDs
+		if p.NotModified && p.Number >= 1 && p.Number <= len(l.Pages) {
+			page.IDs = l.Pages[p.Number-1].IDs
 			for _, id := range page.IDs {
 				if g, ok := known[id]; ok {
 					add(g)

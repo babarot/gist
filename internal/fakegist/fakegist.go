@@ -350,7 +350,8 @@ func (s *Server) update(w http.ResponseWriter, r *http.Request, g *Gist) {
 	files := maps.Clone(g.files())
 	for name, f := range body.Files {
 		content, ok := files[name]
-		if !ok {
+		// A name not in the gist adds a file, which takes content
+		if !ok && (f == nil || f.Content == nil) {
 			s.message(w, http.StatusUnprocessableEntity, "Validation Failed")
 			return
 		}
