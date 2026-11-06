@@ -588,6 +588,67 @@ func TestTheInputUsesTheTerminalsCursor(t *testing.T) {
 	}
 }
 
+func TestInputView(t *testing.T) {
+	for _, tt := range []struct {
+		value      string
+		pos, width int
+		shown      string
+		at         int
+	}{
+		{"abc", 3, 10, "abc", 3},
+		{"日本語", 3, 10, "日本語", 6},
+		{"日本語", 1, 10, "日本語", 2},
+		{"日本語", 0, 10, "日本語", 0},
+		{"aあbい", 4, 10, "aあbい", 6},
+		{"日本語の説明", 6, 7, "の説明", 6}, // what is before the cursor goes
+		{"abcdefgh", 8, 5, "efgh", 4},
+		{"abcdefgh", 2, 5, "abcdefgh", 2}, // what is after it is for the caller to cut
+		{"", 0, 10, "", 0},
+		{"abc", 99, 10, "abc", 3},
+	} {
+		shown, at := inputView(tt.value, tt.pos, tt.width)
+		if shown != tt.shown || at != tt.at {
+			t.Errorf("%q at %d in %d: got %q, %d", tt.value, tt.pos, tt.width, shown, at)
+		}
+	}
+}
+
+func TestTheCursorCountsJapaneseAsTwoCells(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	press(t, w.m, "E")
+	clearInput(t, w.m)
+	typeText(t, w.m, "日本語")
+	x, _, _, _ := w.m.inputBox()
+	if got := w.m.cursor().X; got != x+inputText+6 {
+		t.Errorf("at %d, want %d", got, x+inputText+6)
+	}
+	_, cmd := w.m.Update(tea.KeyPressMsg{Code: tea.KeyLeft})
+	settle(t, w.m, cmd)
+	if got := w.m.cursor().X; got != x+inputText+4 {
+		t.Errorf("after left, at %d, want %d", got, x+inputText+4)
+	}
+}
+
+func TestTheCursorStaysInALongInput(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	press(t, w.m, "E")
+	clearInput(t, w.m)
+	long := strings.Repeat("日本語の説明", 30)
+	typeText(t, w.m, long)
+	x, y, width, _ := w.m.inputBox()
+	got := w.m.cursor()
+	if got.X < x+inputText || got.X > x+inputText+width-inputMargin {
+		t.Errorf("at %d, the text is %d from %d", got.X, width-inputMargin, x+inputText)
+	}
+	row := strings.Split(screen(w.m), "\n")[y+inputRow]
+	if !strings.Contains(row, "説明") {
+		t.Errorf("the end of the text is not shown: %q", row)
+	}
+	if w.m.input.box.Value() != long {
+		t.Error("the value changed")
+	}
+}
+
 func TestSameDescriptionSendsNothing(t *testing.T) {
 	w, _ := one(t, map[string]string{"a.txt": "a\n"})
 	press(t, w.m, "E")

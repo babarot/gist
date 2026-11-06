@@ -259,7 +259,12 @@ func (m *Model) drawForm(c *canvas) {
 		}
 		c.put(yy, vx-2, "┃", style{fg: bar})
 		if v := box.Value(); v != "" {
-			c.putCut(yy, vx, []seg{{v, style{fg: p.text}}}, fw, style{fg: p.overlay})
+			pos := 0
+			if f.focus == i {
+				pos = box.Position()
+			}
+			shown, _ := inputView(v, pos, fw)
+			c.putCut(yy, vx, []seg{{shown, style{fg: p.text}}}, fw, style{fg: p.overlay})
 		} else if f.focus != i {
 			c.put(yy, vx, hint, style{fg: p.dim})
 		}
@@ -319,20 +324,13 @@ func (m *Model) drawForm(c *canvas) {
 // formCursor is where the terminal's cursor goes in the form.
 func (m *Model) formCursor() *tea.Cursor {
 	f := m.form
-	x, y, _, _ := m.formBox()
-	var cur *tea.Cursor
-	row := y + formName
+	x, y, w, _ := m.formBox()
+	width := w - formX - 4
 	switch f.focus {
 	case fieldName:
-		cur = f.name.Cursor()
+		return boxCursor(f.name, x+formX, y+formName, width)
 	case fieldDescription:
-		cur = f.description.Cursor()
-		row = y + formDesc
+		return boxCursor(f.description, x+formX, y+formDesc, width)
 	}
-	if cur == nil {
-		return nil
-	}
-	cur.X += x + formX
-	cur.Y = row
-	return cur
+	return nil
 }

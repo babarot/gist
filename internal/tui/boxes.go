@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/babarot/gist/v2/internal/diff"
@@ -151,7 +152,11 @@ func (m *Model) drawDiscard(c *canvas) {
 	m.keyLine(c, y+h-2, lx, []hint{{m.keys.Hint(keymap.Confirm), "discard"}, {keymap.Back, "keep"}})
 }
 
-const inputRow = 2
+const (
+	inputRow    = 2
+	inputText   = 5 // where the text starts, in the box
+	inputMargin = 8 // what the box takes of its width around the text
+)
 
 func (m *Model) inputBox() (x, y, w, h int) {
 	w, h = min(80, m.width-8), 8
@@ -172,7 +177,8 @@ func (m *Model) drawInput(c *canvas) {
 	title(c, x, y, name, style{fg: p.subtext1, bold: true})
 	lx := x + 3
 	c.put(y+inputRow, lx, "┃", style{fg: p.blue})
-	c.putCut(y+inputRow, lx+2, []seg{{in.box.Value(), style{fg: p.text}}}, w-8, style{fg: p.overlay})
+	shown, _ := inputView(in.box.Value(), in.box.Position(), w-inputMargin)
+	c.putCut(y+inputRow, x+inputText, []seg{{shown, style{fg: p.text}}}, w-inputMargin, style{fg: p.overlay})
 	if in.err != "" {
 		c.put(y+4, lx, "✗ "+in.err, style{fg: p.red})
 	} else {
@@ -181,26 +187,39 @@ func (m *Model) drawInput(c *canvas) {
 	m.keyLine(c, y+h-2, lx, []hint{{"enter", "save"}, {keymap.Back, "cancel"}})
 }
 
+// inputView is what shows of a text box in width cells, and the cell its cursor
+// is on. The box counts in characters, and a Japanese character takes two
+// cells, so neither can be taken from it. What is before the cursor goes when
+// there is no room, so that the cursor stays in sight.
+func inputView(value string, pos, width int) (string, int) {
+	runes := []rune(value)
+	pos = min(max(0, pos), len(runes))
+	start := 0
+	for start < pos && text.Width(text.Line(string(runes[start:pos]))) > width-1 {
+		start++
+	}
+	return string(runes[start:]), text.Width(text.Line(string(runes[start:pos])))
+}
+
+// boxCursor is the terminal's cursor for a text box drawn at x, y in width cells.
+func boxCursor(box textinput.Model, x, y, width int) *tea.Cursor {
+	cur := box.Cursor()
+	if cur == nil {
+		return nil
+	}
+	_, at := inputView(box.Value(), box.Position(), width)
+	cur.X, cur.Y = x+at, y
+	return cur
+}
+
 // cursor is where the terminal's cursor goes: in the text box, when one is open.
 func (m *Model) cursor() *tea.Cursor {
 	switch m.uiState() {
 	case uiInput:
-		cur := m.input.box.Cursor()
-		if cur == nil {
-			return nil
-		}
-		x, y, _, _ := m.inputBox()
-		cur.X += x + 5
-		cur.Y = y + inputRow
-		return cur
+		x, y, w, _ := m.inputBox()
+		return boxCursor(m.input.box, x+inputText, y+inputRow, w-inputMargin)
 	case uiFilter:
-		cur := m.filtering.box.Cursor()
-		if cur == nil {
-			return nil
-		}
-		cur.X += 2
-		cur.Y = filterRow
-		return cur
+		return boxCursor(m.filtering.box, filterText, filterRow, m.width-filterText)
 	case uiNew:
 		return m.formCursor()
 	}

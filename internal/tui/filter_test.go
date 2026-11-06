@@ -173,6 +173,24 @@ func TestPageWhileTyping(t *testing.T) {
 	}
 }
 
+func TestFilterCursorCountsJapaneseAsTwoCells(t *testing.T) {
+	m := loaded(t, filterGists(), 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "日本語")
+	if got := m.cursor().X; got != filterText+6 {
+		t.Errorf("at %d", got)
+	}
+}
+
+func TestFormCursorCountsJapaneseAsTwoCells(t *testing.T) {
+	w := form(t)
+	typeText(t, w.m, "日本語.md")
+	x, _, _, _ := w.m.formBox()
+	if got := w.m.cursor().X; got != x+formX+9 {
+		t.Errorf("at %d, want %d", got, x+formX+9)
+	}
+}
+
 func TestKeysAreTextWhileTyping(t *testing.T) {
 	m := loaded(t, filterGists(), 120, 34)
 	press(t, m, "/", "q", "D", "j")
