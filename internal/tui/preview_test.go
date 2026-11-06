@@ -422,6 +422,95 @@ func TestContentOfAGoneGistIsDropped(t *testing.T) {
 	}
 }
 
+func TestFirstTab(t *testing.T) {
+	for _, tt := range []struct {
+		widths    []int
+		cur, room int
+		want      int
+	}{
+		{[]int{10, 10, 10}, 0, 100, 0},
+		{[]int{10, 10, 10}, 2, 100, 0},
+		{[]int{10, 10, 10}, 2, 32, 0}, // fits exactly: 10+1+10+1+10
+		{[]int{10, 10, 10}, 2, 31, 1},
+		{[]int{10, 10, 10}, 2, 21, 2}, // with the mark, one is too wide
+		{[]int{10, 10, 10}, 2, 5, 2},  // the tab shown stays, however wide
+		{[]int{10, 10, 10}, 0, 5, 0},
+		{[]int{1}, 0, 0, 0},
+	} {
+		if got := firstTab(tt.widths, tt.cur, tt.room); got != tt.want {
+			t.Errorf("%v at %d in %d: got %d, want %d", tt.widths, tt.cur, tt.room, got, tt.want)
+		}
+	}
+}
+
+// manyFiles is a gist of more files than the frame has room for.
+func manyFiles(t *testing.T, w int) *Model {
+	t.Helper()
+	var files []model.File
+	for i := range 11 {
+		files = append(files, file(fmt.Sprintf("%02d-a-long-enough-name.md", i), "x\n"))
+	}
+	m, _ := preview(t, w, 34, files...)
+	return m
+}
+
+func frameTop(m *Model) string { return strings.Split(screen(m), "\n")[m.layout().boxY] }
+
+func TestFileTabsFollowTheFileShown(t *testing.T) {
+	m := manyFiles(t, 120)
+	if top := frameTop(m); strings.Contains(top, "‹") || !strings.Contains(top, "…") {
+		t.Errorf("at the first: %q", top)
+	}
+	for i := range 11 {
+		if top := frameTop(m); !strings.Contains(top, fmt.Sprintf("%02d-a-long", i)) {
+			t.Errorf("file %d is not in %q", i, top)
+		}
+		press(t, m, "l")
+	}
+	if top := frameTop(m); !strings.Contains(top, "‹") || strings.Contains(top, "…") {
+		t.Errorf("at the last: %q", top)
+	}
+	for i := 10; i >= 0; i-- {
+		if top := frameTop(m); !strings.Contains(top, fmt.Sprintf("%02d-a-long", i)) {
+			t.Errorf("going back, file %d is not in %q", i, top)
+		}
+		press(t, m, "h")
+	}
+}
+
+func TestAClickOnAFileTabAfterTheyMoved(t *testing.T) {
+	m := manyFiles(t, 120)
+	press(t, m, "l", "l", "l", "l", "l", "l")
+	top := frameTop(m)
+	x := ansi.StringWidth(top[:strings.Index(top, "05-a-long")])
+	click(t, m, x, m.layout().boxY)
+	if g, _ := m.selected(); m.selectedFile(g) != 5 {
+		t.Errorf("on file %d", m.selectedFile(g))
+	}
+}
+
+func TestATabWiderThanTheFrameIsCut(t *testing.T) {
+	m, _ := preview(t, 60, 24, file("a.txt", "x\n"), file(strings.Repeat("長", 40)+".txt", "y\n"))
+	press(t, m, "l")
+	top := frameTop(m)
+	if !strings.Contains(top, "長") || !strings.Contains(top, "…") {
+		t.Errorf("got %q", top)
+	}
+	if got := ansi.StringWidth(top); got > 60 {
+		t.Errorf("%d wide", got)
+	}
+}
+
+func TestSideTabsStayWhereTheyAre(t *testing.T) {
+	m := manyFiles(t, 120)
+	for range 10 {
+		press(t, m, "l")
+	}
+	if top := frameTop(m); !strings.Contains(top, "┬") || !strings.Contains(top, " info ") {
+		t.Errorf("got %q", top)
+	}
+}
+
 func TestScrollStopsAtTheEnds(t *testing.T) {
 	m, _ := preview(t, 120, 34, file("a.txt", strings.Repeat("line\n", 40)))
 	inner := m.innerRows()

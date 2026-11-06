@@ -268,21 +268,64 @@ func (m *Model) hasDraft(g model.Gist, file string) bool {
 	return m.drafts[g.ID] && m.opt.Editor != nil && m.opt.Editor.State.HasDraft(g.ID, file)
 }
 
-// drawFileTabs lays the files along the top of the frame.
+// More tabs on the left of the frame are told by tabsBefore, on the right by
+// tabsAfter.
+const (
+	tabsBefore = "‹ "
+	tabsAfter  = "…"
+	tabsX      = 2 // where the first tab starts
+)
+
+// firstTab is the first of the tabs to draw, in room cells: the tabs before the
+// one shown go until it is in sight.
+func firstTab(widths []int, cur, room int) int {
+	from := 0
+	for from < cur {
+		w := 0
+		if from > 0 {
+			w = text.Width(tabsBefore)
+		}
+		for _, x := range widths[from : cur+1] {
+			w += x + 1
+		}
+		if w-1 <= room {
+			break
+		}
+		from++
+	}
+	return from
+}
+
+// drawFileTabs lays the files along the top of the frame, keeping the one shown
+// in sight however many there are.
 func (m *Model) drawFileTabs(c *canvas, l layout, g model.Gist, dx int) {
 	p := m.pal
 	line := style{fg: p.surface1}
+	end := dx - 2
 	x := c.put(l.boxY, 1, " ", line)
 	cur := m.selectedFile(g)
+	widths := make([]int, len(g.Files))
 	for i, f := range g.Files {
-		s := " " + f.Name + " "
-		if x+text.Width(s) > dx-2 {
-			c.put(l.boxY, x, "…", style{fg: p.overlay})
+		widths[i] = text.Width(text.Line(" " + f.Name + " "))
+	}
+	from := firstTab(widths, cur, end-tabsX)
+	if from > 0 {
+		x = c.put(l.boxY, x, tabsBefore, style{fg: p.overlay})
+	}
+	for i := from; i < len(g.Files); i++ {
+		s := " " + g.Files[i].Name + " "
+		on := style{fg: p.base, bg: p.blue, bold: true}
+		if x+widths[i] > end {
+			// Only the tab shown is cut, when it is wider than the frame
+			if i == cur {
+				x = c.putCut(l.boxY, x, []seg{{s, on}}, end-x, on)
+			}
+			c.put(l.boxY, x, tabsAfter, style{fg: p.overlay})
 			break
 		}
 		x0 := x
 		if i == cur {
-			x = c.put(l.boxY, x, s, style{fg: p.base, bg: p.blue, bold: true})
+			x = c.put(l.boxY, x, s, on)
 		} else {
 			x = c.put(l.boxY, x, s, style{fg: p.overlay})
 		}
