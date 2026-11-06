@@ -69,7 +69,8 @@ func TestBreaks(t *testing.T) {
 		{"日本語", 5, []string{"日本", "語"}},
 		{"aあいう", 4, []string{"aあ", "いう"}},
 		{"abcdefgh", 3, []string{"abc", "def", "gh"}},
-		{"a b日本", 4, []string{"a ", "b日", "本"}},
+		{"a b日本", 4, []string{"a b", "日本"}},
+		{"はい miniTube2 フロントエンドの分析", 18, []string{"はい miniTube2 フ", "ロントエンドの分析"}},
 		{"日本語", 1, []string{"日", "本", "語"}}, // nothing fits: one each, not forever
 		{"abc", 0, []string{"a", "b", "c"}},
 	} {

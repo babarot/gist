@@ -33,8 +33,9 @@ func Clean(s string) string {
 func Line(s string) string { return strings.ReplaceAll(Clean(s), "\n", " ") }
 
 // Breaks are the byte offsets the rows of s start at when it is wrapped to width
-// cells, the first being 0. A row ends after its last space when it has one, and
-// anywhere otherwise, as Japanese has none.
+// cells, the first being 0. A word of narrow letters moves to the next row whole.
+// Wide letters are not words, as Japanese has no spaces: going back to a space
+// over them would leave a row mostly empty.
 func Breaks(s string, width int) []int {
 	width = max(1, width)
 	starts := []int{0}
@@ -44,6 +45,9 @@ func Breaks(s string, width int) []int {
 		var cluster string
 		cluster, rest, _, state = uniseg.FirstGraphemeClusterInString(rest, state)
 		w := Width(cluster)
+		if w > 1 {
+			space = -1
+		}
 		for cells+w > width && at > start {
 			start = at
 			if space > starts[len(starts)-1] {
