@@ -107,6 +107,7 @@ func (m *Model) showStarred() tea.Cmd {
 
 func (m *Model) refresh() tea.Cmd {
 	clear(m.preview.failed)
+	clear(m.preview.failedComments)
 	if !m.viewerRead {
 		if m.readingViewer {
 			return nil

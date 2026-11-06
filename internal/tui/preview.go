@@ -79,22 +79,39 @@ func (m *Model) contentRows(g model.Gist, f model.File) int {
 func (m *Model) showsRendered(f model.File) bool { return isMarkdown(f.Name) && !m.plain }
 
 // contentWidth is the width the content is drawn in.
-func (m *Model) contentWidth() int { return m.paneX() - 3 - 1 }
+func (m *Model) contentWidth() int { return min(m.paneX(), m.width-1) - 4 }
 
 func (m *Model) rendered(g model.Gist, f model.File, width int) []markdown.Line {
 	k := drawnKey{fileKey{g.ID, f.Name}, g.Updated, width}
 	lines, ok := m.preview.md[k]
 	if !ok {
-		lines = markdown.Render(f.Content, width)
+		if len(m.preview.md) >= maxDrawn {
+			clear(m.preview.md)
+		}
+		lines = markdown.Render(firstLines(f.Content, maxLines), width)
 		m.preview.md[k] = lines
 	}
 	return lines
+}
+
+// language is the language of a file, which telling can take reading all of it.
+func (m *Model) language(g model.Gist, f model.File) string {
+	k := fileKey{g.ID, f.Name}
+	l, ok := m.preview.langs[k]
+	if !ok || !l.updated.Equal(g.Updated) {
+		l = fileLang{g.Updated, highlight.Language(f.Name, firstLines(f.Content, maxLines))}
+		m.preview.langs[k] = l
+	}
+	return l.name
 }
 
 func (m *Model) highlighted(g model.Gist, f model.File) [][]highlight.Token {
 	k := fileKey{g.ID, f.Name}
 	c, ok := m.preview.code[k]
 	if !ok || !c.updated.Equal(g.Updated) {
+		if len(m.preview.code) >= maxDrawn {
+			clear(m.preview.code)
+		}
 		c = codeLines{g.Updated, highlight.Lines(f.Name, firstLines(f.Content, maxLines))}
 		m.preview.code[k] = c
 	}
@@ -215,7 +232,7 @@ func (m *Model) drawHints(c *canvas, l layout, g model.Gist, f model.File, read 
 		switch n := lineCount(f.Content); {
 		case f.Truncated:
 			left = " truncated "
-		case n > maxLines && !m.showsRendered(f):
+		case n > maxLines:
 			left = fmt.Sprintf(" %d of %d lines ", maxLines, n)
 		}
 	}
@@ -422,7 +439,7 @@ func (m *Model) drawInfo(c *canvas, l layout, g model.Gist, f model.File, read b
 		case read && f.Binary:
 			kind = f.Type
 		case read:
-			kind = highlight.Language(f.Name, f.Content)
+			kind = m.language(g, f)
 			sizeOf += fmt.Sprintf(" · %d lines", lineCount(f.Content))
 		}
 		if kind != "" {
@@ -462,6 +479,9 @@ func (m *Model) commentLines(g model.Gist) [][]seg {
 		k := drawnKey{fileKey{g.ID, strconv.FormatInt(cm.ID, 10)}, cm.Updated, w}
 		lines, ok := m.preview.notes[k]
 		if !ok {
+			if len(m.preview.notes) >= maxDrawn {
+				clear(m.preview.notes)
+			}
 			lines = markdown.Render(cm.Body, w)
 			m.preview.notes[k] = lines
 		}

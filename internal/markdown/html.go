@@ -83,6 +83,10 @@ func convertHTML(s string) string {
 	}
 }
 
+// maxListIndent is how deep a list is indented. Past this a list goes no further
+// right, so that a small file of nested lists cannot make an enormous one.
+const maxListIndent = 8
+
 type htmlList struct {
 	ordered bool
 	n       int
@@ -234,7 +238,7 @@ func (c *htmlConv) start(name, raw string, z *html.Tokenizer) {
 		c.newline()
 		mark := "- "
 		if k := len(c.lists) - 1; k >= 0 {
-			c.write(strings.Repeat("  ", k))
+			c.write(strings.Repeat("  ", min(k, maxListIndent)))
 			if c.lists[k].ordered {
 				mark = strconv.Itoa(c.lists[k].n) + ". "
 				c.lists[k].n++

@@ -129,6 +129,13 @@ func TestHTML(t *testing.T) {
 	}
 }
 
+func TestDeepListsStayInProportion(t *testing.T) {
+	src := strings.Repeat("<ul>", 10000) + strings.Repeat("<li>x</li>", 50000)
+	if got := len(htmlToMarkdown(src)); got > len(src)*4 {
+		t.Errorf("%d bytes became %d", len(src), got)
+	}
+}
+
 func TestEscapeSequencesGo(t *testing.T) {
 	for _, l := range plain(Render("a \x1b[2Jb\n```\n\x1b]0;x\x07c\n```", 30)) {
 		if strings.ContainsAny(l, "\x1b\x07") {

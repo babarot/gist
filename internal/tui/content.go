@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"slices"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -39,25 +40,37 @@ type drawnKey struct {
 
 // previewState is what the preview has read and worked out.
 type previewState struct {
+	dir  string
 	disk *cache.Contents
 	// contents are the gists read whole, and reading those on their way.
 	contents map[string]model.Gist
 	reading  map[string]bool
 	failed   map[string]bool
-	running  int
+	// notKept are the gists the disk did not have, which wait for GitHub to
+	// confirm the account before being asked for.
+	notKept map[string]bool
+	running int
 	// comments are by gist, the same.
 	comments        map[string][]model.Comment
 	readingComments map[string]bool
+	failedComments  map[string]bool
 	// dwellOn and dwellSeq tell the gist the cursor rests on.
 	dwellOn  string
 	dwellSeq int
 
 	code   map[fileKey]codeLines
+	langs  map[fileKey]fileLang
 	md     map[drawnKey][]markdown.Line
 	notes  map[drawnKey][]markdown.Line
 	scroll map[fileKey]int
 	// commentScroll is by gist.
 	commentScroll map[string]int
+}
+
+// fileLang is the language of a file, for the content it was told from.
+type fileLang struct {
+	updated time.Time
+	name    string
 }
 
 // codeLines is a file highlighted, for the content it was made from.
@@ -68,10 +81,14 @@ type codeLines struct {
 
 func newPreviewState(dir string) previewState {
 	return previewState{
+		dir:             dir,
 		disk:            cache.OpenContents(dir),
 		contents:        map[string]model.Gist{},
 		reading:         map[string]bool{},
 		failed:          map[string]bool{},
+		notKept:         map[string]bool{},
+		failedComments:  map[string]bool{},
+		langs:           map[fileKey]fileLang{},
 		comments:        map[string][]model.Comment{},
 		readingComments: map[string]bool{},
 		code:            map[fileKey]codeLines{},
@@ -82,23 +99,52 @@ func newPreviewState(dir string) previewState {
 	}
 }
 
-// forget drops what was read of a gist.
+// forget drops what was read of a gist and worked out from it.
 func (p *previewState) forget(id string) {
 	delete(p.contents, id)
 	delete(p.comments, id)
 	delete(p.failed, id)
+	delete(p.failedComments, id)
+	delete(p.notKept, id)
+	for k := range p.md {
+		if k.gist == id {
+			delete(p.md, k)
+		}
+	}
+	for k := range p.notes {
+		if k.gist == id {
+			delete(p.notes, k)
+		}
+	}
+	for k := range p.code {
+		if k.gist == id {
+			delete(p.code, k)
+		}
+	}
+	for k := range p.langs {
+		if k.gist == id {
+			delete(p.langs, k)
+		}
+	}
 }
 
-// content is the gist read whole, if what was read is of the gist as listed.
+// maxDrawn is how many drawn files or comments are held. Each can be drawn again
+// from its content, so past this they all go.
+const maxDrawn = 256
+
+// content is the gist read whole, if what was read is of the gist as listed or
+// newer: a gist can change after the list was read, and a read that came back
+// newer must count, or it would be read again for ever.
 func (m *Model) content(g model.Gist) (model.Gist, bool) {
 	c, ok := m.preview.contents[g.ID]
-	return c, ok && c.Updated.Equal(g.Updated)
+	return c, ok && !c.Updated.Before(g.Updated)
 }
 
 type contentMsg struct {
-	id   string
-	gist model.Gist
-	err  error
+	id      string
+	gist    model.Gist
+	notKept bool
+	err     error
 }
 
 // readContents reads the gists shown that have not been: the cursor's first,
@@ -123,6 +169,9 @@ func (m *Model) readContents() tea.Cmd {
 		if _, ok := m.content(g); ok || m.preview.reading[g.ID] || m.preview.failed[g.ID] {
 			continue
 		}
+		if m.preview.notKept[g.ID] && !m.viewerRead {
+			continue
+		}
 		m.preview.reading[g.ID] = true
 		m.preview.running++
 		cmds = append(cmds, m.readContent(g))
@@ -131,10 +180,15 @@ func (m *Model) readContents() tea.Cmd {
 }
 
 func (m *Model) readContent(g model.Gist) tea.Cmd {
-	disk, src, ctx := m.preview.disk, m.opt.Source, m.ctx
+	disk, src, ctx, ask := m.preview.disk, m.opt.Source, m.ctx, m.viewerRead
 	return func() tea.Msg {
 		if c, ok := disk.Load(g.ID, g.Updated); ok {
 			return contentMsg{id: g.ID, gist: c}
+		}
+		// A kept list can be another account's until GitHub says whose the
+		// token is, so nothing is asked for before that
+		if !ask {
+			return contentMsg{id: g.ID, notKept: true}
 		}
 		c, err := src.Get(ctx, g.ID)
 		if err != nil {
@@ -149,12 +203,35 @@ func (m *Model) readContent(g model.Gist) tea.Cmd {
 func (m *Model) gotContent(msg contentMsg) {
 	delete(m.preview.reading, msg.id)
 	m.preview.running--
-	if msg.err != nil {
+	switch {
+	case msg.notKept:
+		m.preview.notKept[msg.id] = true
+	case msg.err != nil:
 		m.preview.failed[msg.id] = true
 		m.line.Fail(m.now(), msg.err.Error())
-		return
+	case !m.listed(msg.id):
+		// It went from the list while being read, after what was kept of it
+		// was removed: the read just wrote it back
+		m.removeKept(msg.id)
+	default:
+		m.preview.contents[msg.id] = msg.gist
 	}
-	m.preview.contents[msg.id] = msg.gist
+}
+
+// listed says a tab has the gist.
+func (m *Model) listed(id string) bool {
+	for i := range m.tabs {
+		if slices.ContainsFunc(m.tabs[i].gists, func(g model.Gist) bool { return g.ID == id }) {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Model) removeKept(id string) {
+	if err := m.preview.disk.Remove(id); err != nil {
+		m.opt.Log.Warn("the kept content cannot be removed", "gist", id, "err", err.Error())
+	}
 }
 
 type dwellMsg struct {
@@ -165,14 +242,18 @@ type dwellMsg struct {
 // dwell starts the wait for the cursor to rest on a gist.
 func (m *Model) dwell() tea.Cmd {
 	g, ok := m.selected()
-	if !ok || g.ID == m.preview.dwellOn || m.opt.Source == nil {
+	if !ok || m.opt.Source == nil {
+		return nil
+	}
+	if m.side == sideComments {
+		m.preview.dwellOn = g.ID
+		return m.readComments(g)
+	}
+	if g.ID == m.preview.dwellOn {
 		return nil
 	}
 	m.preview.dwellOn = g.ID
 	m.preview.dwellSeq++
-	if m.side == sideComments {
-		return m.readComments(g)
-	}
 	if m.clockless {
 		return nil
 	}
@@ -210,7 +291,7 @@ type commentsMsg struct {
 // readComments reads a gist's comments unless it has none or they were read.
 func (m *Model) readComments(g model.Gist) tea.Cmd {
 	_, done := m.preview.comments[g.ID]
-	if g.Comments == 0 || done || m.preview.readingComments[g.ID] {
+	if g.Comments == 0 || done || m.preview.readingComments[g.ID] || m.preview.failedComments[g.ID] {
 		return nil
 	}
 	m.preview.readingComments[g.ID] = true
@@ -224,6 +305,7 @@ func (m *Model) readComments(g model.Gist) tea.Cmd {
 func (m *Model) gotComments(msg commentsMsg) {
 	delete(m.preview.readingComments, msg.id)
 	if msg.err != nil {
+		m.preview.failedComments[msg.id] = true
 		m.line.Fail(m.now(), msg.err.Error())
 		return
 	}

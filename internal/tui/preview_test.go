@@ -186,6 +186,125 @@ func TestFailedReadCanBeTriedAgain(t *testing.T) {
 	}
 }
 
+func TestAGistNewerThanTheListIsReadOnce(t *testing.T) {
+	g := gist("1111111", "d", time.Hour, "a.go")
+	src := &source{pages: onePage([]model.Gist{g})}
+	src.newer = time.Minute
+	m := newModel(t, options(t, src), 120, 34)
+	settle(t, m, m.Init())
+	if len(src.gets) != 1 {
+		t.Errorf("read %d times", len(src.gets))
+	}
+	if s := screen(m); !strings.Contains(s, "content of a.go") {
+		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestAReadThatEndsAfterItsGistWentIsNotKept(t *testing.T) {
+	m, _ := preview(t, 120, 34, file("a.go", "x\n"))
+	g := gist("9999999", "gone", time.Hour, "b.go")
+	g.Files[0].Content = "secret"
+	if err := m.preview.disk.Save(g); err != nil {
+		t.Fatal(err)
+	}
+	m.preview.running++
+	m.Update(contentMsg{id: g.ID, gist: g})
+	if _, ok := m.preview.contents[g.ID]; ok {
+		t.Error("held the content of a gist that is gone")
+	}
+	if _, ok := m.preview.disk.Load(g.ID, g.Updated); ok {
+		t.Error("the content of a gist that is gone stayed on the disk")
+	}
+}
+
+func TestUnstarredGistIsDropped(t *testing.T) {
+	star := gist("7777777", "tmux", time.Hour, "tmux.conf")
+	src := &source{pages: onePage(manyGists(1)), starred: []model.Gist{star}}
+	o := options(t, src)
+	m := newModel(t, o, 120, 34)
+	settle(t, m, m.Init())
+	press(t, m, "2")
+	src.starred = nil
+	press(t, m, "R")
+	if _, ok := cache.OpenContents(filepath.Join(o.CacheDir, "contents")).Load(star.ID, star.Updated); ok {
+		t.Error("the content of an unstarred gist stayed on the disk")
+	}
+}
+
+func TestAnotherAccountsContentGoes(t *testing.T) {
+	src := &source{pages: onePage(manyGists(1))}
+	o := options(t, src)
+	first := newModel(t, o, 120, 34)
+	settle(t, first, first.Init())
+	src.login = "bob"
+	src.pages = onePage(nil)
+	second := newModel(t, o, 120, 34)
+	settle(t, second, second.Init())
+	g := manyGists(1)[0]
+	if _, ok := cache.OpenContents(filepath.Join(o.CacheDir, "contents")).Load(g.ID, g.Updated); ok {
+		t.Error("the other account's content stayed on the disk")
+	}
+}
+
+func TestNothingIsAskedBeforeTheAccountIsKnown(t *testing.T) {
+	src := &source{login: "bob", pages: onePage(nil)}
+	o := options(t, src)
+	if err := cache.Open(filepath.Join(o.CacheDir, cache.MineFile), o.Host, "alice").Save(cache.List{Gists: manyGists(3)}); err != nil {
+		t.Fatal(err)
+	}
+	m := newModel(t, o, 120, 34)
+	settle(t, m, m.Init())
+	if len(src.gets) != 0 {
+		t.Errorf("asked for %v", src.gets)
+	}
+}
+
+func TestKeptListStillFillsFromTheDiskFirst(t *testing.T) {
+	src := &source{pages: onePage(manyGists(1))}
+	o := options(t, src)
+	first := newModel(t, o, 120, 34)
+	settle(t, first, first.Init())
+	second := New(o)
+	second.clockless = true
+	t.Cleanup(second.cancel)
+	_, cmd := second.Update(tea.WindowSizeMsg{Width: 120, Height: 34})
+	settle(t, second, cmd)
+	if !strings.Contains(screen(second), "content of a.go") {
+		t.Errorf("before GitHub answered:\n%s", screen(second))
+	}
+}
+
+func TestMarkdownStopsAtItsLimit(t *testing.T) {
+	m, _ := preview(t, 120, 34, file("a.md", strings.Repeat("line\n\n", 2000)))
+	g := m.tab().gists[0]
+	f, _ := m.shownFile(g)
+	if got := len(m.rendered(g, f, 80)); got > maxLines {
+		t.Errorf("%d lines drawn", got)
+	}
+	if s := screen(m); !strings.Contains(s, "1000 of 4000 lines") {
+		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestDrawnFilesAreBounded(t *testing.T) {
+	m, _ := preview(t, 120, 34, file("a.md", "x\n"))
+	g := m.tab().gists[0]
+	f, _ := m.shownFile(g)
+	for w := range maxDrawn * 3 {
+		m.rendered(g, f, 10+w)
+	}
+	if got := len(m.preview.md); got > maxDrawn {
+		t.Errorf("%d held", got)
+	}
+}
+
+func TestContentWidthFitsWithoutAPane(t *testing.T) {
+	m, _ := preview(t, 30, 24, file("a.md", strings.Repeat("x ", 400)+"\n"))
+	if s := screen(m); strings.Contains(s, "…") {
+		t.Errorf("a wrapped line was cut:\n%s", s)
+	}
+}
+
 func TestContentIsReadAheadForTheRowsShown(t *testing.T) {
 	src := &source{pages: onePage(manyGists(40))}
 	m := newModel(t, options(t, src), 120, 34)
@@ -420,6 +539,48 @@ func TestChangedCommentCountReadsThemAgain(t *testing.T) {
 	press(t, m, "c", "c")
 	if s := screen(m); !strings.Contains(s, "comment 2") {
 		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestCommentsOpenAreReadAgainAfterTheCountChanged(t *testing.T) {
+	m, src := commented(t, 2)
+	press(t, m, "c")
+	first := src.pages[0].Gists[0]
+	first.Comments = 3
+	src.comments[first.ID] = comments(3)
+	src.pages = onePage([]model.Gist{first})
+	press(t, m, "R")
+	if s := screen(m); !strings.Contains(s, "comment 2") {
+		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestFailedCommentsAreNotAskedForForEver(t *testing.T) {
+	m, src := commented(t, 2)
+	src.commentsErr = errors.New("no way through")
+	press(t, m, "c", "j", "k")
+	if len(src.commentReads) != 1 {
+		t.Errorf("read %d times", len(src.commentReads))
+	}
+	src.commentsErr = nil
+	press(t, m, "R")
+	if s := screen(m); !strings.Contains(s, "comment 0") {
+		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestMouseWorksWithCommentsOpen(t *testing.T) {
+	m, _ := commented(t, 30)
+	press(t, m, "c")
+	l := m.layout()
+	m.Update(wheelDown(m.paneX()+5, l.boxY+2))
+	g := m.tab().gists[0]
+	if m.preview.commentScroll[g.ID] != 1 {
+		t.Errorf("scrolled to %d", m.preview.commentScroll[g.ID])
+	}
+	click(t, m, 20, l.listY+1)
+	if m.tab().cur != 1 {
+		t.Errorf("cursor at %d", m.tab().cur)
 	}
 }
 

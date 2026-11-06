@@ -77,6 +77,9 @@ type source struct {
 	// comments are by gist, and commentReads the gists they were asked for.
 	comments     map[string][]model.Comment
 	commentReads []string
+	commentsErr  error
+	// newer is how much newer than the list a gist comes back.
+	newer time.Duration
 }
 
 func (s *source) Viewer(context.Context) (string, error) {
@@ -112,11 +115,17 @@ func (s *source) Get(_ context.Context, id string) (model.Gist, error) {
 	if s.getErr != nil {
 		return model.Gist{}, s.getErr
 	}
+	defer func() {
+		if s.newer > 0 && len(s.gets) > 5 {
+			panic("read for ever")
+		}
+	}()
 	for _, g := range slices.Concat(s.listed(), s.starred) {
 		if g.ID != id {
 			continue
 		}
 		g.History = []string{"r2", "r1"}
+		g.Updated = g.Updated.Add(s.newer)
 		g.Files = slices.Clone(g.Files)
 		for i := range g.Files {
 			f := &g.Files[i]
@@ -143,7 +152,7 @@ func (s *source) Comments(_ context.Context, id string) ([]model.Comment, error)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.commentReads = append(s.commentReads, id)
-	return s.comments[id], nil
+	return s.comments[id], s.commentsErr
 }
 
 type layoutStore struct{ h int }

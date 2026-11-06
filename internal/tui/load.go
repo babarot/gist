@@ -45,6 +45,11 @@ func (m *Model) gotViewer(msg viewerMsg) tea.Cmd {
 			t := &m.tabs[i]
 			t.gists, t.list, t.loaded, t.cur, t.top = nil, cache.List{}, false, 0, 0
 		}
+		// What was kept of another account's gists goes with its lists
+		m.preview = newPreviewState(m.preview.dir)
+		if err := m.preview.disk.Clear(); err != nil {
+			m.opt.Log.Warn("the kept contents cannot be removed", "err", err.Error())
+		}
 		m.openStores(msg.login)
 	}
 	cmds := []tea.Cmd{m.readMine()}
@@ -148,21 +153,19 @@ func (m *Model) gotList(msg listDoneMsg) tea.Cmd {
 		return nil
 	}
 	added, updated, gone := m.compare(t, old, l.Gists)
-	m.forgetGone(old, l.Gists)
 	m.replace(t, l.Gists)
+	m.forgetGone(old)
 	m.line.Say(m.now(), summary(added, updated, gone))
 	return nil
 }
 
 // forgetGone drops what is kept of gists no longer there, which may be secret
 // and should not stay on the disk.
-func (m *Model) forgetGone(old, now []model.Gist) {
+func (m *Model) forgetGone(old []model.Gist) {
 	for _, g := range old {
-		if !slices.ContainsFunc(now, func(n model.Gist) bool { return n.ID == g.ID }) {
+		if !m.listed(g.ID) {
 			m.preview.forget(g.ID)
-			if err := m.preview.disk.Remove(g.ID); err != nil {
-				m.opt.Log.Warn("the kept content cannot be removed", "gist", g.ID, "err", err.Error())
-			}
+			m.removeKept(g.ID)
 		}
 	}
 }
@@ -261,7 +264,8 @@ func (m *Model) gotStarred(msg starredMsg) {
 	}
 	cache.Sort(msg.gists)
 	had := t.loaded
-	added, updated, gone := m.compare(t, t.gists, msg.gists)
+	old := t.gists
+	added, updated, gone := m.compare(t, old, msg.gists)
 	if !had {
 		clear(t.marks)
 		clear(t.fresh)
@@ -270,6 +274,7 @@ func (m *Model) gotStarred(msg starredMsg) {
 	t.list, t.loaded = l, true
 	m.keep(t, l)
 	m.replace(t, msg.gists)
+	m.forgetGone(old)
 	if had {
 		m.line.Say(m.now(), summary(added, updated, gone))
 	}
