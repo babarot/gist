@@ -21,6 +21,13 @@ func TestABoxMayShareAKeyWithTheList(t *testing.T) {
 	}
 }
 
+func TestAKeyOfADiffIsNotAlsoOneThatSendsIt(t *testing.T) {
+	over := map[string][]string{"page_down": {"y"}, "copy_url": {}}
+	if _, err := Default().With(over); err == nil || !strings.Contains(err.Error(), "bound to both") {
+		t.Errorf("got %v", err)
+	}
+}
+
 func TestMatches(t *testing.T) {
 	m := Default()
 	if !m.Matches(Down, "j") || !m.Matches(Down, "down") || m.Matches(Down, "k") {

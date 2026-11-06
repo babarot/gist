@@ -318,9 +318,10 @@ func (m *Model) drawFileTabs(c *canvas, l layout, g model.Gist, dx int) {
 		if x+widths[i] > end {
 			// Only the tab shown is cut, when it is wider than the frame
 			if i == cur {
-				x = c.putCut(l.boxY, x, []seg{{s, on}}, end-x, on)
+				c.putCut(l.boxY, x, []seg{{s, on}}, end-x, on)
+			} else {
+				c.put(l.boxY, x, tabsAfter, style{fg: p.overlay})
 			}
-			c.put(l.boxY, x, tabsAfter, style{fg: p.overlay})
 			break
 		}
 		x0 := x

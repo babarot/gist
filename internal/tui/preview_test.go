@@ -493,7 +493,7 @@ func TestATabWiderThanTheFrameIsCut(t *testing.T) {
 	m, _ := preview(t, 60, 24, file("a.txt", "x\n"), file(strings.Repeat("長", 40)+".txt", "y\n"))
 	press(t, m, "l")
 	top := frameTop(m)
-	if !strings.Contains(top, "長") || !strings.Contains(top, "…") {
+	if !strings.Contains(top, "長") || strings.Count(top, "…") != 1 {
 		t.Errorf("got %q", top)
 	}
 	if got := ansi.StringWidth(top); got > 60 {
