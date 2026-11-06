@@ -23,11 +23,16 @@ import (
 // A package not in the table fails the test, so a new one is placed here
 // on purpose.
 var layers = []layer{
+	{"internal/model", 0, nil, nil, "Shared types: gists, their files and comments"},
 	{"internal/version", 0, nil, nil, "The release version, which tagpr updates"},
 	{"internal/xdg", 0, nil, nil, "Where gist keeps its config, state and cache"},
+	{"internal/fakegist", 0, nil, nil, "A made-up GitHub Gist API for tests; never built into gist"},
 	{"internal/logging", 1, []string{"internal/xdg"}, []string{"github.com/nxadm/tail"}, "The slog logger and the log file"},
-	{"internal/app", 2, []string{"internal/logging", "internal/version", "internal/xdg"}, []string{"github.com/spf13/cobra"}, "Putting it together: commands and flags, the log, and what each command runs with"},
-	{"", 3, []string{"internal/app"}, nil, "Calls app.Run"},
+	{"internal/cache", 1, []string{"internal/model"}, nil, "What was read from GitHub, kept for the next launch"},
+	{"internal/github", 2, []string{"internal/model", "internal/logging"}, []string{"github.com/cli/go-gh/v2"}, "GitHub's REST API"},
+	{"internal/cli", 3, []string{"internal/github"}, nil, "What the subcommands do"},
+	{"internal/app", 4, []string{"internal/cli", "internal/github", "internal/logging", "internal/version", "internal/xdg"}, []string{"github.com/spf13/cobra"}, "Putting it together: commands and flags, the log, and what each command runs with"},
+	{"", 5, []string{"internal/app"}, nil, "Calls app.Run"},
 }
 
 // layer is a package's place: its layer, the packages of this module
@@ -47,8 +52,8 @@ type layer struct {
 // showing in a diff. An entry may name a package not written yet.
 var reach = map[string][]string{
 	"internal/text": {"internal/markdown", "internal/tui"},
-	"net":           {"internal/github", "internal/update"},
-	"net/http":      {"internal/github", "internal/update"},
+	"net":           {"internal/fakegist", "internal/github", "internal/update"},
+	"net/http":      {"internal/fakegist", "internal/github", "internal/update"},
 	"os/exec":       {"internal/app", "internal/cli", "internal/tui"},
 	"syscall":       {"internal/state"},
 }

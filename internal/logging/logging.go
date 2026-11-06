@@ -25,9 +25,11 @@ import (
 
 // Attribute keys every package uses, so a log line can be searched by them.
 const (
-	KeyRun        = "run"
-	KeyVersion    = "version"
-	KeyDurationMS = "duration_ms"
+	KeyRun           = "run"
+	KeyVersion       = "version"
+	KeyDurationMS    = "duration_ms"
+	KeyGHRequestID   = "gh_request_id"
+	KeyRateRemaining = "rate_remaining"
 )
 
 // Rotation defaults: the file is moved aside when it is over MaxSize at

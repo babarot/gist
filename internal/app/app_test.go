@@ -166,3 +166,19 @@ func TestRunsWithoutALog(t *testing.T) {
 		t.Errorf("stderr is %q", stderr)
 	}
 }
+
+func TestAuthWithoutAToken(t *testing.T) {
+	setHome(t)
+	t.Setenv("GH_TOKEN", "")
+	t.Setenv("GITHUB_TOKEN", "")
+	t.Setenv("GH_CONFIG_DIR", t.TempDir())
+	t.Setenv("GH_PATH", "")
+	t.Setenv("PATH", "")
+	stdout, stderr, code := run(t, "auth")
+	if code != 1 || stdout != "" {
+		t.Errorf("exit %d, stdout %q", code, stdout)
+	}
+	if !strings.Contains(stderr, "gh auth login") || !strings.Contains(stderr, "Gists read and write") {
+		t.Errorf("stderr is %q", stderr)
+	}
+}
