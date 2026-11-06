@@ -15,6 +15,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/babarot/gist/v2/internal/cli"
+	"github.com/babarot/gist/v2/internal/github"
 	"github.com/babarot/gist/v2/internal/logging"
 	"github.com/babarot/gist/v2/internal/version"
 	"github.com/babarot/gist/v2/internal/xdg"
@@ -47,6 +49,14 @@ type exitCode int
 
 func (c exitCode) Error() string { return fmt.Sprintf("exit status %d", int(c)) }
 
+// exited is code as what a command returns.
+func exited(code int) error {
+	if code == 0 {
+		return nil
+	}
+	return exitCode(code)
+}
+
 // Run runs gist with args (without the program name) and returns the exit
 // code: 1 when a command failed, 2 when it was called wrongly.
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -54,7 +64,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	defer func() { o.closeLog() }()
 	root := newRootCommand(o, stdout, stderr)
 	root.SetArgs(args)
-	cmd, err := root.ExecuteC()
+	cmd, err := root.ExecuteContextC(context.Background())
 	if err == nil {
 		return 0
 	}
@@ -98,7 +108,7 @@ func newRootCommand(o *options, stdout, stderr io.Writer) *cobra.Command {
 	flags.Lookup("debug").NoOptDefVal = debugOn
 	flags.BoolVar(&o.noColor, "no-color", false, "print no colors (the NO_COLOR environment variable does the same)")
 
-	root.AddCommand(newVersionCommand(stdout))
+	root.AddCommand(newVersionCommand(stdout), newAuthCommand(o, stdout, stderr))
 	return root
 }
 
@@ -110,6 +120,27 @@ func newVersionCommand(stdout io.Writer) *cobra.Command {
 		RunE: func(*cobra.Command, []string) error {
 			_, err := fmt.Fprintln(stdout, version.String())
 			return err
+		},
+	}
+}
+
+func newAuthCommand(o *options, stdout, stderr io.Writer) *cobra.Command {
+	return &cobra.Command{
+		Use:   "auth",
+		Short: "print where the token came from and what it can do",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			token, source := github.Token()
+			if token == "" {
+				fmt.Fprintf(stderr, "gist: %s\n", github.NoToken)
+				return exitCode(1)
+			}
+			client, err := github.New(o.log, github.Options{Token: token})
+			if err != nil {
+				fmt.Fprintf(stderr, "gist: %v\n", err)
+				return exitCode(1)
+			}
+			return exited(cli.Auth(cmd.Context(), stdout, stderr, source, client))
 		},
 	}
 }
