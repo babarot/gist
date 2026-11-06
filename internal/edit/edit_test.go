@@ -26,12 +26,19 @@ func setup(t *testing.T) (*Editor, *fakegist.Server) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &Editor{API: c, State: state.Open(t.TempDir())}, s
+	dir := t.TempDir()
+	stateDirs[t.Name()] = dir
+	return &Editor{API: c, State: state.Open(dir)}, s
 }
 
-func begin(t *testing.T, e *Editor, id, file string) *Session {
+// stateDirs are the state directories of the tests.
+var stateDirs = map[string]string{}
+
+func stateDirOf(t *testing.T, _ *Editor) string { return stateDirs[t.Name()] }
+
+func begin(t *testing.T, e *Editor, id string, files ...string) *Session {
 	t.Helper()
-	s, err := e.Begin(ctx, id, file)
+	s, err := e.Begin(ctx, id, files...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +48,7 @@ func begin(t *testing.T, e *Editor, id, file string) *Session {
 
 func keep(t *testing.T, s *Session, content string) {
 	t.Helper()
-	if changed, err := s.Keep(content); err != nil || !changed {
+	if changed, err := s.Keep(s.Files[0].Name, content); err != nil || !changed {
 		t.Fatalf("changed %v, %v", changed, err)
 	}
 }
@@ -50,11 +57,12 @@ func TestEditStartsFromTheRawContent(t *testing.T) {
 	e, s := setup(t)
 	g := s.Add("", false, map[string]string{"a.txt": raw})
 	es := begin(t, e, g.ID, "a.txt")
-	if es.Content != raw || es.Original != raw || es.FromDraft {
-		t.Errorf("got %+v", es)
+	f := es.File("a.txt")
+	if f.Content != raw || f.Original != raw || f.FromDraft {
+		t.Errorf("got %+v", f)
 	}
-	if es.Revision != g.Revisions[0].Version {
-		t.Errorf("revision is %q", es.Revision)
+	if f.Revision != g.Revisions[0].Version {
+		t.Errorf("revision is %q", f.Revision)
 	}
 }
 
@@ -83,7 +91,7 @@ func TestNoChangeLeavesNoDraft(t *testing.T) {
 	g := s.Add("", false, map[string]string{"a.txt": "x"})
 	es := begin(t, e, g.ID, "a.txt")
 	keep(t, es, "y")
-	if changed, err := es.Keep("x"); err != nil || changed {
+	if changed, err := es.Keep("a.txt", "x"); err != nil || changed {
 		t.Errorf("changed %v, %v", changed, err)
 	}
 	if _, ok, _ := e.Draft(g.ID, "a.txt"); ok {
@@ -133,11 +141,12 @@ func TestContinueFromADraft(t *testing.T) {
 	s.Edit(g.ID, "a.txt", "moved on")
 
 	es := begin(t, e, g.ID, "a.txt")
-	if !es.FromDraft || es.Content != "edited" || es.Original != "x" || es.Revision != g.Revisions[1].Version {
-		t.Fatalf("got %+v; a draft keeps its own base", es)
+	f := es.File("a.txt")
+	if !f.FromDraft || f.Content != "edited" || f.Original != "x" || f.Revision != g.Revisions[1].Version {
+		t.Fatalf("got %+v; a draft keeps its own base", f)
 	}
 	// Opened and closed unchanged, it still differs from its base
-	if changed, err := es.Keep(es.Content); err != nil || !changed {
+	if changed, err := es.Keep("a.txt", es.Files[0].Content); err != nil || !changed {
 		t.Errorf("changed %v, %v", changed, err)
 	}
 	var ce *ChangedError
@@ -219,8 +228,8 @@ func TestReload(t *testing.T) {
 	if err != nil || !changed {
 		t.Fatalf("changed %v, %v", changed, err)
 	}
-	if es.Original != "theirs" || es.Content != "mine" {
-		t.Errorf("got %+v", es)
+	if f := es.File("a.txt"); f.Original != "theirs" || f.Content != "mine" {
+		t.Errorf("got %+v", f)
 	}
 	d, _, _ := e.Draft(g.ID, "a.txt")
 	if string(d.Original) != "theirs" || d.Revision != s.Get(g.ID).Revisions[0].Version {
@@ -380,4 +389,71 @@ func TestLockIsLetGoAfterApply(t *testing.T) {
 		t.Fatal("no error")
 	}
 	begin(t, e, g.ID, "a.txt")
+}
+
+func TestManyFilesGoInOnePatch(t *testing.T) {
+	e, s := setup(t)
+	g := s.Add("", false, map[string]string{"a.txt": "a", "b.txt": "b", "c.txt": "c"})
+	es := begin(t, e, g.ID, "a.txt", "b.txt", "c.txt")
+	if _, err := es.Keep("a.txt", "A"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := es.Keep("b.txt", "B"); err != nil {
+		t.Fatal(err)
+	}
+	if changed, err := es.Keep("c.txt", "c"); err != nil || changed {
+		t.Fatalf("changed %v, %v", changed, err)
+	}
+	if got := es.Changed(); len(got) != 2 {
+		t.Fatalf("%d changed", len(got))
+	}
+	if _, err := es.Push(ctx, false); err != nil {
+		t.Fatal(err)
+	}
+	got := s.Get(g.ID)
+	if len(got.Revisions) != 2 {
+		t.Errorf("%d revisions; it should be one change", len(got.Revisions))
+	}
+	files := got.Revisions[0].Files
+	if files["a.txt"] != "A" || files["b.txt"] != "B" || files["c.txt"] != "c" {
+		t.Errorf("files are %q", files)
+	}
+	for _, f := range []string{"a.txt", "b.txt"} {
+		if _, ok, _ := e.Draft(g.ID, f); ok {
+			t.Errorf("the draft of %s stayed", f)
+		}
+	}
+}
+
+func TestADraftOfOneFileAmongMany(t *testing.T) {
+	e, s := setup(t)
+	g := s.Add("", false, map[string]string{"a.txt": "a", "b.txt": "b"})
+	first := begin(t, e, g.ID, "a.txt")
+	keep(t, first, "drafted")
+	if err := first.Close(); err != nil {
+		t.Fatal(err)
+	}
+	es := begin(t, e, g.ID, "a.txt", "b.txt")
+	if f := es.File("a.txt"); !f.FromDraft || f.Content != "drafted" {
+		t.Errorf("got %+v", f)
+	}
+	if f := es.File("b.txt"); f.FromDraft || f.Content != "b" {
+		t.Errorf("got %+v", f)
+	}
+}
+
+func TestADraftBehindTheGistStopsThePushOfTheOthers(t *testing.T) {
+	e, s := setup(t)
+	g := s.Add("", false, map[string]string{"a.txt": "a", "b.txt": "b"})
+	first := begin(t, e, g.ID, "a.txt")
+	keep(t, first, "drafted")
+	if err := first.Close(); err != nil {
+		t.Fatal(err)
+	}
+	s.Edit(g.ID, "b.txt", "moved on")
+	es := begin(t, e, g.ID, "a.txt", "b.txt")
+	var ce *ChangedError
+	if _, err := es.Push(ctx, false); !errors.As(err, &ce) {
+		t.Errorf("got %v", err)
+	}
 }

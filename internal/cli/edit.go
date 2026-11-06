@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/babarot/gist/v2/internal/cache"
+	"github.com/babarot/gist/v2/internal/diff"
 	"github.com/babarot/gist/v2/internal/edit"
 	"github.com/babarot/gist/v2/internal/github"
 	"github.com/babarot/gist/v2/internal/model"
@@ -24,10 +25,10 @@ type EditOptions struct {
 	// Base and BaseDescription say what the change must be based on.
 	Base            string
 	BaseDescription *string
+	// Yes sends what was edited without asking, and Force goes over what
+	// changed on GitHub.
+	Yes, Force bool
 }
-
-// ErrNeedsEditor says the edit has no content, only an editor could give it.
-var ErrNeedsEditor = errors.New("say what to change: pipe the content, or use -d, --add, --remove or --rename")
 
 // ErrFileWithFlags says a file to replace was named along with flags, which
 // take no content.
@@ -42,7 +43,7 @@ func (c *CLI) Edit(ctx context.Context, arg, file string, o EditOptions) error {
 	}
 	fromStdin := !ops && !c.StdinTTY
 	if !ops && !fromStdin {
-		return ErrNeedsEditor
+		return c.editInEditor(ctx, arg, file, o)
 	}
 	id, err := c.Resolve(ctx, arg)
 	if err != nil {
@@ -97,6 +98,158 @@ func (c *CLI) Edit(ctx context.Context, arg, file string, o EditOptions) error {
 		}
 	}
 	return nil
+}
+
+// editInEditor edits files in the editor: one, or with no name all of them
+// together, what changed going in one change.
+func (c *CLI) editInEditor(ctx context.Context, arg, file string, o EditOptions) error {
+	id, err := c.Resolve(ctx, arg)
+	if err != nil {
+		return err
+	}
+	g, err := c.API.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	var names []string
+	if file != "" {
+		f, err := fileOf(g, file)
+		if err != nil {
+			return err
+		}
+		names = []string{f.Name}
+	} else {
+		for _, f := range g.Files {
+			if !f.Binary {
+				names = append(names, f.Name)
+			}
+		}
+	}
+	if len(names) == 0 {
+		return fmt.Errorf("gist %s has no text file to edit: use gist clone", id)
+	}
+	s, err := c.Editor.Begin(ctx, id, names...)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = s.Close() }()
+	if err := c.continueDrafts(ctx, s); err != nil {
+		return err
+	}
+	for {
+		work, err := s.Workspace()
+		if err != nil {
+			return err
+		}
+		args := edit.Command(c.EditorCommand, work.Paths()...)
+		if err := c.Run(args[0], args[1:]...); err != nil {
+			// What it left is read all the same: it may be all there is
+			c.Log.Warn("the editor ended badly", "err", err.Error())
+		}
+		changed, err := work.ReadBack(s)
+		if err != nil {
+			return err
+		}
+		if !changed {
+			fmt.Fprintln(c.Stderr, "no changes · nothing sent")
+			return nil
+		}
+		again, err := c.confirmAndPush(ctx, s, o)
+		if err != nil || !again {
+			return err
+		}
+	}
+}
+
+// continueDrafts asks whether to go on from the drafts the session found.
+func (c *CLI) continueDrafts(ctx context.Context, s *edit.Session) error {
+	var drafted []string
+	for _, f := range s.Files {
+		if f.FromDraft {
+			drafted = append(drafted, f.Name)
+		}
+	}
+	if len(drafted) == 0 {
+		return nil
+	}
+	fmt.Fprintf(c.Stderr, "%s %s a draft that was not pushed.\n", strings.Join(drafted, ", "),
+		map[bool]string{true: "has", false: "have"}[len(drafted) == 1])
+	if c.ask("Continue from it, or start from GitHub and discard it? [C/d] ") == "d" {
+		return s.DropDrafts(ctx)
+	}
+	return nil
+}
+
+// confirmAndPush shows what would be sent and sends it, and returns whether the
+// user wants to go back to the editor.
+func (c *CLI) confirmAndPush(ctx context.Context, s *edit.Session, o EditOptions) (bool, error) {
+	for {
+		c.printDiff(s)
+		if !o.Yes {
+			switch c.ask("Push this to GitHub? [y/e/N] ") {
+			case "y", "yes":
+			case "e":
+				return true, nil
+			default:
+				fmt.Fprintln(c.Stderr, "kept as a draft")
+				return false, ErrCanceled
+			}
+		}
+		res, err := s.Push(ctx, o.Force)
+		if moved, ok := errors.AsType[*edit.ChangedError](err); ok {
+			fmt.Fprintf(c.Stderr, "the gist changed on GitHub %s; it is at revision %s.\n",
+				ago(c.Now().Sub(moved.Current.Updated))+" ago", moved.Current.Revision())
+			switch c.ask("Overwrite it, or reload and show your edit against it? [o/r/N] ") {
+			case "o":
+				res, err = s.Push(ctx, true)
+			case "r":
+				changed, err := s.Reload(ctx)
+				if err != nil {
+					return false, err
+				}
+				if !changed {
+					fmt.Fprintln(c.Stderr, "no changes · nothing sent")
+					return false, nil
+				}
+				continue
+			default:
+				fmt.Fprintln(c.Stderr, "kept as a draft")
+				return false, ErrCanceled
+			}
+		}
+		if err != nil {
+			if errors.Is(err, github.ErrEmptyContent) {
+				return false, errors.New("GitHub removes an empty file: use --remove to remove it. The edit is kept as a draft")
+			}
+			return false, err
+		}
+		c.remembered(ctx, res.Gist)
+		if res.Overwritten != "" {
+			fmt.Fprintf(c.Stderr, "gist: another change came in just before this one and was overwritten: %s/%s\n",
+				res.Gist.URL, res.Overwritten)
+		}
+		return false, nil
+	}
+}
+
+// printDiff shows what would be sent, on stderr, as stdout is for data.
+func (c *CLI) printDiff(s *edit.Session) {
+	for _, f := range s.Changed() {
+		d := diff.Compare(f.Original, f.Content)
+		fmt.Fprintf(c.Stderr, "--- %s (+%d −%d)\n", oneLine(f.Name), d.Added, d.Removed)
+		for _, l := range d.Lines {
+			switch l.Kind {
+			case diff.Hunk:
+				fmt.Fprintln(c.Stderr, l.Text)
+			case diff.Added:
+				fmt.Fprintln(c.Stderr, "+"+l.Text)
+			case diff.Removed:
+				fmt.Fprintln(c.Stderr, "-"+l.Text)
+			default:
+				fmt.Fprintln(c.Stderr, " "+l.Text)
+			}
+		}
+	}
 }
 
 // stdinChange is the file replaced with what came on stdin.
@@ -245,12 +398,18 @@ func (c *CLI) Delete(ctx context.Context, args []string, yes bool) error {
 	return nil
 }
 
-// confirm asks a question on stderr and reads the answer from stdin.
+// confirm asks a question and says the answer was yes.
 func (c *CLI) confirm(question string) bool {
+	a := c.ask(question)
+	return a == "y" || a == "yes"
+}
+
+// ask asks a question on stderr and reads the answer from stdin, in lower case.
+func (c *CLI) ask(question string) string {
 	fmt.Fprint(c.Stderr, question)
 	var answer string
 	_, _ = fmt.Fscanln(c.Stdin, &answer)
-	return strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes")
+	return strings.ToLower(answer)
 }
 
 // OpenGist opens a gist in the browser, or the user's gists when arg is "".

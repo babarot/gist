@@ -9,7 +9,8 @@ import (
 // Keys are looked up in layers, top first, and a layer that takes a key stops
 // it there: ctrl+c, then what is open over the screen, then the list. A layer
 // gives no key to the one below, so a box cannot act on the list under it.
-func (m *Model) key(k string) tea.Cmd {
+func (m *Model) key(msg tea.KeyPressMsg) tea.Cmd {
+	k := msg.String()
 	if k == keymap.Interrupt {
 		return m.quit()
 	}
@@ -24,10 +25,27 @@ func (m *Model) key(k string) tea.Cmd {
 			m.helpOpen = false
 		}
 		return nil
+	case uiConfirmPush:
+		return m.diffKey(k)
+	case uiConfirmConflict:
+		return m.conflictKey(k)
+	case uiInput, uiInputConflict:
+		return m.inputKey(msg)
+	case uiConfirmDelete:
+		return m.deleteKey(k)
+	case uiConfirmDiscard:
+		m.discardKey(k)
+		return nil
+	}
+	if m.editing != nil {
+		// The edit is on its way to the editor
+		return nil
 	}
 	return m.listKey(k)
 }
 
+// quit ends. An edit in progress has its draft and lock taken care of: the
+// draft is on disk, and the lock goes with the process.
 func (m *Model) quit() tea.Cmd {
 	m.cancel()
 	return tea.Quit
@@ -72,6 +90,16 @@ func (m *Model) listKey(k string) tea.Cmd {
 		return m.readCommentsNow()
 	case on(keymap.ToggleMD):
 		m.plain = !m.plain
+	case on(keymap.Edit):
+		return m.startEdit()
+	case on(keymap.Delete):
+		return m.openDelete()
+	case on(keymap.Describe):
+		return m.openInput(inputDescription)
+	case on(keymap.Rename):
+		return m.openInput(inputFilename)
+	case on(keymap.Discard):
+		return m.openDiscard()
 	}
 	return nil
 }
@@ -150,7 +178,36 @@ func (m *Model) keyHints() []hint {
 		return []hint{k("quit", keymap.Quit)}
 	case uiHelp:
 		return []hint{{keymap.Back, "close"}}
+	case uiConfirmPush:
+		return []hint{k("push", keymap.Confirm), k("edit again", keymap.Edit), k("scroll", keymap.ScrollDown, keymap.ScrollUp), {keymap.Back, "keep as draft"}}
+	case uiConfirmConflict:
+		return []hint{k("overwrite", keymap.Overwrite), k("reload", keymap.Reload), {keymap.Back, "keep as draft"}}
+	case uiConfirmDelete:
+		if m.deleting != nil && len(m.deleting.gist.Files) > 1 {
+			return []hint{k("delete gist", keymap.Confirm), k("only this file", keymap.OnlyFile), {keymap.Back, "no"}}
+		}
+		return []hint{k("delete", keymap.Confirm), {keymap.Back, "no"}}
+	case uiConfirmDiscard:
+		return []hint{k("discard", keymap.Confirm), {keymap.Back, "keep"}}
+	case uiInput:
+		return []hint{{"enter", "save"}, {keymap.Back, "cancel"}}
+	case uiInputConflict:
+		return []hint{k("overwrite", keymap.Overwrite), k("reload", keymap.Reload), {keymap.Back, "cancel"}}
 	}
+	if m.cur == tabStarred {
+		return m.starredHints()
+	}
+	hints := []hint{k("edit", keymap.Edit), k("delete", keymap.Delete), k("desc", keymap.Describe), k("rename", keymap.Rename)}
+	if g, ok := m.selected(); ok && m.drafts[g.ID] {
+		hints = append(hints, k("discard draft", keymap.Discard))
+	}
+	return append(hints, m.starredHints()...)
+}
+
+// starredHints are the keys that do not change a gist, which are all there are
+// on the starred tab.
+func (m *Model) starredHints() []hint {
+	k := func(what string, actions ...keymap.Action) hint { return hint{m.keys.Hint(actions...), what} }
 	hints := []hint{k("browser", keymap.Browse), k("copy url", keymap.CopyURL)}
 	if g, ok := m.selected(); ok {
 		if len(g.Files) > 1 {
@@ -197,6 +254,13 @@ var helpGroups = []helpGroup{
 		{[]keymap.Action{keymap.PrevFile, keymap.NextFile}, "prev / next file"},
 		{[]keymap.Action{keymap.Mine}, "mine"},
 		{[]keymap.Action{keymap.Starred}, "starred"},
+	}},
+	{"act", []helpRow{
+		{[]keymap.Action{keymap.Edit}, "edit, then push"},
+		{[]keymap.Action{keymap.Describe}, "edit the description"},
+		{[]keymap.Action{keymap.Rename}, "rename the file"},
+		{[]keymap.Action{keymap.Delete}, "delete"},
+		{[]keymap.Action{keymap.Discard}, "discard the draft"},
 	}},
 	{"view", []helpRow{
 		{[]keymap.Action{keymap.ToggleSide}, "info / comments"},

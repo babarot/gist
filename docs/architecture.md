@@ -11,6 +11,7 @@ The packages are layered: a package imports only from lower layers, and only the
 | 0 | `internal/state` | What would be missed if lost: drafts, the locks that guard them, and the layout | - | - |
 | 0 | `internal/near` | The closest of a few names to one mistyped, for a did-you-mean | - | - |
 | 0 | `internal/text` | Making text from GitHub fit to draw, and its width | - | `github.com/charmbracelet/x/ansi` |
+| 0 | `internal/diff` | What changed between two versions of a file | - | `github.com/pmezard/go-difflib` |
 | 0 | `internal/fakegist` | A made-up GitHub Gist API for tests; never built into gist | - | - |
 | 0 | `internal/tui/statusline` | What the status line shows: events for a moment, then work in progress | - | - |
 | 0 | `internal/highlight` | A file as lines of tokens, each saying what it is | - | `github.com/alecthomas/chroma/v2` |
@@ -22,8 +23,8 @@ The packages are layered: a package imports only from lower layers, and only the
 | 1 | `internal/tui/keymap` | Keys bound to actions by name | `internal/near` | - |
 | 1 | `internal/markdown` | Markdown and HTML drawn as lines, each piece saying what it is | `internal/text` | `github.com/kyokomi/emoji/v2`, `golang.org/x/net/html` |
 | 2 | `internal/github` | GitHub's REST API | `internal/model`, `internal/logging` | `github.com/cli/go-gh/v2` |
-| 3 | `internal/cli` | What the subcommands do | `internal/cache`, `internal/edit`, `internal/github`, `internal/model`, `internal/resolve` | - |
-| 3 | `internal/tui` | The terminal UI | `internal/cache`, `internal/config`, `internal/highlight`, `internal/markdown`, `internal/model`, `internal/text`, `internal/tui/keymap`, `internal/tui/statusline` | `charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`, `github.com/rivo/uniseg` |
+| 3 | `internal/cli` | What the subcommands do | `internal/cache`, `internal/diff`, `internal/edit`, `internal/github`, `internal/model`, `internal/resolve` | - |
+| 3 | `internal/tui` | The terminal UI | `internal/cache`, `internal/config`, `internal/diff`, `internal/edit`, `internal/github`, `internal/highlight`, `internal/markdown`, `internal/model`, `internal/state`, `internal/text`, `internal/tui/keymap`, `internal/tui/statusline` | `charm.land/bubbles/v2`, `charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`, `github.com/rivo/uniseg` |
 | 4 | `internal/app` | Putting it together: commands and flags, the log, and what each command runs with | `internal/cli`, `internal/config`, `internal/edit`, `internal/github`, `internal/logging`, `internal/state`, `internal/tui`, `internal/tui/keymap`, `internal/version`, `internal/xdg` | `github.com/cli/go-gh/v2`, `github.com/spf13/cobra` |
 | 5 | `main` | Calls app.Run | `internal/app` | - |
 

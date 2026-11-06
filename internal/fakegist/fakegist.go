@@ -540,6 +540,9 @@ func (s *Server) full(g *Gist) map[string]any {
 	files := map[string]any{}
 	for name, f := range s.fileFields(g) {
 		content := g.files()[name]
+		if strings.ContainsRune(content, 0) {
+			f["encoding"] = "base64"
+		}
 		f["truncated"] = len(content) > MaxContent
 		if len(content) > MaxContent {
 			content = content[:MaxContent]

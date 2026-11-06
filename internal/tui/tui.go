@@ -14,6 +14,7 @@ import (
 
 	"github.com/babarot/gist/v2/internal/cache"
 	"github.com/babarot/gist/v2/internal/config"
+	"github.com/babarot/gist/v2/internal/edit"
 	"github.com/babarot/gist/v2/internal/model"
 	"github.com/babarot/gist/v2/internal/tui/keymap"
 	"github.com/babarot/gist/v2/internal/tui/statusline"
@@ -26,6 +27,7 @@ type Source interface {
 	Starred(ctx context.Context) ([]model.Gist, error)
 	Get(ctx context.Context, id string) (model.Gist, error)
 	Comments(ctx context.Context, id string) ([]model.Comment, error)
+	Delete(ctx context.Context, id string) error
 }
 
 // Layout keeps how the screen was left, for the next launch. The app package
@@ -49,6 +51,8 @@ type Options struct {
 	CacheDir string
 	// Layout keeps the screen's layout.
 	Layout Layout
+	// Editor changes gists.
+	Editor *edit.Editor
 	// Config is the config file.
 	Config config.File
 	// Keys are the keys.
@@ -113,10 +117,21 @@ type Model struct {
 	selectID                  string
 	helpOpen                  bool
 	preview                   previewState
-	side                      int
-	plain                     bool
-	boxHeight                 int
-	dragging                  bool
+	editing                   *editing
+	input                     *inputState
+	deleting                  *deleting
+	discarding                *discarding
+	// writing are the gists being written to, and drafts those with drafts.
+	writing map[string]string
+	drafts  map[string]bool
+	// runEditor gives the terminal to the editor; tests give another.
+	runEditor func(args []string) tea.Cmd
+	side      int
+	plain     bool
+	boxHeight int
+	lastClick time.Time
+	lastRow   int
+	dragging  bool
 
 	spinFrame int
 	spinning  bool
@@ -145,6 +160,9 @@ func New(o Options) *Model {
 		noToken:   o.NoToken,
 		via:       o.Via,
 		fileTab:   map[string]int{},
+		writing:   map[string]string{},
+		drafts:    map[string]bool{},
+		runEditor: runProgram,
 		selectID:  o.Select,
 		boxHeight: defaultBoxHeight,
 		plain:     o.Config.Preview.Markdown == config.MarkdownPlain,
@@ -161,6 +179,7 @@ func New(o Options) *Model {
 	for i := range m.tabs {
 		m.tabs[i].marks, m.tabs[i].fresh = map[string]bool{}, map[string]time.Time{}
 	}
+	m.readDrafts()
 	if !m.noToken {
 		m.openStores(cache.Viewer(m.storePath(tabMine)))
 	}
@@ -230,7 +249,7 @@ func (m *Model) update(msg tea.Msg) tea.Cmd {
 		}
 	case tea.KeyPressMsg:
 		m.line.KeyPressed()
-		return m.key(msg.String())
+		return m.key(msg)
 	case tea.MouseMsg:
 		return m.mouse(msg)
 	case viewerMsg:
@@ -247,6 +266,20 @@ func (m *Model) update(msg tea.Msg) tea.Cmd {
 		m.gotComments(msg)
 	case dwellMsg:
 		return m.dwelled(msg)
+	case beganMsg:
+		return m.gotBegan(msg)
+	case editedMsg:
+		return m.gotEdited(msg)
+	case pushedMsg:
+		return m.gotPushed(msg)
+	case reloadedMsg:
+		m.gotReloaded(msg)
+	case inputSentMsg:
+		m.gotInputSent(msg)
+	case deletedMsg:
+		m.gotDeleted(msg)
+	case fileRemovedMsg:
+		m.gotFileRemoved(msg)
 	case spinMsg:
 		m.spinning = false
 		m.spinFrame++
@@ -267,7 +300,7 @@ func (m *Model) tab() *tab { return &m.tabs[m.cur] }
 // busy says something is being read, for which the spinner turns.
 func (m *Model) busy() bool {
 	return m.readingViewer || m.tabs[tabMine].reading || m.tabs[tabStarred].reading ||
-		m.preview.running > 0 || len(m.preview.readingComments) > 0
+		m.preview.running > 0 || len(m.preview.readingComments) > 0 || len(m.writing) > 0
 }
 
 type spinMsg struct{}

@@ -4,14 +4,14 @@ gist // @alice     1 mine (5)    2 starred (…)                                
     日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確かめるための…      2            secret       3h
     no-descr╭ keys ────────────────────────────────────────────────────────────────────────────────────────╮et       2d
     emoji ❤️│                                                                                              │et      4mo
-    escape s│ move                                          view                                           │et      10y
-            │ j/k    down / up                              c      info / comments                         │
-            │ g/G    top / bottom                           m      markdown / plain                        │
-            │ J/K    scroll the preview                     o      open in the browser                     │
-            │ h/l    prev / next file                       y      copy the URL                            │
-╭  main.go  │ 1      mine                                   R      refresh now                             │)  ────────╮
-│    1  cont│ 2      starred                                ?      this help                               │           │
-│           │                                               q      quit                                    │           │
+    escape s│ move                          act                           view                             │et      10y
+            │ j/k    down / up              enter  edit, then push        c      info / comments           │
+            │ g/G    top / bottom           E      edit the description   m      markdown / plain          │
+            │ J/K    scroll the preview     r      rename the file        o      open in the browser       │
+            │ h/l    prev / next file       D      delete                 y      copy the URL              │
+╭  main.go  │ 1      mine                   X      discard the draft      R      refresh now               │)  ────────╮
+│    1  cont│ 2      starred                                              ?      this help                 │           │
+│           │                                                             q      quit                      │           │
 │           │                                                                                              │KB         │
 │           │                                                                                              │           │
 │           ╰──────────────────────────────────────────────────────────────────────────────────────────────╯           │

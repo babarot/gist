@@ -190,6 +190,24 @@ func readDraft(path string) (Draft, bool, error) {
 	return d, true, nil
 }
 
+// DraftGists are the gists that have drafts.
+func (s *Store) DraftGists() ([]string, error) {
+	entries, err := os.ReadDir(filepath.Join(s.dir, "drafts"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var gists []string
+	for _, e := range entries {
+		if e.IsDir() {
+			gists = append(gists, e.Name())
+		}
+	}
+	return gists, nil
+}
+
 // Drafts reads the drafts of a gist.
 func (s *Store) Drafts(gist string) ([]Draft, error) {
 	entries, err := os.ReadDir(s.draftDir(gist))

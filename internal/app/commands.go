@@ -100,7 +100,7 @@ func newEditCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobr
 	var description, baseDescription string
 	cmd := &cobra.Command{
 		Use:   "edit <gist> [file]",
-		Short: "change a gist: pipe a file's content, or use the flags",
+		Short: "edit a gist in your editor, or pipe a file's content, or use the flags",
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.Flags().Changed("desc") {
@@ -112,7 +112,13 @@ func newEditCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobr
 				}
 				f.BaseDescription = &baseDescription
 			}
+			cfg, err := o.readConfig()
+			if err != nil {
+				fmt.Fprintf(stderr, "gist: %v\n", err)
+				return exitCode(1)
+			}
 			return o.run(cmd, stdin, stdout, stderr, func(ctx context.Context, c *cli.CLI) error {
+				c.EditorCommand = cfg.Editor
 				return c.Edit(ctx, args[0], at(args, 1), f)
 			})
 		},
@@ -124,6 +130,8 @@ func newEditCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobr
 	flags.StringArrayVar(&f.Rename, "rename", nil, "rename a file: old=new")
 	flags.StringVar(&f.Base, "base", "", "stop unless the gist is at this revision")
 	flags.StringVar(&baseDescription, "base-desc", "", "stop unless the description is this")
+	flags.BoolVar(&f.Yes, "yes", false, "push what was edited without asking")
+	flags.BoolVar(&f.Force, "force", false, "go over what changed on GitHub")
 	return cmd
 }
 

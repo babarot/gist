@@ -250,6 +250,7 @@ func (o *options) runTUI(cmd *cobra.Command, arg string, stdout, stderr io.Write
 		return fail(err)
 	default:
 		opt.Source, opt.Via = client, github.Source(source)
+		opt.Editor = &edit.Editor{API: client, State: store}
 	}
 	if arg != "" && client != nil {
 		c := o.newCLI(client, nil, stdout, stderr)

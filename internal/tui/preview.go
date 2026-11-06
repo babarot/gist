@@ -13,6 +13,7 @@ import (
 	"github.com/babarot/gist/v2/internal/highlight"
 	"github.com/babarot/gist/v2/internal/markdown"
 	"github.com/babarot/gist/v2/internal/model"
+	"github.com/babarot/gist/v2/internal/state"
 	"github.com/babarot/gist/v2/internal/text"
 	"github.com/babarot/gist/v2/internal/tui/keymap"
 )
@@ -254,9 +255,21 @@ func (m *Model) drawHints(c *canvas, l layout, g model.Gist, f model.File, read 
 	}
 	s := " " + strings.Join(hints, " · ") + " "
 	c.put(y, c.w-2-text.Width(s), s, style{fg: p.overlay})
+	if _, ok, _ := m.draftOf(g, f.Name); ok {
+		c.put(y, 2, " "+draftMark+" draft · "+m.keys.Hint(keymap.Edit)+" to continue ", style{fg: p.peach})
+		return
+	}
 	if left != "" {
 		c.put(y, 2, left, style{fg: p.yellow})
 	}
+}
+
+// draftOf reads the draft of a file, if the gist has any.
+func (m *Model) draftOf(g model.Gist, file string) (state.Draft, bool, error) {
+	if !m.drafts[g.ID] || m.opt.Editor == nil {
+		return state.Draft{}, false, nil
+	}
+	return m.opt.Editor.Draft(g.ID, file)
 }
 
 // drawFileTabs lays the files along the top of the frame.
