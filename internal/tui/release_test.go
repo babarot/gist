@@ -228,3 +228,29 @@ func TestTheBoxFitsEveryTerminal(t *testing.T) {
 		}
 	}
 }
+
+func TestTheThumbStandsOutFromTheBoxsFrame(t *testing.T) {
+	src := &releaseFake{}
+	for range 30 {
+		src.list = append(src.list, model.Release{Version: "1.0.0", Body: "* one\n* two\n"})
+	}
+	m := releaseModel(t, &Release{Version: "2.0.0", Running: "2.0.0", Source: src}, 100, 24)
+	press(t, m, "?")
+	press(t, m, "w")
+	c := newCanvas(100, 24)
+	m.drawReleases(c)
+	found := false
+	for _, row := range c.rows {
+		for _, cl := range row {
+			if cl.text == "┃" {
+				found = true
+				if cl.style.fg == m.pal.blue || cl.style.fg == m.pal.overlay {
+					t.Fatalf("the thumb is in %v", cl.style.fg)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Error("no thumb")
+	}
+}

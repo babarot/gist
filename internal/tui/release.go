@@ -267,7 +267,8 @@ func (m *Model) drawReleases(c *canvas) {
 			c.putCut(y+1+i, x+2, r.segs, inner, style{fg: p.overlay})
 		}
 	}
-	m.drawThumb(c, x+w-1, y+1, h, top, len(rows))
+	// The frame of this box is bright, so the thumb is brighter still
+	m.drawThumb(c, x+w-1, y+1, h, top, len(rows), p.text)
 }
 
 // drawAbout writes the version at the foot of the key list, y being its last
