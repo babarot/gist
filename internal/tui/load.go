@@ -142,6 +142,11 @@ func (m *Model) gotList(msg listDoneMsg) tea.Cmd {
 		return nil
 	}
 	t.reading = false
+	if t.changed {
+		// What came may be from before a change made here: read it again
+		t.changed, t.first = false, false
+		return m.readMine()
+	}
 	if msg.err != nil {
 		m.line.Fail(m.now(), msg.err.Error())
 		return nil
@@ -259,15 +264,19 @@ func (m *Model) readStarred() tea.Cmd {
 	}
 }
 
-func (m *Model) gotStarred(msg starredMsg) {
+func (m *Model) gotStarred(msg starredMsg) tea.Cmd {
 	t := &m.tabs[tabStarred]
 	if msg.seq != t.seq {
-		return
+		return nil
 	}
 	t.reading, t.readOnce = false, true
+	if t.changed {
+		t.changed = false
+		return m.readStarred()
+	}
 	if msg.err != nil {
 		m.line.Fail(m.now(), msg.err.Error())
-		return
+		return nil
 	}
 	cache.Sort(msg.gists)
 	had := t.loaded
@@ -285,4 +294,5 @@ func (m *Model) gotStarred(msg starredMsg) {
 	if had {
 		m.line.Say(m.now(), summary(added, updated, gone))
 	}
+	return nil
 }

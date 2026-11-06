@@ -57,6 +57,10 @@ func (m *Model) quit() tea.Cmd {
 			m.quitErr = err
 		}
 	}
+	// What the form had goes with it, as closing the form does
+	if m.form != nil && m.form.scratch != nil {
+		_ = m.form.scratch.Remove()
+	}
 	m.cancel()
 	return tea.Quit
 }

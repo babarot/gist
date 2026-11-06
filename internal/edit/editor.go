@@ -119,11 +119,16 @@ func NewScratch(name, content string) (*Scratch, error) {
 // Path is the file.
 func (s *Scratch) Path() string { return s.path }
 
-// Read reads what the editor left and removes it.
+// Read reads what the editor left, and removes it unless that could not be
+// read. That it could not be removed is no reason to lose what was read.
 func (s *Scratch) Read() (string, error) {
 	b, err := os.ReadFile(s.path)
 	if err != nil {
 		return "", err
 	}
-	return string(b), os.RemoveAll(s.dir)
+	_ = os.RemoveAll(s.dir)
+	return string(b), nil
 }
+
+// Remove removes it unread.
+func (s *Scratch) Remove() error { return os.RemoveAll(s.dir) }

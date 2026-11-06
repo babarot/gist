@@ -266,14 +266,14 @@ func (o *options) runTUI(cmd *cobra.Command, arg string, stdout, stderr io.Write
 }
 
 // runForm runs the form of a new gist alone, and gives the gist it made.
-func (o *options) runForm(c *cli.CLI, cfg config.File) (*model.Gist, error) {
+func (o *options) runForm(c *cli.CLI, cfg config.File, n model.NewGist) (*model.Gist, error) {
 	keys, err := keymap.Default().With(cfg.Keys)
 	if err != nil {
 		return nil, err
 	}
 	res, err := tui.Run(tui.Options{
 		Source: c.API, FormOnly: true, Host: github.Host, CacheDir: xdg.CacheDir(),
-		Config: cfg, Keys: keys, Log: o.log,
+		Config: cfg, Keys: keys, Log: o.log, NewGist: &n,
 	})
 	return res.Created, err
 }

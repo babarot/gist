@@ -2,6 +2,7 @@ package tui
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -388,6 +389,86 @@ func TestFormOnlyCanceled(t *testing.T) {
 	_, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 	if !isQuit(cmd) || m.created != nil {
 		t.Errorf("created %+v", m.created)
+	}
+}
+
+func TestFormStartsFromTheFlags(t *testing.T) {
+	o := options(t, &source{})
+	o.Config.New.Visibility = config.VisibilityPublic
+	o.NewGist = &model.NewGist{Description: "from the flags"}
+	m := newModel(t, o, 120, 34)
+	press(t, m, "n")
+	if m.form.public || m.form.description.Value() != "from the flags" {
+		t.Errorf("public %v, description %q", m.form.public, m.form.description.Value())
+	}
+}
+
+func TestChangesMadeDuringAReadingAreNotUndone(t *testing.T) {
+	for name, act := range map[string]func(*world){
+		"create": func(w *world) {
+			press(t, w.m, "n")
+			fill(t, w, "new.txt", "made here", "n\n")
+			ctrl(t, w.m, 's')
+		},
+		"push": func(w *world) {
+			w.type_("edited\n")
+			enter(t, w.m)
+			press(t, w.m, "y")
+		},
+		"delete": func(w *world) { press(t, w.m, "D", "y") },
+	} {
+		t.Run(name, func(t *testing.T) {
+			w, g := one(t, map[string]string{"a.txt": "a\n"})
+			reading := hold(w.m, keyMsg("R"))
+			act(w)
+			settle(t, w.m, reading)
+			wantRows := 1
+			switch name {
+			case "create":
+				wantRows = 2
+			case "delete":
+				wantRows = 0
+			}
+			if got := len(w.m.tab().gists); got != wantRows {
+				t.Errorf("%d gists", got)
+			}
+			if name == "push" {
+				c, ok := w.m.selected()
+				if !ok || !c.Updated.Equal(w.s.Get(g.ID).Updated) {
+					t.Errorf("the row is from before the push: %v", c.Updated)
+				}
+			}
+			if w.m.tab().reading {
+				t.Error("it never finished reading")
+			}
+		})
+	}
+}
+
+func TestQuittingWithTheFormsEditorLeavesNoFile(t *testing.T) {
+	w := form(t)
+	var dir string
+	w.m.runEditor = func(args []string) tea.Cmd {
+		dir = filepath.Dir(args[len(args)-1])
+		return nil
+	}
+	ctrl(t, w.m, 'e')
+	_, cmd := w.m.Update(keyMsg("ctrl+c"))
+	if !isQuit(cmd) {
+		t.Fatal("did not quit")
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Errorf("left %s: %v", dir, err)
+	}
+}
+
+func TestFormOnlyShowsOnlyTheForm(t *testing.T) {
+	o := options(t, &source{})
+	o.FormOnly = true
+	m := newModel(t, o, 120, 34)
+	s := screen(m)
+	if !strings.Contains(s, "new gist") || strings.Contains(s, "mine (") {
+		t.Errorf("got:\n%s", s)
 	}
 }
 

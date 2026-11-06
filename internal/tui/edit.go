@@ -325,6 +325,8 @@ func (m *Model) showResult(g model.Gist) {
 
 // afterChange shows and keeps a list after a change made here.
 func (m *Model) afterChange(t *tab, gists []model.Gist) {
+	// A reading under way started before this and would undo it
+	t.changed = t.changed || t.reading
 	cache.Sort(gists)
 	m.replace(t, gists)
 	t.list.Gists = gists

@@ -62,6 +62,8 @@ type Options struct {
 	Select string
 	// FormOnly shows only the form of a new gist, and ends with it.
 	FormOnly bool
+	// NewGist is what the form starts with, when not the config.
+	NewGist *model.NewGist
 	// Browse opens a URL in the browser.
 	Browse func(url string) error
 	// Log is the log.
@@ -87,6 +89,9 @@ type tab struct {
 	// first that it is the first time, so they come in as they are read.
 	// readOnce says it was read from GitHub in this run.
 	loaded, reading, first, readOnce bool
+	// changed says a change was made here while it was being read, so what
+	// comes may be from before it.
+	changed bool
 	// got and estimate are how far a first reading is.
 	got, estimate int
 	// seq tells the reading under way from one given up.
@@ -288,7 +293,7 @@ func (m *Model) update(msg tea.Msg) tea.Cmd {
 	case listDoneMsg:
 		return m.gotList(msg)
 	case starredMsg:
-		m.gotStarred(msg)
+		return m.gotStarred(msg)
 	case contentMsg:
 		m.gotContent(msg)
 	case commentsMsg:

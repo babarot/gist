@@ -45,6 +45,10 @@ func newField() textinput.Model {
 func (m *Model) startForm() tea.Cmd {
 	m.form = &formState{name: newField(), description: newField(),
 		public: m.opt.Config.New.Visibility == config.VisibilityPublic}
+	if n := m.opt.NewGist; n != nil {
+		m.form.public = n.Public
+		m.form.description.SetValue(n.Description)
+	}
 	return m.form.name.Focus()
 }
 

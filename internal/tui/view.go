@@ -71,6 +71,13 @@ func (m *Model) render() string {
 		m.drawFooter(c, m.layout())
 		return c.String()
 	}
+	if m.opt.FormOnly {
+		if m.form != nil {
+			m.drawForm(c)
+		}
+		m.drawFooter(c, m.layout())
+		return c.String()
+	}
 	l := m.layout()
 	m.drawHeader(c)
 	m.drawColumns(c)
