@@ -17,6 +17,7 @@ import (
 	"github.com/babarot/gist/v2/internal/github"
 	"github.com/babarot/gist/v2/internal/model"
 	"github.com/babarot/gist/v2/internal/state"
+	"github.com/babarot/gist/v2/internal/text"
 	"github.com/babarot/gist/v2/internal/tui/keymap"
 )
 
@@ -28,9 +29,12 @@ type editing struct {
 	work    *edit.Workspace
 	// diff is what is about to be sent, and scroll how far it is down. ready
 	// says it is there to show: from the editor's files being read back.
-	diff   diff.Diff
-	scroll int
-	ready  bool
+	diff diff.Diff
+	// view is the diff as rows, for the width it was wrapped to.
+	view      [][]seg
+	viewWidth int
+	scroll    int
+	ready     bool
 	// conflict is the gist as GitHub has it, when it moved on.
 	conflict *edit.ChangedError
 }
@@ -200,6 +204,7 @@ func (m *Model) gotEdited(msg editedMsg) tea.Cmd {
 func (m *Model) showDiff() {
 	e := m.editing
 	f := e.session.File(e.file)
+	e.view = nil
 	e.diff, e.scroll, e.conflict, e.ready = diff.Compare(f.Original, f.Content), 0, nil, true
 }
 
@@ -403,11 +408,99 @@ func (m *Model) diffKey(k string) tea.Cmd {
 
 func (m *Model) scrollDiff(by int) {
 	e := m.editing
-	e.scroll = max(0, min(e.scroll+by, max(0, len(e.diff.Lines)-m.diffRows())))
+	e.scroll = max(0, min(e.scroll+by, max(0, len(m.diffView())-m.diffRows())))
 }
 
-// diffRows is how many lines of a diff show.
+// diffRows is how many rows of a diff show.
 func (m *Model) diffRows() int { return max(1, m.height-5-4) }
+
+// diffView is the diff as the rows it shows in: a long line wraps, as what
+// changed may be at its end, and within a line what changed is marked.
+func (m *Model) diffView() [][]seg {
+	e := m.editing
+	width := max(1, m.width-8-4)
+	if e.view != nil && e.viewWidth == width {
+		return e.view
+	}
+	lines := e.diff.Lines
+	texts := make([]string, len(lines))
+	for i, l := range lines {
+		texts[i] = text.Line(l.Text)
+	}
+	spans := changedSpans(lines, texts)
+	p := m.pal
+	view := make([][]seg, 0, len(lines))
+	for i, l := range lines {
+		st, mark, on := style{fg: p.subtext0}, "  ", style{}
+		switch l.Kind {
+		case diff.Hunk:
+			st, mark = style{fg: p.teal}, ""
+		case diff.Added:
+			st, mark, on = style{fg: p.green}, "+ ", style{fg: p.green, bg: p.addMark, bold: true}
+		case diff.Removed:
+			st, mark, on = style{fg: p.red}, "- ", style{fg: p.red, bg: p.delMark, bold: true}
+		}
+		starts := text.Breaks(texts[i], width-len(mark))
+		for r, from := range starts {
+			to := len(texts[i])
+			if r+1 < len(starts) {
+				to = starts[r+1]
+			}
+			lead := mark
+			if r > 0 {
+				lead = strings.Repeat(" ", len(mark))
+			}
+			view = append(view, append([]seg{{lead, st}}, marks(texts[i], from, to, spans[i], st, on)...))
+		}
+	}
+	e.view, e.viewWidth = view, width
+	return view
+}
+
+// changedSpans are what changed in each line: a line removed and the one added
+// in its place, taken in the order they come.
+func changedSpans(lines []diff.Line, texts []string) [][]diff.Span {
+	out := make([][]diff.Span, len(lines))
+	for i := 0; i < len(lines); {
+		if lines[i].Kind != diff.Removed {
+			i++
+			continue
+		}
+		del := i
+		for i < len(lines) && lines[i].Kind == diff.Removed {
+			i++
+		}
+		add := i
+		for i < len(lines) && lines[i].Kind == diff.Added {
+			i++
+		}
+		for n := 0; n < add-del && n < i-add; n++ {
+			out[del+n], out[add+n] = diff.Inline(texts[del+n], texts[add+n])
+		}
+	}
+	return out
+}
+
+// marks is s[from:to] in st, with what spans cover in on.
+func marks(s string, from, to int, spans []diff.Span, st, on style) []seg {
+	var out []seg
+	at := from
+	for _, sp := range spans {
+		a, b := max(sp.Start, from), min(sp.End, to)
+		if a >= b {
+			continue
+		}
+		if a > at {
+			out = append(out, seg{s[at:a], st})
+		}
+		out = append(out, seg{s[a:b], on})
+		at = b
+	}
+	if at < to {
+		out = append(out, seg{s[at:to], st})
+	}
+	return out
+}
 
 // openInput opens a text box on the gist under the cursor.
 func (m *Model) openInput(kind inputKind) tea.Cmd {

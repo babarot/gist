@@ -10,7 +10,7 @@ The packages are layered: a package imports only from lower layers, and only the
 | 0 | `internal/xdg` | Where gist keeps its config, state and cache | - | - |
 | 0 | `internal/state` | What would be missed if lost: drafts, the locks that guard them, and the layout | - | - |
 | 0 | `internal/near` | The closest of a few names to one mistyped, for a did-you-mean | - | - |
-| 0 | `internal/text` | Making text from GitHub fit to draw, and its width | - | `github.com/charmbracelet/x/ansi` |
+| 0 | `internal/text` | Making text from GitHub fit to draw, and its width | - | `github.com/charmbracelet/x/ansi`, `github.com/rivo/uniseg` |
 | 0 | `internal/diff` | What changed between two versions of a file | - | `github.com/pmezard/go-difflib` |
 | 0 | `internal/filter` | Fuzzy matching and the key:value terms of the filter | - | - |
 | 0 | `internal/release` | Whether a newer release is out, how to update, and what its notes say | - | - |

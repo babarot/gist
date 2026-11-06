@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/rivo/uniseg"
 )
 
 // Clean removes escape sequences and control characters from s, and writes a
@@ -30,6 +31,35 @@ func Clean(s string) string {
 
 // Line is Clean for what is drawn on one line.
 func Line(s string) string { return strings.ReplaceAll(Clean(s), "\n", " ") }
+
+// Breaks are the byte offsets the rows of s start at when it is wrapped to width
+// cells, the first being 0. A row ends after its last space when it has one, and
+// anywhere otherwise, as Japanese has none.
+func Breaks(s string, width int) []int {
+	width = max(1, width)
+	starts := []int{0}
+	start, cells, space, at := 0, 0, -1, 0
+	state := -1
+	for rest := s; rest != ""; {
+		var cluster string
+		cluster, rest, _, state = uniseg.FirstGraphemeClusterInString(rest, state)
+		w := Width(cluster)
+		for cells+w > width && at > start {
+			start = at
+			if space > starts[len(starts)-1] {
+				start = space
+			}
+			starts = append(starts, start)
+			cells, space = Width(s[start:at]), -1
+		}
+		cells += w
+		at += len(cluster)
+		if cluster == " " {
+			space = at
+		}
+	}
+	return starts
+}
 
 // Width is how many cells s takes. A variation selector or a zero-width joiner
 // takes none.

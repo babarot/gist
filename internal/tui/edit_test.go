@@ -12,11 +12,13 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/babarot/gist/v2/internal/cache"
+	"github.com/babarot/gist/v2/internal/diff"
 	"github.com/babarot/gist/v2/internal/edit"
 	"github.com/babarot/gist/v2/internal/fakegist"
 	"github.com/babarot/gist/v2/internal/github"
 	"github.com/babarot/gist/v2/internal/logging"
 	"github.com/babarot/gist/v2/internal/state"
+	"github.com/babarot/gist/v2/internal/text"
 )
 
 // world is the TUI against the made-up GitHub, with an editor that does what
@@ -807,6 +809,79 @@ func TestALongDiffShowsAThumb(t *testing.T) {
 	bottom := diffThumb(w.m, x)
 	if len(bottom) == 0 || bottom[len(bottom)-1] != 2+w.m.diffRows() {
 		t.Errorf("at the end: %v, rows %d", bottom, w.m.diffRows())
+	}
+}
+
+func TestALongLineOfADiffWraps(t *testing.T) {
+	old := strings.Repeat("本ドキュメントの分析", 30) + "。\n"
+	w, _ := one(t, map[string]string{"a.txt": old})
+	w.type_(strings.Repeat("本ドキュメントの分析", 30) + "！\n")
+	enter(t, w.m)
+	s := screen(w.m)
+	if !strings.Contains(s, "！") {
+		t.Errorf("the end of the line does not show:\n%s", s)
+	}
+	for line := range strings.SplitSeq(s, "\n") {
+		if text.Width(line) > w.m.width {
+			t.Fatalf("too wide: %q", line)
+		}
+	}
+	if got, lines := len(w.m.diffView()), len(w.m.editing.diff.Lines); got <= lines {
+		t.Errorf("%d rows of %d lines", got, lines)
+	}
+}
+
+func TestAWrappedRowIsIndentedPastTheMark(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	w.type_(strings.Repeat("あ", 200) + "\n")
+	enter(t, w.m)
+	view := w.m.diffView()
+	for i, row := range view {
+		if lead := row[0].text; i > 2 && lead != "  " {
+			t.Errorf("row %d starts with %q", i, lead)
+		}
+	}
+}
+
+func TestWhatChangedInALineIsMarked(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "ファイルを開く\n"})
+	w.type_("ファイルを閉じる\n")
+	enter(t, w.m)
+	marked := map[string]bool{}
+	for _, row := range w.m.diffView() {
+		for _, s := range row {
+			if s.st.bg == w.m.pal.addMark || s.st.bg == w.m.pal.delMark {
+				marked[s.text] = true
+			}
+		}
+	}
+	if len(marked) != 2 || !marked["開く"] || !marked["閉じる"] {
+		t.Errorf("got %v", marked)
+	}
+}
+
+func TestAMarkRunsAcrossARowEnd(t *testing.T) {
+	segs := marks("abcdef", 2, 4, []diff.Span{{Start: 1, End: 3}, {Start: 3, End: 5}}, style{bold: false}, style{bold: true})
+	if len(segs) != 2 || segs[0].text != "c" || segs[1].text != "d" || !segs[0].st.bold {
+		t.Errorf("got %+v", segs)
+	}
+	if got := marks("abc", 0, 3, nil, style{}, style{bold: true}); len(got) != 1 || got[0].text != "abc" {
+		t.Errorf("got %+v", got)
+	}
+}
+
+func TestResizingKeepsTheScrollInTheDiff(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	w.type_(strings.Repeat("あ", 900) + "\n")
+	enter(t, w.m)
+	for range 300 {
+		press(t, w.m, "J")
+	}
+	_, cmd := w.m.Update(tea.WindowSizeMsg{Width: 200, Height: 40})
+	settle(t, w.m, cmd)
+	_ = screen(w.m)
+	if got, limit := w.m.editing.scroll, max(0, len(w.m.diffView())-w.m.diffRows()); got > limit {
+		t.Errorf("scrolled to %d past %d", got, limit)
 	}
 }
 
