@@ -1,6 +1,9 @@
 package tui
 
 import (
+	"slices"
+	"strings"
+
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
@@ -53,6 +56,28 @@ func (m *Model) openFilter() tea.Cmd {
 	box.CursorEnd()
 	m.filtering = &filterState{box}
 	return m.filtering.box.Focus()
+}
+
+// filterRow is the line of the filter, under the header.
+const filterRow = 1
+
+// filterShown says that line is there: while typing, and for as long as the
+// filter narrows the list, so what it is narrowed by can always be seen.
+func (m *Model) filterShown() bool { return m.filtering != nil || m.tab().query != "" }
+
+// drawFilter writes the filter as it was typed, the key of a term set apart.
+func (m *Model) drawFilter(c *canvas) {
+	p := m.pal
+	query := m.tab().query
+	x := c.put(filterRow, 0, "/ ", style{fg: p.yellow, bold: true})
+	for _, word := range strings.SplitAfter(query, " ") {
+		key, rest, ok := strings.Cut(word, ":")
+		if ok && slices.Contains(filter.Keys, key+":") {
+			x = c.put(filterRow, x, key+":", style{fg: p.blue})
+			word = rest
+		}
+		x = c.put(filterRow, x, word, style{fg: p.yellow})
+	}
 }
 
 // setFilter narrows the tab to query.

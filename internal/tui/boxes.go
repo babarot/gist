@@ -199,7 +199,7 @@ func (m *Model) cursor() *tea.Cursor {
 			return nil
 		}
 		cur.X += 2
-		cur.Y = m.layout().statusY
+		cur.Y = filterRow
 		return cur
 	case uiNew:
 		return m.formCursor()

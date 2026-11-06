@@ -32,8 +32,66 @@ func TestFilterNarrowsAsItIsTyped(t *testing.T) {
 	if !strings.Contains(s, "retry helper") || strings.Contains(s, "日本語") {
 		t.Errorf("got:\n%s", s)
 	}
-	if !strings.Contains(s, "1 of 3") || !strings.Contains(s, "/ retry") {
+	if !strings.Contains(s, "1 of 3") {
 		t.Errorf("got:\n%s", s)
+	}
+	if line := strings.Split(s, "\n")[filterRow]; !strings.HasPrefix(line, "/ retry") {
+		t.Errorf("the filter's line is %q", line)
+	}
+}
+
+func TestTheFilterLineMakesRoomInTheList(t *testing.T) {
+	m := loaded(t, filterGists(), 120, 34)
+	l := m.layout()
+	press(t, m, "/")
+	got := m.layout()
+	if got.listY != l.listY+1 || got.listRows != l.listRows-1 || got.boxY != l.boxY || got.boxH != l.boxH {
+		t.Errorf("went from %+v to %+v", l, got)
+	}
+	if len(strings.Split(screen(m), "\n")) != 34 {
+		t.Error("the screen is not the height of the terminal")
+	}
+	press(t, m, "esc")
+	if m.layout() != l {
+		t.Errorf("did not come back: %+v", m.layout())
+	}
+}
+
+func TestAnEventDoesNotHideTheFilter(t *testing.T) {
+	m := loaded(t, filterGists(), 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "retry")
+	enter(t, m)
+	press(t, m, "y")
+	s := screen(m)
+	if !strings.Contains(s, "✓ copied") || !strings.Contains(s, "/ retry") {
+		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestAClickFindsItsRowWithTheFilterLine(t *testing.T) {
+	m := loaded(t, filterGists(), 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "e")
+	enter(t, m)
+	y := m.layout().listY
+	click(t, m, 20, y+1)
+	if m.tab().cur != 1 {
+		t.Errorf("cursor at %d", m.tab().cur)
+	}
+}
+
+func TestSwitchingToAFilteredTabKeepsTheCursorShown(t *testing.T) {
+	src := &source{pages: onePage(manyGists(40)), starred: manyGists(40)}
+	m := newModel(t, options(t, src), 120, 34)
+	settle(t, m, m.Init())
+	press(t, m, "/")
+	typeText(t, m, "gist")
+	enter(t, m)
+	press(t, m, "G", "2", "1")
+	t0 := m.tab()
+	if t0.cur < t0.top || t0.cur >= t0.top+m.layout().listRows {
+		t.Errorf("cursor %d, top %d, rows %d", t0.cur, t0.top, m.layout().listRows)
 	}
 }
 
@@ -167,7 +225,7 @@ func TestFilterUsesTheTerminalsCursor(t *testing.T) {
 	m := loaded(t, filterGists(), 120, 34)
 	press(t, m, "/", "x")
 	cur := m.cursor()
-	if cur == nil || cur.Y != m.layout().statusY || cur.X != 3 {
+	if cur == nil || cur.Y != filterRow || cur.X != 3 {
 		t.Errorf("at %+v", cur)
 	}
 }

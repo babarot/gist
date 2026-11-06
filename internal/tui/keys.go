@@ -87,6 +87,7 @@ func (m *Model) listKey(k string) tea.Cmd {
 		m.stepFile(-1)
 	case on(keymap.Mine):
 		m.cur = tabMine
+		m.keepCursorShown()
 	case on(keymap.Starred):
 		return m.showStarred()
 	case on(keymap.Refresh):
@@ -147,6 +148,7 @@ func (m *Model) stepFile(by int) {
 // showStarred shows the starred tab, reading it the first time it is shown.
 func (m *Model) showStarred() tea.Cmd {
 	m.cur = tabStarred
+	m.keepCursorShown()
 	if t := m.tab(); !t.readOnce && !t.reading && m.viewerRead {
 		return m.readStarred()
 	}

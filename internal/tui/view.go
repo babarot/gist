@@ -50,12 +50,16 @@ const (
 )
 
 func (m *Model) layout() layout {
-	room := m.height - headerRows - footerRows
+	head := headerRows
+	if m.filterShown() {
+		head++
+	}
+	room := m.height - head - footerRows
 	box := min(m.boxHeight, room-minListRows)
 	box = max(min(minBoxRows, room), box)
 	return layout{
-		listY: headerRows, listRows: max(0, room-box),
-		boxY: headerRows + max(0, room-box), boxH: max(0, box),
+		listY: head, listRows: max(0, room-box),
+		boxY: head + max(0, room-box), boxH: max(0, box),
 		statusY: m.height - footerRows, keysY: m.height - 1,
 	}
 }
@@ -80,7 +84,10 @@ func (m *Model) render() string {
 	}
 	l := m.layout()
 	m.drawHeader(c)
-	m.drawColumns(c)
+	if m.filterShown() {
+		m.drawFilter(c)
+	}
+	m.drawColumns(c, l.listY-1)
 	m.drawList(c, l)
 	m.drawPreview(c, l)
 	m.drawFooter(c, l)
@@ -139,6 +146,7 @@ func (m *Model) drawHeader(c *canvas) {
 				return m.showStarred()
 			}
 			m.cur = i
+			m.keepCursorShown()
 			return nil
 		})
 		x += 2
@@ -223,7 +231,7 @@ func (m *Model) columns() columns {
 	return c
 }
 
-func (m *Model) drawColumns(c *canvas) {
+func (m *Model) drawColumns(c *canvas, y int) {
 	p := m.pal
 	cols := m.columns()
 	head := style{fg: p.subtext1, bold: true}
@@ -232,19 +240,19 @@ func (m *Model) drawColumns(c *canvas) {
 		owner = "OWNER / "
 	}
 	if m.opt.Config.List.Lead == config.LeadFile {
-		c.put(1, cols.lead, owner+"FILE", head)
-		c.put(1, cols.desc, "DESCRIPTION", head)
+		c.put(y, cols.lead, owner+"FILE", head)
+		c.put(y, cols.desc, "DESCRIPTION", head)
 	} else {
-		c.put(1, cols.lead, owner+"DESCRIPTION", head)
+		c.put(y, cols.lead, owner+"DESCRIPTION", head)
 	}
 	if cols.comments > 0 {
-		c.put(1, cols.comments-len("COMMENTS"), "COMMENTS", head)
+		c.put(y, cols.comments-len("COMMENTS"), "COMMENTS", head)
 	}
 	if cols.files > 0 {
-		c.put(1, cols.files-len("FILES"), "FILES", head)
+		c.put(y, cols.files-len("FILES"), "FILES", head)
 	}
-	c.put(1, cols.vis, "VIS", head)
-	c.put(1, cols.updated-len("UPDATED"), "UPDATED", head)
+	c.put(y, cols.vis, "VIS", head)
+	c.put(y, cols.updated-len("UPDATED"), "UPDATED", head)
 }
 
 func (m *Model) drawList(c *canvas, l layout) {
@@ -406,18 +414,7 @@ func size(n int64) string {
 
 func (m *Model) drawFooter(c *canvas, l layout) {
 	p := m.pal
-	if m.filtering != nil {
-		x := c.put(l.statusY, 0, "/ ", style{fg: p.yellow, bold: true})
-		c.put(l.statusY, x, m.filtering.box.Value(), style{fg: p.text})
-	}
 	kind, s := m.line.Shown(m.now(), nil)
-	if m.filtering != nil {
-		kind, s = statusline.None, ""
-	}
-	if kind == statusline.None && m.tab().query != "" && m.filtering == nil {
-		x := c.put(l.statusY, 0, "filter: ", style{fg: p.overlay})
-		c.put(l.statusY, x, m.tab().query, style{fg: p.yellow})
-	}
 	st := style{fg: p.subtext0}
 	switch kind {
 	case statusline.Info:

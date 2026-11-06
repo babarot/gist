@@ -16,6 +16,9 @@ const (
 	LangKey = "lang:"
 )
 
+// Keys are the keys.
+var Keys = []string{FileKey, DescKey, VisKey, LangKey}
+
 // Query is the parsed filter, lower-cased.
 type Query struct {
 	Words []string
