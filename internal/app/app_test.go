@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/babarot/gist/v2/internal/state"
 	"github.com/babarot/gist/v2/internal/version"
 )
 
@@ -244,5 +246,60 @@ func TestABadConfigStopsACommandAndSaysWhere(t *testing.T) {
 	_, stderr, code := gist(t, "--config", path, "new", file)
 	if code != 1 || !strings.Contains(stderr, "config.toml:2:1:") {
 		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+}
+
+func TestVersionSaysNothingOfANewerReleaseOnABuildFromSource(t *testing.T) {
+	stateHome := setHome(t)
+	if err := state.Open(stateHome + "/gist").SaveReleaseSeen(state.ReleaseSeen{Latest: "99.0.0"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, stderr, code := gist(t, "version"); code != 0 || stderr != "" {
+		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+}
+
+func TestReleaseOptions(t *testing.T) {
+	st := state.Open(t.TempDir())
+	now := time.Date(2026, 11, 7, 12, 0, 0, 0, time.UTC)
+	if err := st.SaveReleaseSeen(state.ReleaseSeen{Checked: now.Add(-time.Hour), Latest: "9.0.0", Told: "8.0.0"}); err != nil {
+		t.Fatal(err)
+	}
+	src := &releaseSource{store: st}
+	if r := releaseOptions(src, true, now); !r.FromSource || r.Tell || r.Due {
+		t.Errorf("a build from source: %+v", r)
+	}
+	version.Source = "release"
+	t.Cleanup(func() { version.Source = "" })
+	r := releaseOptions(src, true, now)
+	if r.FromSource || !r.Tell || r.Due || r.Latest != "9.0.0" || r.Told != "8.0.0" {
+		t.Errorf("a release: %+v", r)
+	}
+	if r := releaseOptions(src, true, now.Add(25*time.Hour)); !r.Due {
+		t.Error("a day later is not due")
+	}
+	if r := releaseOptions(src, false, now); r.Tell || r.Due {
+		t.Errorf("with the check turned off: %+v", r)
+	}
+}
+
+func TestSeenKeepsThePreviewHeight(t *testing.T) {
+	st := state.Open(t.TempDir())
+	if err := st.SavePreviewHeight(9); err != nil {
+		t.Fatal(err)
+	}
+	src := &releaseSource{store: st}
+	if err := src.Checked("2.0.0"); err != nil {
+		t.Fatal(err)
+	}
+	if err := src.Checked(""); err != nil {
+		t.Fatal(err)
+	}
+	if err := src.Told("2.0.0"); err != nil {
+		t.Fatal(err)
+	}
+	seen := st.ReleaseSeen()
+	if st.PreviewHeight() != 9 || seen.Latest != "2.0.0" || seen.Told != "2.0.0" || seen.Checked.IsZero() {
+		t.Errorf("height %d, %+v", st.PreviewHeight(), seen)
 	}
 }

@@ -35,6 +35,16 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 		}
 		return nil
 	}
+	if st == uiReleaseNotes {
+		if w, ok := msg.(tea.MouseWheelMsg); ok {
+			if w.Button == tea.MouseWheelDown {
+				m.scrollReleases(scrollStep)
+			} else {
+				m.scrollReleases(-scrollStep)
+			}
+		}
+		return nil
+	}
 	if st != uiList && st != uiListComments {
 		return nil
 	}

@@ -78,6 +78,9 @@ type Server struct {
 	// fine-grained token.
 	Scopes *string
 
+	// Releases are gist's own, as GitHub gives them.
+	Releases []Release
+
 	t        testing.TB
 	srv      *httptest.Server
 	mu       sync.Mutex
@@ -88,6 +91,15 @@ type Server struct {
 	fail     map[string]int
 	requests []string
 	before   []hook
+}
+
+// Release is a release of gist.
+type Release struct {
+	TagName     string    `json:"tag_name"`
+	Draft       bool      `json:"draft"`
+	Prerelease  bool      `json:"prerelease"`
+	PublishedAt time.Time `json:"published_at"`
+	Body        string    `json:"body"`
 }
 
 type hook struct {
@@ -280,6 +292,11 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Header.Get("Authorization") == "" {
 		s.message(w, http.StatusUnauthorized, "Requires authentication")
+		return
+	}
+	if r.URL.Path == "/repos/babarot/gist/releases" {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(s.Releases)
 		return
 	}
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")

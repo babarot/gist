@@ -680,6 +680,10 @@ func states(t *testing.T, w, h int) map[uiState]*Model {
 	help := list()
 	press(t, help, "?")
 	out[uiHelp] = help
+	notes := releaseModel(t, &Release{Version: "2.0.0", Running: "2.0.0", Source: twoReleases()}, w, h)
+	press(t, notes, "?")
+	press(t, notes, "w")
+	out[uiReleaseNotes] = notes
 	o := options(t, nil)
 	o.NoToken = true
 	out[uiAuthFail] = newModel(t, o, w, h)

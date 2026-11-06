@@ -66,6 +66,8 @@ type Options struct {
 	NewGist *model.NewGist
 	// Browse opens a URL in the browser.
 	Browse func(url string) error
+	// Release is gist's own releases; nil leaves them out.
+	Release *Release
 	// Log is the log.
 	Log *slog.Logger
 	// Now is the time, for tests; nil uses the clock.
@@ -150,6 +152,9 @@ type Model struct {
 	side      int
 	plain     bool
 	boxHeight int
+	// rel is what is known of gist's releases, and relBox the box of their notes.
+	rel       releases
+	relBox    *releaseBox
 	lastClick time.Time
 	lastRow   int
 	dragging  bool
@@ -261,7 +266,7 @@ func (m *Model) Init() tea.Cmd {
 		cmds = append(cmds, tea.RequestBackgroundColor)
 	}
 	if !m.noToken && !m.opt.FormOnly {
-		cmds = append(cmds, m.readViewer(), m.spin())
+		cmds = append(cmds, m.readViewer(), m.spin(), m.releaseStart())
 	}
 	return tea.Batch(cmds...)
 }
@@ -274,6 +279,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *Model) update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
+	case releasesMsg:
+		m.gotReleases(msg)
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		m.keepCursorShown()

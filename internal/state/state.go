@@ -26,7 +26,17 @@ func Open(dir string) *Store { return &Store{dir: dir} }
 
 // settings are what is remembered between launches.
 type settings struct {
-	PreviewHeight int `json:"preview_height,omitempty"`
+	PreviewHeight int         `json:"preview_height,omitempty"`
+	Release       ReleaseSeen `json:"release,omitzero"`
+}
+
+// ReleaseSeen is what was last found of gist's releases.
+type ReleaseSeen struct {
+	// Checked is when they were last read.
+	Checked time.Time `json:"checked,omitzero"`
+	// Latest is the newest found, and Told the newest told of.
+	Latest string `json:"latest,omitempty"`
+	Told   string `json:"told,omitempty"`
 }
 
 func (s *Store) settingsPath() string { return filepath.Join(s.dir, "state.json") }
@@ -48,6 +58,20 @@ func (s *Store) PreviewHeight() int { return s.settings().PreviewHeight }
 func (s *Store) SavePreviewHeight(h int) error {
 	st := s.settings()
 	st.PreviewHeight = h
+	return s.saveSettings(st)
+}
+
+// ReleaseSeen is what was last found of the releases.
+func (s *Store) ReleaseSeen() ReleaseSeen { return s.settings().Release }
+
+// SaveReleaseSeen remembers it.
+func (s *Store) SaveReleaseSeen(r ReleaseSeen) error {
+	st := s.settings()
+	st.Release = r
+	return s.saveSettings(st)
+}
+
+func (s *Store) saveSettings(st settings) error {
 	b, err := json.Marshal(st)
 	if err != nil {
 		return err
