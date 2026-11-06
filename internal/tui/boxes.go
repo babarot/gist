@@ -7,7 +7,6 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/babarot/gist/v2/internal/diff"
 	"github.com/babarot/gist/v2/internal/text"
 	"github.com/babarot/gist/v2/internal/tui/keymap"
 )
@@ -49,25 +48,12 @@ func (m *Model) drawDiff(c *canvas) {
 	sx = c.put(y, sx, " ", style{fg: p.blue})
 	sx = c.put(y, sx, removed, style{fg: p.red})
 	c.put(y, sx, " ", style{fg: p.blue})
-	rows := m.diffRows()
-	for i := range rows {
-		n := e.scroll + i
-		if n >= len(e.diff.Lines) {
-			break
-		}
-		l := e.diff.Lines[n]
-		st, mark := style{fg: p.subtext0}, "  "
-		switch l.Kind {
-		case diff.Hunk:
-			st, mark = style{fg: p.teal}, ""
-		case diff.Added:
-			st, mark = style{fg: p.green}, "+ "
-		case diff.Removed:
-			st, mark = style{fg: p.red}, "- "
-		}
-		c.putCut(y+1+i, x+2, []seg{{mark + l.Text, st}}, w-4, style{fg: p.overlay})
+	rows, view := m.diffRows(), m.diffView()
+	e.scroll = max(0, min(e.scroll, len(view)-rows))
+	for i, row := range view[e.scroll:min(e.scroll+rows, len(view))] {
+		c.putCut(y+1+i, x+2, row, w-4, style{fg: p.overlay})
 	}
-	m.drawThumb(c, x+w-1, y+1, rows, e.scroll, len(e.diff.Lines), p.text)
+	m.drawThumb(c, x+w-1, y+1, rows, e.scroll, len(view), p.text)
 	fy := y + h - 2
 	fx := c.put(fy, x+2, "push this change to GitHub? ", style{fg: p.text})
 	m.keyLine(c, fy, fx, []hint{{m.keys.Hint(keymap.Confirm), "push"}, {m.keys.Hint(keymap.EditAgain), "edit again"}, {keymap.Back, "keep as draft"}})

@@ -16,6 +16,8 @@ type palette struct {
 	subtext0, subtext1, text, dim                color.Color
 	blue, mauve, green, yellow, peach, red, teal color.Color
 	pick, fresh                                  color.Color
+	// addMark and delMark are behind what changed within a line of a diff.
+	addMark, delMark color.Color
 }
 
 // themes are the two color schemes: default, which is Catppuccin Mocha made
@@ -29,6 +31,7 @@ var themes = map[string]palette{
 		blue: lipgloss.Color("#96bfff"), mauve: lipgloss.Color("#d4b0ff"), green: lipgloss.Color("#b5f0b0"),
 		yellow: lipgloss.Color("#ffe5a0"), peach: lipgloss.Color("#ffc49a"), red: lipgloss.Color("#f5a3b5"), teal: lipgloss.Color("#94e2d5"),
 		pick: lipgloss.Color("#3a3150"), fresh: lipgloss.Color("#26324a"),
+		addMark: lipgloss.Color("#2f5a3a"), delMark: lipgloss.Color("#6b2f40"),
 	},
 	config.ThemeLatte: {
 		base: lipgloss.Color("#eff1f5"), surface0: lipgloss.Color("#ccd0da"), surface1: lipgloss.Color("#bcc0cc"),
@@ -37,5 +40,6 @@ var themes = map[string]palette{
 		blue: lipgloss.Color("#1e66f5"), mauve: lipgloss.Color("#8839ef"), green: lipgloss.Color("#40a02b"),
 		yellow: lipgloss.Color("#df8e1d"), peach: lipgloss.Color("#fe640b"), red: lipgloss.Color("#d20f39"), teal: lipgloss.Color("#179299"),
 		pick: lipgloss.Color("#e6dcf7"), fresh: lipgloss.Color("#dce6fb"),
+		addMark: lipgloss.Color("#bfe8b5"), delMark: lipgloss.Color("#f5c2cd"),
 	},
 }

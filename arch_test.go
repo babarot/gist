@@ -28,7 +28,7 @@ var layers = []layer{
 	{"internal/xdg", 0, nil, nil, "Where gist keeps its config, state and cache"},
 	{"internal/state", 0, nil, nil, "What would be missed if lost: drafts, the locks that guard them, and the layout"},
 	{"internal/near", 0, nil, nil, "The closest of a few names to one mistyped, for a did-you-mean"},
-	{"internal/text", 0, nil, []string{"github.com/charmbracelet/x/ansi"}, "Making text from GitHub fit to draw, and its width"},
+	{"internal/text", 0, nil, []string{"github.com/charmbracelet/x/ansi", "github.com/rivo/uniseg"}, "Making text from GitHub fit to draw, and its width"},
 	{"internal/diff", 0, nil, []string{"github.com/pmezard/go-difflib"}, "What changed between two versions of a file"},
 	{"internal/filter", 0, nil, nil, "Fuzzy matching and the key:value terms of the filter"},
 	{"internal/release", 0, nil, nil, "Whether a newer release is out, how to update, and what its notes say"},
