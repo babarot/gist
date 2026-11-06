@@ -453,6 +453,26 @@ func TestEditFilesRefuses(t *testing.T) {
 	}
 }
 
+func TestEditDropsNothingItWasPiped(t *testing.T) {
+	e := newEnv(t)
+	g := e.s.Add("old", false, map[string]string{"a.txt": "a"})
+	e.stdin = "new content"
+	e.fails(1, "a file name goes with piped content", "edit", g.ID, "a.txt", "-d", "new")
+	if got := e.s.Get(g.ID).Description; got != "old" {
+		t.Errorf("the description changed: %q", got)
+	}
+}
+
+func TestEditRefusesTwoFilesOfOneName(t *testing.T) {
+	e := newEnv(t)
+	g := e.s.Add("", false, map[string]string{"a.md": "a", "b.md": "b"})
+	e.fails(1, "two files would be named c.md", "edit", g.ID, "--rename", "a.md=c.md", "--rename", "b.md=c.md")
+	e.fails(1, "two files are named x.md", "edit", g.ID, "--add", writeFile(t, "x.md", "1"), "--add", writeFile(t, "x.md", "2"))
+	if len(e.s.Get(g.ID).Revisions) != 1 {
+		t.Error("sent something")
+	}
+}
+
 func TestEditWithABase(t *testing.T) {
 	e := newEnv(t)
 	g := e.s.Add("", false, map[string]string{"a.txt": "a"})

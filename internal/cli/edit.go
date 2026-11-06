@@ -29,9 +29,17 @@ type EditOptions struct {
 // ErrNeedsEditor says the edit has no content, only an editor could give it.
 var ErrNeedsEditor = errors.New("say what to change: pipe the content, or use -d, --add, --remove or --rename")
 
+// ErrFileWithFlags says a file to replace was named along with flags, which
+// take no content.
+var ErrFileWithFlags = errors.New("a file name goes with piped content, not with -d, --add, --remove or --rename")
+
 // Edit changes a gist without an editor.
 func (c *CLI) Edit(ctx context.Context, arg, file string, o EditOptions) error {
 	ops := o.Description != nil || len(o.Add) > 0 || len(o.Remove) > 0 || len(o.Rename) > 0
+	if ops && file != "" {
+		// What is piped would be dropped without a word
+		return ErrFileWithFlags
+	}
 	fromStdin := !ops && !c.StdinTTY
 	if !ops && !fromStdin {
 		return ErrNeedsEditor
@@ -120,11 +128,15 @@ func (c *CLI) stdinChange(ctx context.Context, g model.Gist, file string, stdin 
 func addedFiles(paths []string) (map[string]string, error) {
 	files := make(map[string]string, len(paths))
 	for _, p := range paths {
+		name := filepath.Base(p)
+		if _, taken := files[name]; taken {
+			return nil, fmt.Errorf("two files are named %s", name)
+		}
 		content, err := readFile(p)
 		if err != nil {
 			return nil, err
 		}
-		files[filepath.Base(p)] = content
+		files[name] = content
 	}
 	return files, nil
 }
@@ -161,8 +173,11 @@ func plan(g model.Gist, ch *model.Change, added map[string]string, removed []str
 		}
 		ch.Files[name] = model.FileChange{Remove: true}
 	}
+	targets := map[string]bool{}
 	for from, to := range renames {
 		switch {
+		case targets[to]:
+			return fmt.Errorf("two files would be named %s", to)
 		case !has(from):
 			return fmt.Errorf("gist %s has no file %q", g.ID, from)
 		case has(to) || added[to] != "":
@@ -170,6 +185,7 @@ func plan(g model.Gist, ch *model.Change, added map[string]string, removed []str
 		case ch.Files[from].Remove:
 			return fmt.Errorf("%s is both removed and renamed", from)
 		}
+		targets[to] = true
 		ch.Files[from] = model.FileChange{Name: &to}
 		touched[from] = true
 	}

@@ -231,10 +231,8 @@ func (s *Session) Push(ctx context.Context, overwrite bool) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	if err := s.lock.DeleteDraft(s.File); err != nil {
-		return Result{Gist: updated, Sent: true}, err
-	}
-	return Result{Gist: updated, Sent: true, Overwritten: overwritten(updated, g.Revision())}, nil
+	res := Result{Gist: updated, Sent: true, Overwritten: overwritten(updated, g.Revision())}
+	return res, s.lock.DeleteDraft(s.File)
 }
 
 // Reload takes the gist as it is now as the new base, keeping the edit, and
