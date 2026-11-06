@@ -14,17 +14,17 @@ gist // @alice     1 mine (1)    2 starred (…)                           via g
 
 
 ╭  a.md   main.go  ────────────────────────────┬  info   comments (0)  ────────╮
-│  設計書の見出し                              │ gist       1111111            │
-│                                              │ visibility secret             │
-│  これは日本語の段落で、幅で折り返す。太字 と │ files      2 · 2.4 KB         │
-│  コード と リンク を含む（かっこ）。         │ revisions  2                  │
-│                                              │ comments   0                  │
-│  リスト                                      │ created    2h ago             │
-│                                              │ updated    1h ago             │
-│  • 項目その1                                 │                               │
-│  • [✓] 済んだ                                │ file       a.md               │
-│  • [ ] まだ                                  │ type       markdown           │
-│                                              │ size       349 B · 21 lines   │
+│  設計書の見出し                              ┃ gist       1111111            │
+│                                              ┃ visibility secret             │
+│  これは日本語の段落で、幅で折り返す。太字 と ┃ files      2 · 2.4 KB         │
+│  コード と リンク を含む（かっこ）。         ┃ revisions  2                  │
+│                                              ┃ comments   0                  │
+│  リスト                                      ┃ created    2h ago             │
+│                                              ┃ updated    1h ago             │
+│  • 項目その1                                 ┃                               │
+│  • [✓] 済んだ                                ┃ file       a.md               │
+│  • [ ] まだ                                  ┃ type       markdown           │
+│                                              ┃ size       349 B · 21 lines   │
 │  ▎ 引用の行                                  │                               │
 │                                              │                               │
 │  列1 │ 列2                                   │                               │
