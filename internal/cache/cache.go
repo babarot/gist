@@ -91,6 +91,27 @@ type file struct {
 	List
 }
 
+// The files of the lists, in the cache directory.
+const (
+	MineFile    = "gists.json"
+	StarredFile = "starred.json"
+)
+
+// Viewer is the account the list in the file at path was read for, or "".
+func Viewer(path string) string {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	var f struct {
+		Viewer string `json:"viewer"`
+	}
+	if json.Unmarshal(b, &f) != nil {
+		return ""
+	}
+	return f.Viewer
+}
+
 // Store is one file holding a list for one account on one host.
 type Store struct {
 	path, host, viewer string

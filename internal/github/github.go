@@ -119,10 +119,10 @@ func Source(source string) string {
 	return "gh"
 }
 
-// NoToken says what to do when Token found none.
-const NoToken = `no GitHub token found. Looked in GH_TOKEN, GITHUB_TOKEN, gh's hosts.yml and gh auth token.
+// ErrNoToken says what to do when Token found none.
+var ErrNoToken = errors.New(`no GitHub token found. Looked in GH_TOKEN, GITHUB_TOKEN, gh's hosts.yml and gh auth token.
 Run gh auth login, or set GITHUB_TOKEN.
-A fine-grained token needs the Gists read and write permission`
+A fine-grained token needs the Gists read and write permission`)
 
 // tokenHint is added to the errors a token without access to gists gives.
 const tokenHint = "a fine-grained token needs the Gists read and write permission"
@@ -270,9 +270,10 @@ func (c *Client) listPage(ctx context.Context, n int, etag string) (readPage, er
 	for i, g := range body {
 		gists[i] = g.model()
 	}
+	last := max(n, lastPage(resp.Header.Get("Link")))
 	return readPage{
-		ListPage: model.ListPage{Number: n, ETag: resp.Header.Get("ETag"), Gists: gists},
-		last:     max(n, lastPage(resp.Header.Get("Link"))),
+		ListPage: model.ListPage{Number: n, Last: last, ETag: resp.Header.Get("ETag"), Gists: gists},
+		last:     last,
 	}, nil
 }
 

@@ -117,3 +117,23 @@ func TestNoDrafts(t *testing.T) {
 		t.Errorf("got %v, %v", ok, err)
 	}
 }
+
+func TestPreviewHeight(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "state")
+	s := Open(dir)
+	if got := s.PreviewHeight(); got != 0 {
+		t.Errorf("nothing saved: %d", got)
+	}
+	if err := s.SavePreviewHeight(12); err != nil {
+		t.Fatal(err)
+	}
+	if got := Open(dir).PreviewHeight(); got != 12 {
+		t.Errorf("got %d", got)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "state.json"), []byte("{"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.PreviewHeight(); got != 0 {
+		t.Errorf("a broken file: %d", got)
+	}
+}

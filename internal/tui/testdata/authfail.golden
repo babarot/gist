@@ -1,0 +1,30 @@
+gist // not logged in                                                                                                   
+
+
+    ✗ gist could not find a GitHub token for github.com.
+
+    it looked in these places, in this order:
+
+      GH_TOKEN                    not set
+      GITHUB_TOKEN                not set
+      gh's config (hosts.yml)     no token for github.com
+      gh auth token (keychain)    gh is not logged in
+
+    run gh auth login, or set GITHUB_TOKEN
+
+    a fine-grained token needs "Gists: read and write".
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+q quit
