@@ -757,6 +757,40 @@ func TestKeysWaitForAnEditToBegin(t *testing.T) {
 	}
 }
 
+func TestKeysWaitForTheEditorsFilesToBeRead(t *testing.T) {
+	for _, k := range []string{"esc", "e", "y", "q"} {
+		t.Run(k, func(t *testing.T) {
+			w, g := one(t, map[string]string{"a.txt": "a\n"})
+			w.type_("edited\n")
+			// The editor has closed, and word of that has not reached the model
+			w.m.runEditor = func(args []string) tea.Cmd {
+				w.opened++
+				if err := os.WriteFile(args[len(args)-1], []byte("edited\n"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+				return nil
+			}
+			enter(t, w.m)
+			_, cmd := w.m.Update(keyMsg(k))
+			if isQuit(cmd) {
+				t.Fatal("quit with the edit not read back")
+			}
+			settle(t, w.m, cmd)
+			_, cmd = w.m.Update(editedMsg{})
+			settle(t, w.m, cmd)
+			if d, ok := w.draft(g.ID, "a.txt"); !ok || d != "edited\n" {
+				t.Errorf("the edit is not in a draft: %q, %v", d, ok)
+			}
+			if w.opened != 1 {
+				t.Errorf("opened %d times", w.opened)
+			}
+			if w.m.uiState() != uiConfirmPush {
+				t.Errorf("state is %s", w.m.uiState())
+			}
+		})
+	}
+}
+
 func TestKeysWaitForAPush(t *testing.T) {
 	for _, k := range []string{"esc", "e", "y", "J"} {
 		t.Run(k, func(t *testing.T) {

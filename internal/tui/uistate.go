@@ -31,7 +31,7 @@ func (m *Model) uiState() uiState {
 		return uiAuthFail
 	case m.editing != nil && m.editing.conflict != nil:
 		return uiConfirmConflict
-	case m.editing != nil && m.editing.work != nil:
+	case m.editing != nil && m.editing.ready:
 		return uiConfirmPush
 	case m.input != nil && m.input.conflict != nil:
 		return uiInputConflict

@@ -26,9 +26,11 @@ type editing struct {
 	gist    model.Gist
 	file    string
 	work    *edit.Workspace
-	// diff is what is about to be sent, and scroll how far it is down.
+	// diff is what is about to be sent, and scroll how far it is down. ready
+	// says it is there to show: from the editor's files being read back.
 	diff   diff.Diff
 	scroll int
+	ready  bool
 	// conflict is the gist as GitHub has it, when it moved on.
 	conflict *edit.ChangedError
 }
@@ -151,7 +153,9 @@ func (m *Model) openEditor() tea.Cmd {
 		m.endEdit()
 		return nil
 	}
-	e.work = work
+	e.work, e.ready = work, false
+	// Until the files are read back they are all there is of the edit
+	m.sending = true
 	args := edit.Command(m.opt.Config.Editor, work.Paths()...)
 	return m.runEditor(args)
 }
@@ -165,6 +169,7 @@ func runProgram(args []string) tea.Cmd {
 // gotEdited reads back what the editor left. How the editor ended does not
 // matter: the file is there, and it may be all there is of the edit.
 func (m *Model) gotEdited(msg editedMsg) tea.Cmd {
+	m.sending = false
 	e := m.editing
 	if e == nil {
 		return nil
@@ -195,7 +200,7 @@ func (m *Model) gotEdited(msg editedMsg) tea.Cmd {
 func (m *Model) showDiff() {
 	e := m.editing
 	f := e.session.File(e.file)
-	e.diff, e.scroll, e.conflict = diff.Compare(f.Original, f.Content), 0, nil
+	e.diff, e.scroll, e.conflict, e.ready = diff.Compare(f.Original, f.Content), 0, nil, true
 }
 
 // endEdit lets the lock go. A draft stays.
