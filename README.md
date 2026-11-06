@@ -94,7 +94,7 @@ The first launch writes `~/.config/gist/config.toml` (or under `$XDG_CONFIG_HOME
 
 `gist config check` reads the file and prints its mistakes, each where it is, without starting.
 
-A release build looks for a newer release once a day; set `NO_UPDATE_CHECK` to turn that off.
+A release build looks for a newer release once a day; set `GIST_NO_UPDATE_CHECK` to turn that off.
 
 ## Files
 

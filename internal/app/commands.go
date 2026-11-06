@@ -92,7 +92,7 @@ func newNewCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobra
 	flags := cmd.Flags()
 	flags.StringVarP(&f.Description, "desc", "d", "", "the description")
 	flags.BoolVar(&public, "public", false, "listed on your profile and searchable")
-	flags.BoolVarP(&secret, "secret", "p", false, "only people with the URL can see it")
+	flags.BoolVar(&secret, "secret", false, "only people with the URL can see it")
 	flags.StringVarP(&f.Filename, "filename", "f", "", "the file name of what comes from stdin")
 	flags.BoolVarP(&f.Open, "open", "o", false, "open it in the browser")
 	flags.BoolVarP(&f.Copy, "copy", "c", false, "copy the URL to the clipboard")
