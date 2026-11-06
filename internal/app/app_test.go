@@ -303,3 +303,10 @@ func TestSeenKeepsThePreviewHeight(t *testing.T) {
 		t.Errorf("height %d, %+v", st.PreviewHeight(), seen)
 	}
 }
+
+func TestNewHasNoShortFlagForSecret(t *testing.T) {
+	setHome(t)
+	if _, stderr, code := gist(t, "new", "-p", "a.txt"); code != 2 || !strings.Contains(stderr, "shorthand") {
+		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+}

@@ -293,7 +293,7 @@ func TestNewVisibility(t *testing.T) {
 	for _, tt := range []struct {
 		flags  []string
 		public bool
-	}{{nil, false}, {[]string{"--public"}, true}, {[]string{"--secret"}, false}, {[]string{"-p"}, false}} {
+	}{{nil, false}, {[]string{"--public"}, true}, {[]string{"--secret"}, false}} {
 		e := newEnv(t)
 		stdout, _ := e.ok(append([]string{"new", writeFile(t, "a.txt", "a")}, tt.flags...)...)
 		id := strings.TrimSpace(stdout[strings.LastIndex(stdout, "/")+1:])

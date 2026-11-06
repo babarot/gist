@@ -15,7 +15,7 @@ import (
 )
 
 // EnvNoUpdateCheck, set to anything, keeps gist from looking for new releases.
-const EnvNoUpdateCheck = "NO_UPDATE_CHECK"
+const EnvNoUpdateCheck = "GIST_NO_UPDATE_CHECK"
 
 // releaseOptions are the releases as the TUI starts with them. Their notes can
 // always be opened, but only a release build looks for a newer one by itself:
