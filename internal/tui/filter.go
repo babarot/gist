@@ -58,8 +58,10 @@ func (m *Model) openFilter() tea.Cmd {
 	return m.filtering.box.Focus()
 }
 
-// filterRow is the line of the filter, under the header.
-const filterRow = 1
+const (
+	filterRow  = 1 // the line of the filter, under the header
+	filterText = 2 // where the text starts on it
+)
 
 // filterShown says that line is there: while typing, and for as long as the
 // filter narrows the list, so what it is narrowed by can always be seen.
@@ -69,6 +71,9 @@ func (m *Model) filterShown() bool { return m.filtering != nil || m.tab().query 
 func (m *Model) drawFilter(c *canvas) {
 	p := m.pal
 	query := m.tab().query
+	if m.filtering != nil {
+		query, _ = inputView(query, m.filtering.box.Position(), c.w-filterText)
+	}
 	x := c.put(filterRow, 0, "/ ", style{fg: p.yellow, bold: true})
 	for _, word := range strings.SplitAfter(query, " ") {
 		key, rest, ok := strings.Cut(word, ":")
