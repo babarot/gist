@@ -371,6 +371,10 @@ func cut(l Line, width int) Line {
 // minColumn is how narrow a table's column may be made to fit.
 const minColumn = 10
 
+// minColumnStep is the least a column can take: a cell and what is between
+// two.
+const minColumnStep = 4
+
 // table draws a table with its columns lined up. While it is wider than width,
 // its widest column is narrowed, down to minColumn, so that every column shows.
 // A cell wider than its column is cut with "…", and so is a table still too wide.
@@ -391,13 +395,16 @@ func table(rows []string, width int) []Line {
 		}
 		cells = append(cells, cs)
 	}
+	// Columns past the edge cannot show, and no cell shows wider than the edge:
+	// without this narrowing takes as long as a table can be made to take
+	columns := width/minColumnStep + 1
 	var ws []int
 	for _, cs := range cells {
-		for j, c := range cs {
+		for j, c := range cs[:min(len(cs), columns)] {
 			if j == len(ws) {
 				ws = append(ws, 0)
 			}
-			ws[j] = max(ws[j], text.Width(c))
+			ws[j] = max(ws[j], min(text.Width(c), width))
 		}
 	}
 	total := 3 * (len(ws) - 1)

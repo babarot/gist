@@ -81,8 +81,17 @@ func (m *Model) showsRendered(f model.File) bool { return isMarkdown(f.Name) && 
 // contentWidth is the width the content is drawn in.
 func (m *Model) contentWidth() int { return min(m.paneX(), m.width-1) - 4 }
 
+// contentTime is when the content read of g was made, which can be later than
+// the list says, so that what is drawn from it goes when it does.
+func (m *Model) contentTime(g model.Gist) time.Time {
+	if c, ok := m.content(g); ok {
+		return c.Updated
+	}
+	return g.Updated
+}
+
 func (m *Model) rendered(g model.Gist, f model.File, width int) []markdown.Line {
-	k := drawnKey{fileKey{g.ID, f.Name}, g.Updated, width}
+	k := drawnKey{fileKey{g.ID, f.Name}, m.contentTime(g), width}
 	lines, ok := m.preview.md[k]
 	if !ok {
 		if len(m.preview.md) >= maxDrawn {
@@ -97,9 +106,10 @@ func (m *Model) rendered(g model.Gist, f model.File, width int) []markdown.Line 
 // language is the language of a file, which telling can take reading all of it.
 func (m *Model) language(g model.Gist, f model.File) string {
 	k := fileKey{g.ID, f.Name}
+	at := m.contentTime(g)
 	l, ok := m.preview.langs[k]
-	if !ok || !l.updated.Equal(g.Updated) {
-		l = fileLang{g.Updated, highlight.Language(f.Name, firstLines(f.Content, maxLines))}
+	if !ok || !l.updated.Equal(at) {
+		l = fileLang{at, highlight.Language(f.Name, firstLines(f.Content, maxLines))}
 		m.preview.langs[k] = l
 	}
 	return l.name
@@ -107,12 +117,13 @@ func (m *Model) language(g model.Gist, f model.File) string {
 
 func (m *Model) highlighted(g model.Gist, f model.File) [][]highlight.Token {
 	k := fileKey{g.ID, f.Name}
+	at := m.contentTime(g)
 	c, ok := m.preview.code[k]
-	if !ok || !c.updated.Equal(g.Updated) {
+	if !ok || !c.updated.Equal(at) {
 		if len(m.preview.code) >= maxDrawn {
 			clear(m.preview.code)
 		}
-		c = codeLines{g.Updated, highlight.Lines(f.Name, firstLines(f.Content, maxLines))}
+		c = codeLines{at, highlight.Lines(f.Name, firstLines(f.Content, maxLines))}
 		m.preview.code[k] = c
 	}
 	return c.lines

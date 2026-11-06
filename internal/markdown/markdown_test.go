@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/babarot/gist/v2/internal/text"
 )
@@ -100,6 +101,20 @@ func TestTableNarrowsItsWidestColumn(t *testing.T) {
 	}
 	if got := plain(Render(src, 40))[0]; !strings.Contains(got, "…") || !strings.Contains(got, "short") {
 		t.Errorf("got %q", got)
+	}
+}
+
+func TestATableOfManyColumnsDoesNotTakeLong(t *testing.T) {
+	src := "|" + strings.Repeat("x", 500000) + strings.Repeat("|x", 40000) + "|"
+	done := make(chan []Line, 1)
+	go func() { done <- Render(src, 80) }()
+	select {
+	case lines := <-done:
+		if w := text.Width(plain(lines)[0]); w > 80 {
+			t.Errorf("%d wide", w)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("it took too long")
 	}
 }
 

@@ -274,6 +274,23 @@ func TestKeptListStillFillsFromTheDiskFirst(t *testing.T) {
 	}
 }
 
+func TestNewerContentIsDrawnOverOlder(t *testing.T) {
+	for _, name := range []string{"a.md", "a.go"} {
+		m, _ := preview(t, 120, 34, file(name, "old text\n"))
+		g := m.tab().gists[0]
+		if !strings.Contains(screen(m), "old text") {
+			t.Fatalf("got:\n%s", screen(m))
+		}
+		newer := m.preview.contents[g.ID]
+		newer.Updated = now
+		newer.Files = []model.File{file(name, "new text\n")}
+		m.preview.contents[g.ID] = newer
+		if s := screen(m); !strings.Contains(s, "new text") || strings.Contains(s, "old text") {
+			t.Errorf("%s: got:\n%s", name, s)
+		}
+	}
+}
+
 func TestMarkdownStopsAtItsLimit(t *testing.T) {
 	m, _ := preview(t, 120, 34, file("a.md", strings.Repeat("line\n\n", 2000)))
 	g := m.tab().gists[0]
