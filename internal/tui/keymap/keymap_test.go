@@ -11,6 +11,16 @@ func TestEveryDefaultKeyIsOfOneAction(t *testing.T) {
 	}
 }
 
+func TestABoxMayShareAKeyWithTheList(t *testing.T) {
+	m := Default()
+	if !m.Matches(Rename, "r") || !m.Matches(Reload, "r") {
+		t.Error("r is not both")
+	}
+	if _, err := m.With(map[string][]string{"overwrite": {"r"}}); err == nil {
+		t.Error("two actions of a box took one key")
+	}
+}
+
 func TestMatches(t *testing.T) {
 	m := Default()
 	if !m.Matches(Down, "j") || !m.Matches(Down, "down") || m.Matches(Down, "k") {

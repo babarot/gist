@@ -137,3 +137,27 @@ func TestPreviewHeight(t *testing.T) {
 		t.Errorf("a broken file: %d", got)
 	}
 }
+
+func TestDraftGists(t *testing.T) {
+	s := Open(t.TempDir())
+	if got, err := s.DraftGists(); got != nil || err != nil {
+		t.Errorf("got %v, %v", got, err)
+	}
+	l, err := s.Lock("a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = l.Release() }()
+	if err := l.SaveDraft(Draft{Gist: "a", File: "f"}); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := s.DraftGists(); err != nil || len(got) != 1 || got[0] != "a" {
+		t.Errorf("got %v, %v", got, err)
+	}
+	if err := l.DeleteDraft("f"); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := s.DraftGists(); err != nil || len(got) != 0 {
+		t.Errorf("got %v, %v", got, err)
+	}
+}

@@ -1,0 +1,30 @@
+gist // @alice     1 mine (5)    2 starred (…)                                                                   via gh 
+    DESCRIPTION                                                                        FILES  COMMENTS  VIS     UPDATED
+▎   escape ^[[31msequence^[[<age>    and a tab                                                1            secret     <age> 
+    emoji ❤️ and a family 👨‍👩‍👦 and é                                                         1            secret     <age>
+    no-description.txt +1                                                                  2            secret     <age>
+    日本語の説明がある G╭ delete gist ─────────────────────────────────────────────────────────╮        secret     <age>
+    a public gist with a│                                                                      │        public     <age>
+                        │  <id> x^[]0;title^G.txt                                           │
+                        │  escape ^[[31msequence^[[<age>    and a tab                             │
+                        │                                                                      │
+                        │  This deletes the gist and its 1 revision on GitHub.                 │
+╭  x^[]0;title^G.txt  ──│  It cannot be undone.                                                │ comments (0)  ────────╮
+│    1  content         │                                                                      │    <id>            │
+│                       │                                                                      │ity secret             │
+│                       │  delete this gist? y yes · esc no                                    │    1 · 8 B            │
+│                       ╰──────────────────────────────────────────────────────────────────────╯ns  1                  │
+│                                                                                      │ comments   0                  │
+│                                                                                      │ created    <age>           │
+│                                                                                      │ updated    <age>           │
+│                                                                                      │                               │
+│                                                                                      │ file       x^[]0;title^G.txt  │
+│                                                                                      │ type       plaintext          │
+│                                                                                      │ size       8 B · 1 lines      │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+╰──────────────────────────────────────────────────────────────────────────────────────┴──────── <id> · c comments ─╯
+✓ 5 gists · saved to the cache
+y delete · esc no

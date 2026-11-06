@@ -127,13 +127,12 @@ func overwritten(updated model.Gist, base string) string {
 	return updated.History[1]
 }
 
-// Session is the editing of one file: from taking the lock until it is sent
-// or given up. Close lets the lock go.
-type Session struct {
-	// File is the file's name.
-	File string
-	// Revision and Original are the base: what the edit started from.
-	// A refresh of the list does not change them.
+// FileEdit is a file being edited.
+type FileEdit struct {
+	// Name is the file's name.
+	Name string
+	// Revision and Original are the base: what the edit started from. A
+	// refresh of the list does not change them.
 	Revision string
 	Original string
 	// Content is what to edit: the original, or the draft of an earlier edit.
@@ -141,108 +140,200 @@ type Session struct {
 	// FromDraft says Content came from a draft.
 	FromDraft bool
 
-	gist    string
-	editor  *Editor
-	lock    *state.Lock
 	created time.Time
 }
 
-// Begin starts editing a file, from its draft if it has one. The gist's lock
-// is held until Close: ErrLocked says another process has it.
-func (e *Editor) Begin(ctx context.Context, gist, file string) (*Session, error) {
+// Changed says the edit differs from what it started from.
+func (f *FileEdit) Changed() bool { return f.Content != f.Original }
+
+// Session is the editing of a gist's files: from taking the lock until they
+// are sent or given up. Close lets the lock go.
+type Session struct {
+	// Files are the files being edited.
+	Files []*FileEdit
+
+	gist   string
+	editor *Editor
+	lock   *state.Lock
+}
+
+// Gist is the ID of the gist being edited.
+func (s *Session) Gist() string { return s.gist }
+
+// File is the file being edited with this name, or nil.
+func (s *Session) File(name string) *FileEdit {
+	if i := slices.IndexFunc(s.Files, func(f *FileEdit) bool { return f.Name == name }); i >= 0 {
+		return s.Files[i]
+	}
+	return nil
+}
+
+// Begin starts editing files, each from its draft if it has one. The gist's
+// lock is held until Close: ErrLocked says another process has it.
+func (e *Editor) Begin(ctx context.Context, gist string, files ...string) (*Session, error) {
 	l, err := e.State.Lock(gist)
 	if err != nil {
 		return nil, err
 	}
-	s := &Session{File: file, gist: gist, editor: e, lock: l, created: e.now()}
-	d, ok, err := e.State.Draft(gist, file)
-	if err != nil {
+	s := &Session{gist: gist, editor: e, lock: l}
+	if err := s.start(ctx, files); err != nil {
 		_ = l.Release()
 		return nil, err
 	}
-	if ok {
-		s.Revision, s.Original, s.Content, s.FromDraft = d.Revision, string(d.Original), string(d.Content), true
-		s.created = d.Created
-		return s, nil
-	}
-	if err := s.readBase(ctx); err != nil {
-		_ = l.Release()
-		return nil, err
-	}
-	s.Content = s.Original
 	return s, nil
 }
 
-// readBase takes the gist as it is now as the base.
-func (s *Session) readBase(ctx context.Context) error {
+func (s *Session) start(ctx context.Context, files []string) error {
+	var fresh []*FileEdit
+	for _, name := range files {
+		f := &FileEdit{Name: name, created: s.editor.now()}
+		d, ok, err := s.editor.State.Draft(s.gist, name)
+		if err != nil {
+			return err
+		}
+		if ok {
+			f.Revision, f.Original, f.Content, f.FromDraft = d.Revision, string(d.Original), string(d.Content), true
+			f.created = d.Created
+		} else {
+			fresh = append(fresh, f)
+		}
+		s.Files = append(s.Files, f)
+	}
+	if len(fresh) == 0 {
+		return nil
+	}
+	if err := s.readBases(ctx, fresh); err != nil {
+		return err
+	}
+	for _, f := range fresh {
+		f.Content = f.Original
+	}
+	return nil
+}
+
+// readBases takes the gist as it is now as the base of files.
+func (s *Session) readBases(ctx context.Context, files []*FileEdit) error {
 	g, err := s.editor.API.Get(ctx, s.gist)
 	if err != nil {
 		return err
 	}
-	i := slices.IndexFunc(g.Files, func(f model.File) bool { return f.Name == s.File })
-	if i < 0 {
-		return fmt.Errorf("%w: %s", ErrNoFile, s.File)
+	for _, f := range files {
+		i := slices.IndexFunc(g.Files, func(gf model.File) bool { return gf.Name == f.Name })
+		if i < 0 {
+			return fmt.Errorf("%w: %s", ErrNoFile, f.Name)
+		}
+		original, err := s.editor.API.Raw(ctx, g.Files[i])
+		if err != nil {
+			return err
+		}
+		f.Revision, f.Original = g.Revision(), original
 	}
-	original, err := s.editor.API.Raw(ctx, g.Files[i])
-	if err != nil {
-		return err
-	}
-	s.Revision, s.Original = g.Revision(), original
 	return nil
 }
 
-// Close lets the lock go. A draft stays.
+// DropDrafts throws away the drafts the session started from, and starts those
+// files again from GitHub.
+func (s *Session) DropDrafts(ctx context.Context) error {
+	var drafted []*FileEdit
+	for _, f := range s.Files {
+		if f.FromDraft {
+			drafted = append(drafted, f)
+		}
+	}
+	if err := s.readBases(ctx, drafted); err != nil {
+		return err
+	}
+	for _, f := range drafted {
+		f.Content, f.FromDraft = f.Original, false
+		if err := s.lock.DeleteDraft(f.Name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Close lets the lock go. Drafts stay.
 func (s *Session) Close() error { return s.lock.Release() }
 
-// Keep records content as the draft, if it differs from the base, and returns
-// whether it does. When it does not, there is nothing to send and no draft
-// is left. Comparing with the base rather than the draft means a draft opened
-// and closed unchanged still goes on to be sent.
-func (s *Session) Keep(content string) (bool, error) {
-	s.Content = content
-	if content == s.Original {
-		return false, s.lock.DeleteDraft(s.File)
+// Keep records content as the draft of a file, if it differs from the base, and
+// returns whether it does. When it does not, there is nothing to send of it and
+// no draft is left. Comparing with the base rather than the draft means a draft
+// opened and closed unchanged still goes on to be sent.
+func (s *Session) Keep(name, content string) (bool, error) {
+	f := s.File(name)
+	if f == nil {
+		return false, fmt.Errorf("%w: %s", ErrNoFile, name)
+	}
+	f.Content = content
+	if !f.Changed() {
+		return false, s.lock.DeleteDraft(f.Name)
 	}
 	return true, s.lock.SaveDraft(state.Draft{
 		Gist:     s.gist,
-		File:     s.File,
-		Revision: s.Revision,
-		Original: []byte(s.Original),
+		File:     f.Name,
+		Revision: f.Revision,
+		Original: []byte(f.Original),
 		Content:  []byte(content),
-		Created:  s.created,
+		Created:  f.created,
 	})
 }
 
-// Push sends the content kept, unless the gist has moved on from the base,
-// which ChangedError says. With overwrite it goes over what is there. The draft
-// goes once the content is sent.
+// Changed are the files that differ from what they started from.
+func (s *Session) Changed() []*FileEdit {
+	var out []*FileEdit
+	for _, f := range s.Files {
+		if f.Changed() {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// Push sends the content kept of the files changed, in one change, unless the
+// gist has moved on from what one of them is based on, which ChangedError says.
+// With overwrite it goes over what is there. Their drafts go once it is sent.
 func (s *Session) Push(ctx context.Context, overwrite bool) (Result, error) {
 	g, err := s.editor.API.Get(ctx, s.gist)
 	if err != nil {
 		return Result{}, err
 	}
-	if !overwrite && g.Revision() != s.Revision {
-		return Result{}, &ChangedError{Current: g, What: "revision"}
+	changed := s.Changed()
+	files := make(map[string]model.FileChange, len(changed))
+	for _, f := range changed {
+		if !overwrite && g.Revision() != f.Revision {
+			return Result{}, &ChangedError{Current: g, What: "revision"}
+		}
+		files[f.Name] = model.FileChange{Content: &f.Content}
 	}
-	content := s.Content
-	updated, err := s.editor.API.Update(ctx, s.gist, model.Change{
-		Files: map[string]model.FileChange{s.File: {Content: &content}},
-	})
+	updated, err := s.editor.API.Update(ctx, s.gist, model.Change{Files: files})
 	if err != nil {
 		return Result{}, err
 	}
 	res := Result{Gist: updated, Sent: true, Overwritten: overwritten(updated, g.Revision())}
-	return res, s.lock.DeleteDraft(s.File)
+	for _, f := range changed {
+		if derr := s.lock.DeleteDraft(f.Name); derr != nil {
+			err = derr
+		}
+	}
+	return res, err
 }
 
-// Reload takes the gist as it is now as the new base, keeping the edit, and
-// returns whether the edit still differs from it. It may not: the same change
-// may have been sent from elsewhere.
+// Reload takes the gist as it is now as the new base of every file, keeping the
+// edits, and returns whether any still differs from it. It may not: the same
+// change may have been sent from elsewhere.
 func (s *Session) Reload(ctx context.Context) (bool, error) {
-	if err := s.readBase(ctx); err != nil {
+	if err := s.readBases(ctx, s.Files); err != nil {
 		return false, err
 	}
-	return s.Keep(s.Content)
+	any := false
+	for _, f := range s.Files {
+		changed, err := s.Keep(f.Name, f.Content)
+		if err != nil {
+			return any, err
+		}
+		any = any || changed
+	}
+	return any, nil
 }
 
 // Discard removes the draft of a file, under the gist's lock: ErrLocked says

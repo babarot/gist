@@ -19,6 +19,7 @@ import (
 
 	"github.com/babarot/gist/v2/internal/cache"
 	"github.com/babarot/gist/v2/internal/config"
+	"github.com/babarot/gist/v2/internal/fakegist"
 	"github.com/babarot/gist/v2/internal/logging"
 	"github.com/babarot/gist/v2/internal/model"
 	"github.com/babarot/gist/v2/internal/tui/keymap"
@@ -147,6 +148,8 @@ func (s *source) listed() []model.Gist {
 	}
 	return out
 }
+
+func (s *source) Delete(context.Context, string) error { return nil }
 
 func (s *source) Comments(_ context.Context, id string) ([]model.Comment, error) {
 	s.mu.Lock()
@@ -611,7 +614,8 @@ func TestAuthFail(t *testing.T) {
 	}
 }
 
-// states are a model in each state of the screen.
+// states are a model in each state of the screen, on a list that has what
+// breaks widths.
 func states(t *testing.T, w, h int) map[uiState]*Model {
 	t.Helper()
 	list := func() *Model { return loaded(t, fixture(), w, h) }
@@ -625,6 +629,57 @@ func states(t *testing.T, w, h int) map[uiState]*Model {
 	o := options(t, nil)
 	o.NoToken = true
 	out[uiAuthFail] = newModel(t, o, w, h)
+
+	// What changes a gist needs a GitHub that takes it
+	world := func() *world {
+		t.Helper()
+		wd := newWorld(t, func(s *fakegist.Server) {
+			for _, g := range fixture() {
+				names := map[string]string{}
+				for _, f := range g.Files {
+					names[f.Name] = "content\n"
+				}
+				s.Add(g.Description, g.Public, names)
+			}
+		})
+		_, cmd := wd.m.Update(tea.WindowSizeMsg{Width: w, Height: h})
+		settle(t, wd.m, cmd)
+		return wd
+	}
+	push := world()
+	push.type_("edited\n")
+	enter(t, push.m)
+	out[uiConfirmPush] = push.m
+
+	conflict := world()
+	conflict.type_("edited\n")
+	enter(t, conflict.m)
+	g, _ := conflict.m.selected()
+	conflict.s.Edit(g.ID, g.Files[0].Name, "theirs\n")
+	press(t, conflict.m, "y")
+	out[uiConfirmConflict] = conflict.m
+
+	del := world()
+	press(t, del.m, "D")
+	out[uiConfirmDelete] = del.m
+
+	discard := world()
+	discard.type_("edited\n")
+	enter(t, discard.m)
+	press(t, discard.m, "esc", "X")
+	out[uiConfirmDiscard] = discard.m
+
+	input := world()
+	press(t, input.m, "E")
+	out[uiInput] = input.m
+
+	inputConflict := world()
+	press(t, inputConflict.m, "E")
+	typeText(t, inputConflict.m, "x")
+	g, _ = inputConflict.m.selected()
+	inputConflict.s.SetDescription(g.ID, "theirs")
+	enter(t, inputConflict.m)
+	out[uiInputConflict] = inputConflict.m
 	return out
 }
 
@@ -676,7 +731,8 @@ func TestHelpNamesEveryAction(t *testing.T) {
 		}
 	}
 	for _, d := range keymap.Defaults {
-		if !named[d.Action] {
+		// What is open says its own keys
+		if !named[d.Action] && keymap.ScopeOf(d.Action) == keymap.ScopeList {
 			t.Errorf("the key list does not name %s", d.Action)
 		}
 	}
@@ -943,6 +999,15 @@ func TestGolden(t *testing.T) {
 	cases := states(t, 120, 30)
 	golden(t, "help", screen(cases[uiHelp]))
 	golden(t, "authfail", screen(cases[uiAuthFail]))
+	ids := regexp.MustCompile(`\b[0-9a-f]{7}\b`)
+	ages := regexp.MustCompile(`\b(now|\d+[smhdy]|\d+mo)( ago)?\b`)
+	stable := func(m *Model) string { return ages.ReplaceAllString(ids.ReplaceAllString(screen(m), "<id>"), "<age>") }
+	golden(t, "box-push", stable(cases[uiConfirmPush]))
+	golden(t, "box-conflict", stable(cases[uiConfirmConflict]))
+	golden(t, "box-delete", stable(cases[uiConfirmDelete]))
+	golden(t, "box-discard", stable(cases[uiConfirmDiscard]))
+	golden(t, "box-input", stable(cases[uiInput]))
+	golden(t, "box-input-conflict", stable(cases[uiInputConflict]))
 }
 
 func TestGoldenThemes(t *testing.T) {

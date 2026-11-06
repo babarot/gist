@@ -2,6 +2,7 @@ package tui
 
 import (
 	"slices"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -20,7 +21,21 @@ func (m *Model) addHit(y, x0, x1 int, act func() tea.Cmd) {
 // mouse handles a click, the wheel and dragging the top edge of the preview.
 // What is open over the screen keeps the mouse from the list under it.
 func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
-	if st := m.uiState(); st != uiList && st != uiListComments {
+	if m.sending {
+		return nil
+	}
+	st := m.uiState()
+	if st == uiConfirmPush {
+		if w, ok := msg.(tea.MouseWheelMsg); ok {
+			if w.Button == tea.MouseWheelDown {
+				m.scrollDiff(1)
+			} else {
+				m.scrollDiff(-1)
+			}
+		}
+		return nil
+	}
+	if st != uiList && st != uiListComments {
 		return nil
 	}
 	mouse := msg.Mouse()
@@ -40,6 +55,8 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 		if msg.Button != tea.MouseLeft {
 			return nil
 		}
+		// A second click on a row soon after edits it
+		defer func(row int) { m.lastClick, m.lastRow = m.now(), row }(m.tab().cur)
 		// Latest drawn first, as what is drawn later is on top
 		for _, h := range slices.Backward(m.hits) {
 			if h.y == mouse.Y && mouse.X >= h.x0 && mouse.X < h.x1 {
@@ -55,6 +72,13 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 
 // wheel moves what is under the mouse: the list, or the content or comments of
 // the preview, a line at a time.
+// doubleClick is how close two clicks on a row are to edit it.
+const doubleClick = 400 * time.Millisecond
+
+func (m *Model) isDoubleClick(row int) bool {
+	return m.tab().cur == row && m.lastRow == row && m.now().Sub(m.lastClick) < doubleClick
+}
+
 func (m *Model) wheel(msg tea.MouseWheelMsg, x, y int) {
 	l := m.layout()
 	by := 0

@@ -1,0 +1,30 @@
+gist // @alice     1 mine (5)    2 starred (…)                                                                   via gh 
+    DESCRIPTION                                                                        FILES  COMMENTS  VIS     UPDATED
+▎ ✎ escape ^[[31msequence^[[<age>    and a tab                                                1            secret     <age> 
+    emoji ❤️ and a family 👨‍👩‍👦 and é                                                         1            secret     <age>
+    no-description.txt +1                                                                  2            secret     <age>
+    日本語の説明がある╭ GitHub side was updated ─────────────────────────────────────────────────╮      secret     <age>
+    a public gist with│                                                                          │      public     <age>
+                      │  x^[]0;title^G.txt  <id> was updated <age> after this edit start…  │
+                      │  your edit is based on revision <id>; GitHub is at revision <id>.  │
+                      │                                                                          │
+                      │  o overwrites with your edit; the replaced one stays as a revision.      │
+╭  x^[]0;title^G.txt  │  r reads the new revision and shows your edit as a diff against it.      │omments (0)  ────────╮
+│    1  content       │                                                                          │  <id>            │
+│                     │                                                                          │y secret             │
+│                     │  o overwrite · r reload · esc keep as draft                              │  1 · 8 B            │
+│                     ╰──────────────────────────────────────────────────────────────────────────╯  1                  │
+│                                                                                      │ comments   0                  │
+│                                                                                      │ created    <age>           │
+│                                                                                      │ updated    <age>           │
+│                                                                                      │                               │
+│                                                                                      │ file       x^[]0;title^G.txt  │
+│                                                                                      │ type       plaintext          │
+│                                                                                      │ size       8 B · 1 lines      │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+╰─ ✎ draft · enter to continue ────────────────────────────────────────────────────────┴──────── <id> · c comments ─╯
+✓ 5 gists · saved to the cache
+o overwrite · r reload · esc keep as draft

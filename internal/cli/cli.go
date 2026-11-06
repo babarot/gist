@@ -40,6 +40,8 @@ type CLI struct {
 	Open func(url string) error
 	// Run runs a program on the user's terminal.
 	Run func(name string, args ...string) error
+	// EditorCommand is the editor set in the config.
+	EditorCommand string
 	// CacheDir is where lists and contents are kept.
 	CacheDir string
 	// Now is the time.

@@ -155,12 +155,14 @@ func (m *Model) gotList(msg listDoneMsg) tea.Cmd {
 	if first {
 		m.replace(t, l.Gists)
 		m.line.Say(m.now(), fmt.Sprintf("✓ %s · saved to the cache", gistCount(len(l.Gists))))
+		m.warnLostDrafts()
 		return nil
 	}
 	added, updated, gone := m.compare(t, old, l.Gists)
 	m.replace(t, l.Gists)
 	m.forgetGone(old)
 	m.line.Say(m.now(), summary(added, updated, gone))
+	m.warnLostDrafts()
 	return nil
 }
 

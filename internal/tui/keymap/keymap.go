@@ -36,7 +36,39 @@ const (
 	ScrollUp   Action = "scroll_up"
 	ToggleSide Action = "toggle_comments"
 	ToggleMD   Action = "toggle_markdown"
+	Edit       Action = "edit"
+	Delete     Action = "delete"
+	Describe   Action = "edit_description"
+	Rename     Action = "rename"
+	Discard    Action = "discard_draft"
+	Confirm    Action = "confirm"
+	Overwrite  Action = "overwrite"
+	Reload     Action = "reload"
+	OnlyFile   Action = "only_file"
+	EditAgain  Action = "edit_again"
 )
+
+// Scope is where an action's keys are read. Two actions may share a key only
+// when they are read in different scopes.
+type Scope int
+
+// The scopes.
+const (
+	ScopeList Scope = iota
+	// ScopeBox is read in what is open over the screen.
+	ScopeBox
+)
+
+// boxActions are read over the screen, not on the list.
+var boxActions = []Action{Confirm, Overwrite, Reload, OnlyFile, EditAgain}
+
+// ScopeOf is where action's keys are read.
+func ScopeOf(a Action) Scope {
+	if slices.Contains(boxActions, a) {
+		return ScopeBox
+	}
+	return ScopeList
+}
 
 // Def is an action with its default keys and the words the key hints show.
 type Def struct {
@@ -64,6 +96,16 @@ var Defaults = []Def{
 	{ScrollUp, []string{"K"}, "scroll up"},
 	{ToggleSide, []string{"c"}, "comments"},
 	{ToggleMD, []string{"m"}, "markdown"},
+	{Edit, []string{"enter", "e"}, "edit"},
+	{Delete, []string{"D"}, "delete"},
+	{Describe, []string{"E"}, "desc"},
+	{Rename, []string{"r"}, "rename"},
+	{Discard, []string{"X"}, "discard draft"},
+	{Confirm, []string{"y"}, "yes"},
+	{Overwrite, []string{"o"}, "overwrite"},
+	{Reload, []string{"r"}, "reload"},
+	{OnlyFile, []string{"f"}, "only this file"},
+	{EditAgain, []string{"e"}, "edit again"},
 }
 
 // The fixed keys are read before any action and cannot be bound.
@@ -117,13 +159,14 @@ func (m Map) With(over map[string][]string) (Map, error) {
 		}
 		out.keys[Action(name)] = slices.Clone(keys)
 	}
-	bound := map[string]Action{}
+	bound := map[Scope]map[string]Action{ScopeList: {}, ScopeBox: {}}
 	for _, name := range names {
+		scope := bound[ScopeOf(Action(name))]
 		for _, k := range out.keys[Action(name)] {
-			if other, ok := bound[k]; ok {
+			if other, ok := scope[k]; ok {
 				return m, fmt.Errorf("keys: %s is bound to both %s and %s", k, other, name)
 			}
-			bound[k] = Action(name)
+			scope[k] = Action(name)
 		}
 	}
 	return out, nil

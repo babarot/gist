@@ -3,6 +3,7 @@ module github.com/babarot/gist/v2
 go 1.26.10
 
 require (
+	charm.land/bubbles/v2 v2.2.1
 	charm.land/bubbletea/v2 v2.1.1
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/alecthomas/chroma/v2 v2.27.0
@@ -11,12 +12,14 @@ require (
 	github.com/kyokomi/emoji/v2 v2.2.14
 	github.com/nxadm/tail v1.4.11
 	github.com/pelletier/go-toml/v2 v2.4.3
+	github.com/pmezard/go-difflib v1.0.0
 	github.com/rivo/uniseg v0.4.7
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/net v0.62.0
 )
 
 require (
+	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20261008173134-6b8d4baf91b4 // indirect

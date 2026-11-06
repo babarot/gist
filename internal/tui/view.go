@@ -19,10 +19,16 @@ func (m *Model) View() tea.View {
 	v := tea.NewView(m.render())
 	v.AltScreen = true
 	v.MouseMode = tea.MouseModeCellMotion
+	// The terminal's own cursor, not one drawn: an input method shows the text
+	// being composed where it is
+	v.Cursor = m.cursor()
 	return v
 }
 
 const spinner = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+// draftMark is the mark of a gist with a draft.
+const draftMark = "✎"
 
 func (m *Model) spinChar() string {
 	r := []rune(spinner)
@@ -71,8 +77,21 @@ func (m *Model) render() string {
 	m.drawList(c, l)
 	m.drawPreview(c, l)
 	m.drawFooter(c, l)
-	if m.uiState() == uiHelp {
+	switch m.uiState() {
+	case uiHelp:
 		m.drawHelp(c)
+	case uiConfirmPush:
+		m.drawDiff(c)
+	case uiConfirmConflict:
+		m.drawConflict(c)
+	case uiConfirmDelete:
+		m.drawDelete(c)
+	case uiConfirmDiscard:
+		m.drawDiscard(c)
+	case uiInput:
+		m.drawInput(c)
+	case uiInputConflict:
+		m.drawInputConflict(c)
 	}
 	return c.String()
 }
@@ -251,11 +270,17 @@ func (m *Model) drawList(c *canvas, l layout) {
 		if row == t.cur {
 			c.put(y, 0, "▎", style{fg: p.blue, bg: bg})
 		}
-		if t.marks[g.ID] {
+		switch {
+		case m.drafts[g.ID]:
+			c.put(y, 2, draftMark, style{fg: p.peach, bg: bg})
+		case t.marks[g.ID]:
 			c.put(y, 2, "●", style{fg: p.blue, bg: bg})
 		}
 		m.drawRow(c, y, g, cols, bg, now)
 		m.addHit(y, 0, c.w, func() tea.Cmd {
+			if m.isDoubleClick(row) {
+				return m.startEdit()
+			}
 			m.moveTo(row)
 			return nil
 		})
@@ -307,6 +332,14 @@ func (m *Model) drawRow(c *canvas, y int, g model.Gist, cols columns, bg color.C
 		c.put(y, cols.vis, "public", on(style{fg: p.overlay}))
 	} else {
 		c.put(y, cols.vis, "secret", on(style{fg: p.peach}))
+	}
+	if kind := m.writing[g.ID]; kind != "" {
+		st := on(style{fg: p.blue})
+		if kind == "delete" {
+			st = on(style{fg: p.red})
+		}
+		c.put(y, cols.updated-1, m.spinChar(), st)
+		return
 	}
 	age := ago(now.Sub(g.Updated))
 	st := dim

@@ -75,6 +75,21 @@ func TestDeleteAsksOnATerminal(t *testing.T) {
 	}
 }
 
+func TestDeleteTakesTheDrafts(t *testing.T) {
+	c, s, _, _ := terminal(t, "n\n")
+	g := s.Add("", false, map[string]string{"a.txt": "a"})
+	editing(c, map[string]string{"a.txt": "edited"})
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); !errors.Is(err, ErrCanceled) {
+		t.Fatalf("got %v", err)
+	}
+	if err := c.Delete(ctx, []string{g.ID}, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := c.Editor.Draft(g.ID, "a.txt"); ok {
+		t.Error("the draft stayed")
+	}
+}
+
 func TestListTableOnATerminal(t *testing.T) {
 	c, s, out, _ := terminal(t, "")
 	s.Add("a long description "+strings.Repeat("x", 80), true, map[string]string{"a.txt": "a"})
@@ -147,10 +162,215 @@ func TestClone(t *testing.T) {
 	}
 }
 
-func TestEditOnATerminalNeedsSomethingToDo(t *testing.T) {
+// editing is what the editor does to the files it is given.
+func editing(c *CLI, write map[string]string) {
+	c.Run = func(_ string, args ...string) error {
+		for _, p := range args {
+			if s, ok := write[filepath.Base(p)]; ok {
+				if err := os.WriteFile(p, []byte(s), 0o600); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+}
+
+func TestEditOneFileInTheEditor(t *testing.T) {
+	c, s, _, errOut := terminal(t, "y\n")
+	g := s.Add("", false, map[string]string{"a.txt": "old\n", "b.txt": "b\n"})
+	editing(c, map[string]string{"a.txt": "new\n"})
+	if err := c.Edit(ctx, g.ID, "a.txt", EditOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.Get(g.ID).Revisions[0].Files["a.txt"]; got != "new\n" {
+		t.Errorf("got %q", got)
+	}
+	for _, want := range []string{"-old", "+new", "(+1 −1)"} {
+		if !strings.Contains(errOut.String(), want) {
+			t.Errorf("no %q in %q", want, errOut)
+		}
+	}
+}
+
+func TestEditAllFilesGoInOneChange(t *testing.T) {
+	c, s, _, _ := terminal(t, "y\n")
+	g := s.Add("", false, map[string]string{"a.txt": "a", "b.txt": "b", "c.txt": "c"})
+	editing(c, map[string]string{"a.txt": "A", "b.txt": "B"})
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	got := s.Get(g.ID)
+	files := got.Revisions[0].Files
+	if len(got.Revisions) != 2 || files["a.txt"] != "A" || files["b.txt"] != "B" || files["c.txt"] != "c" {
+		t.Errorf("%d revisions, files %q", len(got.Revisions), files)
+	}
+}
+
+func TestEditWithNothingChanged(t *testing.T) {
+	c, s, _, errOut := terminal(t, "")
+	g := s.Add("", false, map[string]string{"a.txt": "a"})
+	editing(c, nil)
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Get(g.ID).Revisions) != 1 || !strings.Contains(errOut.String(), "nothing sent") {
+		t.Errorf("stderr %q", errOut)
+	}
+}
+
+func TestEditSaidNoKeepsADraft(t *testing.T) {
+	c, s, _, errOut := terminal(t, "n\n")
+	g := s.Add("", false, map[string]string{"a.txt": "a"})
+	editing(c, map[string]string{"a.txt": "edited"})
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); !errors.Is(err, ErrCanceled) {
+		t.Fatalf("got %v", err)
+	}
+	if d, ok, _ := c.Editor.Draft(g.ID, "a.txt"); !ok || string(d.Content) != "edited" {
+		t.Errorf("no draft: %+v", d)
+	}
+	if !strings.Contains(errOut.String(), "kept as a draft") {
+		t.Errorf("stderr %q", errOut)
+	}
+}
+
+func TestEditYesAsksNothing(t *testing.T) {
 	c, s, _, _ := terminal(t, "")
 	g := s.Add("", false, map[string]string{"a.txt": "a"})
-	if err := c.Edit(ctx, g.ID, "", EditOptions{}); !errors.Is(err, ErrNeedsEditor) {
+	editing(c, map[string]string{"a.txt": "edited"})
+	if err := c.Edit(ctx, g.ID, "", EditOptions{Yes: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.Get(g.ID).Revisions[0].Files["a.txt"]; got != "edited" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEditAnEditorThatFailsKeepsTheEdit(t *testing.T) {
+	c, s, _, _ := terminal(t, "n\n")
+	g := s.Add("", false, map[string]string{"a.txt": "a"})
+	c.Run = func(_ string, args ...string) error {
+		if err := os.WriteFile(args[0], []byte("edited"), 0o600); err != nil {
+			return err
+		}
+		return errors.New("the editor exploded")
+	}
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); !errors.Is(err, ErrCanceled) {
+		t.Fatalf("got %v", err)
+	}
+	if _, ok, _ := c.Editor.Draft(g.ID, "a.txt"); !ok {
+		t.Error("the edit is gone")
+	}
+}
+
+func TestEditAnEditorThatDidNotRunSaysSo(t *testing.T) {
+	c, s, _, _ := terminal(t, "")
+	g := s.Add("", false, map[string]string{"a.txt": "a"})
+	c.Run = func(string, ...string) error { return errors.New("no such editor") }
+	err := c.Edit(ctx, g.ID, "", EditOptions{})
+	if err == nil || !strings.Contains(err.Error(), "the editor failed") {
+		t.Errorf("got %v", err)
+	}
+}
+
+func TestEditContinuesFromADraft(t *testing.T) {
+	c, s, _, _ := terminal(t, "n\n\ny\n")
+	g := s.Add("", false, map[string]string{"a.txt": "a"})
+	editing(c, map[string]string{"a.txt": "drafted"})
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); !errors.Is(err, ErrCanceled) {
+		t.Fatalf("got %v", err)
+	}
+	var saw string
+	c.Run = func(_ string, args ...string) error {
+		b, err := os.ReadFile(args[0])
+		saw = string(b)
+		return err
+	}
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if saw != "drafted" {
+		t.Errorf("the editor got %q", saw)
+	}
+	if got := s.Get(g.ID).Revisions[0].Files["a.txt"]; got != "drafted" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestEditCanDiscardADraft(t *testing.T) {
+	c, s, _, _ := terminal(t, "n\nd\n")
+	g := s.Add("", false, map[string]string{"a.txt": "a"})
+	editing(c, map[string]string{"a.txt": "drafted"})
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); !errors.Is(err, ErrCanceled) {
+		t.Fatalf("got %v", err)
+	}
+	var saw string
+	c.Run = func(_ string, args ...string) error {
+		b, err := os.ReadFile(args[0])
+		saw = string(b)
+		return err
+	}
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if saw != "a" {
+		t.Errorf("the editor got %q", saw)
+	}
+	if _, ok, _ := c.Editor.Draft(g.ID, "a.txt"); ok {
+		t.Error("the draft stayed")
+	}
+}
+
+func TestEditConflict(t *testing.T) {
+	for _, tt := range []struct {
+		name, typed string
+		o           EditOptions
+		want        string
+		canceled    bool
+	}{
+		{"overwrite", "y\no\n", EditOptions{}, "mine", false},
+		{"force", "y\n", EditOptions{Force: true}, "mine", false},
+		{"no", "y\n\n", EditOptions{}, "theirs", true},
+		{"reload and push", "y\nr\ny\n", EditOptions{}, "mine", false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			c, s, _, _ := terminal(t, tt.typed)
+			g := s.Add("", false, map[string]string{"a.txt": "a"})
+			c.Run = func(_ string, args ...string) error {
+				s.Edit(g.ID, "a.txt", "theirs")
+				return os.WriteFile(args[0], []byte("mine"), 0o600)
+			}
+			err := c.Edit(ctx, g.ID, "", tt.o)
+			if tt.canceled != errors.Is(err, ErrCanceled) || (!tt.canceled && err != nil) {
+				t.Fatalf("got %v", err)
+			}
+			if got := s.Get(g.ID).Revisions[0].Files["a.txt"]; got != tt.want {
+				t.Errorf("got %q", got)
+			}
+		})
+	}
+}
+
+func TestEditEmptiedFileIsNotRemoved(t *testing.T) {
+	c, s, _, _ := terminal(t, "y\n")
+	g := s.Add("", false, map[string]string{"a.txt": "a", "b.txt": "b"})
+	editing(c, map[string]string{"a.txt": ""})
+	err := c.Edit(ctx, g.ID, "", EditOptions{})
+	if err == nil || !strings.Contains(err.Error(), "removes an empty file") {
+		t.Fatalf("got %v", err)
+	}
+	if _, ok := s.Get(g.ID).Revisions[0].Files["a.txt"]; !ok {
+		t.Error("the file was removed")
+	}
+	if _, ok, _ := c.Editor.Draft(g.ID, "a.txt"); !ok {
+		t.Error("the edit is not in a draft")
+	}
+}
+
+func TestEditOnlyBinaryFiles(t *testing.T) {
+	c, s, _, _ := terminal(t, "")
+	g := s.Add("", false, map[string]string{"a.png": "\x00\x01"})
+	if err := c.Edit(ctx, g.ID, "", EditOptions{}); err == nil || !strings.Contains(err.Error(), "gist clone") {
 		t.Errorf("got %v", err)
 	}
 }

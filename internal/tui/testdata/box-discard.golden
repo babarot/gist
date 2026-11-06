@@ -1,0 +1,30 @@
+gist // @alice     1 mine (5)    2 starred (…)                                                                   via gh 
+    DESCRIPTION                                                                        FILES  COMMENTS  VIS     UPDATED
+▎ ✎ escape ^[[31msequence^[[<age>    and a tab                                                1            secret     <age> 
+    emoji ❤️ and a family 👨‍👩‍👦 and é                                                         1            secret     <age>
+    no-description.txt +1                                                                  2            secret     <age>
+    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確かめるための…      2            secret     <age>
+    a public gist with a com╭ discard the draft ───────────────────────────────────────────╮            public     <age>
+                            │                                                              │
+                            │  x^[]0;title^G.txt  of <id>                               │
+                            │  The edit that was not pushed goes away.                     │
+                            │                                                              │
+╭  x^[]0;title^G.txt  ──────│                                                              │fo   comments (0)  ────────╮
+│    1  content             │  y discard · esc keep                                        │t       <id>            │
+│                           ╰──────────────────────────────────────────────────────────────╯ibility secret             │
+│                                                                                      │ files      1 · 8 B            │
+│                                                                                      │ revisions  1                  │
+│                                                                                      │ comments   0                  │
+│                                                                                      │ created    <age>           │
+│                                                                                      │ updated    <age>           │
+│                                                                                      │                               │
+│                                                                                      │ file       x^[]0;title^G.txt  │
+│                                                                                      │ type       plaintext          │
+│                                                                                      │ size       8 B · 1 lines      │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+╰─ ✎ draft · enter to continue ────────────────────────────────────────────────────────┴──────── <id> · c comments ─╯
+kept as a draft
+y discard · esc keep
