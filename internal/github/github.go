@@ -21,6 +21,7 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/cli/go-gh/v2/pkg/auth"
+	"github.com/cli/go-gh/v2/pkg/browser"
 
 	"github.com/babarot/gist/v2/internal/model"
 )
@@ -50,6 +51,10 @@ var (
 	// ErrRawIncomplete says fewer or more bytes came than the file's size.
 	ErrRawIncomplete = errors.New("the whole file could not be read; use gist clone")
 )
+
+// ErrEmptyContent says a file would be left empty, which GitHub takes as
+// removing the file. A file is only ever removed by asking for that.
+var ErrEmptyContent = errors.New("GitHub removes an empty file: remove it on purpose instead")
 
 // Client talks to GitHub.
 type Client struct {
@@ -86,6 +91,22 @@ func New(log *slog.Logger, o Options) (*Client, error) {
 	return &Client{rest: rest, raw: &http.Client{Transport: t, Timeout: timeout}, log: log}, nil
 }
 
+// Viewer is who the token belongs to.
+func (c *Client) Viewer(ctx context.Context) (string, error) {
+	var user struct {
+		Login string `json:"login"`
+	}
+	if err := c.rest.DoWithContext(ctx, http.MethodGet, "user", nil, &user); err != nil {
+		return "", explain(err)
+	}
+	return user.Login, nil
+}
+
+// Browse opens url in the browser gh uses.
+func Browse(url string, stdout, stderr io.Writer) error {
+	return browser.New("", stdout, stderr).Browse(url)
+}
+
 // Token finds the token to use and where it came from, which Source names.
 // The token is "" when there is none.
 func Token() (token, source string) { return auth.TokenForHost(Host) }
@@ -101,7 +122,7 @@ func Source(source string) string {
 // NoToken says what to do when Token found none.
 const NoToken = `no GitHub token found. Looked in GH_TOKEN, GITHUB_TOKEN, gh's hosts.yml and gh auth token.
 Run gh auth login, or set GITHUB_TOKEN.
-A fine-grained token needs the Gists read and write permission.`
+A fine-grained token needs the Gists read and write permission`
 
 // tokenHint is added to the errors a token without access to gists gives.
 const tokenHint = "a fine-grained token needs the Gists read and write permission"
@@ -352,16 +373,8 @@ func (c *Client) Raw(ctx context.Context, f model.File) (string, error) {
 	return string(b), nil
 }
 
-// NewGist is a gist to create.
-type NewGist struct {
-	Description string
-	Public      bool
-	// Files are the names and contents.
-	Files map[string]string
-}
-
 // Create makes a gist.
-func (c *Client) Create(ctx context.Context, n NewGist) (model.Gist, error) {
+func (c *Client) Create(ctx context.Context, n model.NewGist) (model.Gist, error) {
 	files := make(map[string]fileChange, len(n.Files))
 	for name, content := range n.Files {
 		if err := checkUTF8(&content); err != nil {
@@ -377,31 +390,19 @@ func (c *Client) Create(ctx context.Context, n NewGist) (model.Gist, error) {
 	return c.send(ctx, http.MethodPost, "gists", body, slog.Int("files", len(files)))
 }
 
-// FileChange changes a file of a gist: its content, its name, or with both
-// nil, in a Change, removes it.
-type FileChange struct {
-	Content *string
-	Name    *string
-}
-
-// Change is what to change in a gist.
-type Change struct {
-	// Description is nil to leave it.
-	Description *string
-	// Files are by the name the file has now.
-	Files map[string]FileChange
-}
-
 // Update changes a gist and returns it as it is after, History included.
-func (c *Client) Update(ctx context.Context, id string, ch Change) (model.Gist, error) {
+func (c *Client) Update(ctx context.Context, id string, ch model.Change) (model.Gist, error) {
 	files := make(map[string]*fileChange, len(ch.Files))
 	for name, f := range ch.Files {
 		if err := checkUTF8(f.Content, f.Name); err != nil {
 			return model.Gist{}, err
 		}
-		if f.Content == nil && f.Name == nil {
+		if f.Remove {
 			files[name] = nil // null removes the file
 			continue
+		}
+		if f.Content != nil && *f.Content == "" {
+			return model.Gist{}, ErrEmptyContent
 		}
 		files[name] = &fileChange{Content: f.Content, Filename: f.Name}
 	}

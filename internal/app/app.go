@@ -9,15 +9,19 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"time"
 
+	"github.com/cli/go-gh/v2/pkg/term"
 	"github.com/spf13/cobra"
 
 	"github.com/babarot/gist/v2/internal/cli"
+	"github.com/babarot/gist/v2/internal/edit"
 	"github.com/babarot/gist/v2/internal/github"
 	"github.com/babarot/gist/v2/internal/logging"
+	"github.com/babarot/gist/v2/internal/state"
 	"github.com/babarot/gist/v2/internal/version"
 	"github.com/babarot/gist/v2/internal/xdg"
 )
@@ -40,6 +44,8 @@ type options struct {
 
 	log      *slog.Logger
 	closeLog func()
+	// newClient makes the client; tests give another.
+	newClient func(log *slog.Logger, token string) (*github.Client, error)
 }
 
 // exitCode is what a command returns once it has said why it failed, so that
@@ -59,10 +65,18 @@ func exited(code int) error {
 
 // Run runs gist with args (without the program name) and returns the exit
 // code: 1 when a command failed, 2 when it was called wrongly.
-func Run(args []string, stdout, stderr io.Writer) int {
-	o := &options{log: logging.Discard(), closeLog: func() {}}
+func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	return run(&options{newClient: newClient}, args, stdin, stdout, stderr)
+}
+
+func newClient(log *slog.Logger, token string) (*github.Client, error) {
+	return github.New(log, github.Options{Token: token})
+}
+
+func run(o *options, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	o.log, o.closeLog = logging.Discard(), func() {}
 	defer func() { o.closeLog() }()
-	root := newRootCommand(o, stdout, stderr)
+	root := newRootCommand(o, stdin, stdout, stderr)
 	root.SetArgs(args)
 	cmd, err := root.ExecuteContextC(context.Background())
 	if err == nil {
@@ -77,7 +91,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 }
 
 // newRootCommand is gist with its commands, writing to stdout and stderr.
-func newRootCommand(o *options, stdout, stderr io.Writer) *cobra.Command {
+func newRootCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobra.Command {
 	root := &cobra.Command{
 		Use:           "gist",
 		Short:         "edit your GitHub Gists from the terminal",
@@ -96,7 +110,13 @@ func newRootCommand(o *options, stdout, stderr io.Writer) *cobra.Command {
 			if o.debug == debugLive {
 				return followLog(stdout, stderr)
 			}
-			return cmd.Help()
+			// The TUI goes here. A pipe gets the list
+			if isTerminal(stdin) && isTerminal(stdout) {
+				return cmd.Help()
+			}
+			return o.run(cmd, stdin, stdout, stderr, func(ctx context.Context, c *cli.CLI) error {
+				return c.List(ctx, cli.ListOptions{})
+			})
 		},
 	}
 	root.SetOut(stdout)
@@ -108,7 +128,17 @@ func newRootCommand(o *options, stdout, stderr io.Writer) *cobra.Command {
 	flags.Lookup("debug").NoOptDefVal = debugOn
 	flags.BoolVar(&o.noColor, "no-color", false, "print no colors (the NO_COLOR environment variable does the same)")
 
-	root.AddCommand(newVersionCommand(stdout), newAuthCommand(o, stdout, stderr))
+	root.AddCommand(
+		newVersionCommand(stdout),
+		newAuthCommand(o, stdout, stderr),
+		newListCommand(o, stdin, stdout, stderr),
+		newViewCommand(o, stdin, stdout, stderr),
+		newNewCommand(o, stdin, stdout, stderr),
+		newEditCommand(o, stdin, stdout, stderr),
+		newDeleteCommand(o, stdin, stdout, stderr),
+		newOpenCommand(o, stdin, stdout, stderr),
+		newCloneCommand(o, stdin, stdout, stderr),
+	)
 	return root
 }
 
@@ -130,12 +160,7 @@ func newAuthCommand(o *options, stdout, stderr io.Writer) *cobra.Command {
 		Short: "print where the token came from and what it can do",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			token, source := github.Token()
-			if token == "" {
-				fmt.Fprintf(stderr, "gist: %s\n", github.NoToken)
-				return exitCode(1)
-			}
-			client, err := github.New(o.log, github.Options{Token: token})
+			client, source, err := o.client()
 			if err != nil {
 				fmt.Fprintf(stderr, "gist: %v\n", err)
 				return exitCode(1)
@@ -143,6 +168,56 @@ func newAuthCommand(o *options, stdout, stderr io.Writer) *cobra.Command {
 			return exited(cli.Auth(cmd.Context(), stdout, stderr, source, client))
 		},
 	}
+}
+
+// client makes the client with the token found, and says where it came from.
+func (o *options) client() (*github.Client, string, error) {
+	token, source := github.Token()
+	if token == "" {
+		return nil, "", errors.New(github.NoToken)
+	}
+	client, err := o.newClient(o.log, token)
+	return client, source, err
+}
+
+// run runs f with what a command needs, and turns what it returns into the
+// exit code: 130 when the user said no, 1 when it failed.
+func (o *options) run(cmd *cobra.Command, stdin io.Reader, stdout, stderr io.Writer, f func(context.Context, *cli.CLI) error) error {
+	client, _, err := o.client()
+	if err == nil {
+		err = f(cmd.Context(), &cli.CLI{
+			Stdin: stdin, Stdout: stdout, Stderr: stderr,
+			StdinTTY: isTerminal(stdin), StdoutTTY: isTerminal(stdout),
+			API:      client,
+			Editor:   &edit.Editor{API: client, State: state.Open(xdg.StateDir())},
+			Log:      o.log,
+			Open:     func(url string) error { return github.Browse(url, stdout, stderr) },
+			Run:      runProgram,
+			CacheDir: xdg.CacheDir(),
+			Now:      time.Now,
+		})
+	}
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, cli.ErrCanceled):
+		return exitCode(130)
+	}
+	fmt.Fprintf(stderr, "gist: %v\n", err)
+	return exitCode(1)
+}
+
+// isTerminal says v is a terminal.
+func isTerminal(v any) bool {
+	f, ok := v.(*os.File)
+	return ok && term.IsTerminal(f)
+}
+
+// runProgram runs a program on the user's terminal.
+func runProgram(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	return cmd.Run()
 }
 
 // prepare checks the global flags and opens the log. A log that cannot be
