@@ -3,7 +3,7 @@
 [tagpr]
 	releaseBranch = main
 	vPrefix = true
-	versionFile = VERSION
+	versionFile = internal/version/version.go
 	changelog = true
 	majorLabels = kind/breaking-change
 	minorLabels = kind/feature,kind/deprecation
