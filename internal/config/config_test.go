@@ -53,7 +53,7 @@ theme = "latte"
 [new]
 visibility = "public"
 [list]
-lead = "file"
+lead = "description"
 [preview]
 markdown = "plain"
 [keys]
@@ -62,7 +62,7 @@ quit = ["Q"]
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := File{"code -w", ThemeLatte, New{"public"}, List{"file"}, Preview{"plain"}, map[string][]string{"quit": {"Q"}}}
+	want := File{"code -w", ThemeLatte, New{"public"}, List{"description"}, Preview{"plain"}, map[string][]string{"quit": {"Q"}}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v", got)
 	}

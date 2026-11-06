@@ -63,7 +63,7 @@ func Default() File {
 	return File{
 		Theme:   ThemeAuto,
 		New:     New{Visibility: VisibilitySecret},
-		List:    List{Lead: LeadDescription},
+		List:    List{Lead: LeadFile},
 		Preview: Preview{Markdown: MarkdownRendered},
 	}
 }
@@ -125,8 +125,8 @@ const Template = `# gist settings. Uncomment a line to change it.
 # visibility = "secret"
 
 [list]
-# The first column: "description", or "file" for FILE and DESCRIPTION.
-# lead = "description"
+# The first column: "file" for FILE and DESCRIPTION, or "description" alone.
+# lead = "file"
 
 [preview]
 # How .md files show: "rendered", or "plain" as written.

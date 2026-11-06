@@ -718,6 +718,20 @@ func TestDiffScrolls(t *testing.T) {
 	}
 }
 
+func TestDiffPages(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	w.type_(strings.Repeat("x\n", 200))
+	enter(t, w.m)
+	page(t, w.m, "ctrl+d")
+	if got := w.m.editing.scroll; got != w.m.diffRows() {
+		t.Errorf("at %d", got)
+	}
+	page(t, w.m, "pgup")
+	if got := w.m.editing.scroll; got != 0 {
+		t.Errorf("at %d", got)
+	}
+}
+
 func TestDoubleClickEdits(t *testing.T) {
 	w, _ := one(t, map[string]string{"a.txt": "a\n"})
 	y := w.m.layout().listY

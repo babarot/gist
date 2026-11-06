@@ -77,6 +77,10 @@ func (m *Model) listKey(k string) tea.Cmd {
 		m.moveTo(t.cur + 1)
 	case on(keymap.Up):
 		m.moveTo(t.cur - 1)
+	case on(keymap.PageDown):
+		m.moveTo(t.cur + m.layout().listRows)
+	case on(keymap.PageUp):
+		m.moveTo(t.cur - m.layout().listRows)
 	case on(keymap.Top):
 		m.moveTo(0)
 	case on(keymap.Bottom):
@@ -276,6 +280,7 @@ var helpGroups = []helpGroup{
 	{"move", []helpRow{
 		{[]keymap.Action{keymap.Down, keymap.Up}, "down / up"},
 		{[]keymap.Action{keymap.Top, keymap.Bottom}, "top / bottom"},
+		{[]keymap.Action{keymap.PageDown, keymap.PageUp}, "page down / up"},
 		{[]keymap.Action{keymap.ScrollDown, keymap.ScrollUp}, "scroll the preview"},
 		{[]keymap.Action{keymap.PrevFile, keymap.NextFile}, "prev / next file"},
 		{[]keymap.Action{keymap.Mine}, "mine"},

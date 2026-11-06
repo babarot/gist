@@ -163,6 +163,16 @@ func TestMoveWhileTyping(t *testing.T) {
 	}
 }
 
+func TestPageWhileTyping(t *testing.T) {
+	m := loaded(t, manyGists(40), 120, 34)
+	press(t, m, "/")
+	rows := m.layout().listRows
+	page(t, m, "pgdown")
+	if m.tab().cur != rows || m.uiState() != uiFilter {
+		t.Errorf("cursor at %d, state %s", m.tab().cur, m.uiState())
+	}
+}
+
 func TestKeysAreTextWhileTyping(t *testing.T) {
 	m := loaded(t, filterGists(), 120, 34)
 	press(t, m, "/", "q", "D", "j")

@@ -103,6 +103,12 @@ func (m *Model) filterKey(msg tea.KeyPressMsg) tea.Cmd {
 	case "down":
 		m.moveTo(t.cur + 1)
 		return nil
+	case "pgup":
+		m.moveTo(t.cur - m.layout().listRows)
+		return nil
+	case "pgdown":
+		m.moveTo(t.cur + m.layout().listRows)
+		return nil
 	}
 	var cmd tea.Cmd
 	m.filtering.box, cmd = m.filtering.box.Update(msg)

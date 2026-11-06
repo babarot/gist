@@ -454,6 +454,9 @@ func fitHints(hints []hint, width int) []hint {
 	return hints
 }
 
+// helpKeys is the width of the keys in the key list.
+const helpKeys = 9
+
 func (m *Model) drawHelp(c *canvas) {
 	p := m.pal
 	w := min(96, c.w-8)
@@ -471,8 +474,8 @@ func (m *Model) drawHelp(c *canvas) {
 		c.put(y+2, gx, g.title, style{fg: p.subtext0, bold: true})
 		for i, r := range g.rows {
 			keys := m.keys.Hint(r.actions...)
-			c.putCut(y+3+i, gx, []seg{{keys, style{fg: p.blue, bold: true}}}, 6, style{fg: p.overlay})
-			c.putCut(y+3+i, gx+7, []seg{{r.what, style{fg: p.text}}}, colW-8, style{fg: p.overlay})
+			c.putCut(y+3+i, gx, []seg{{keys, style{fg: p.blue, bold: true}}}, helpKeys, style{fg: p.overlay})
+			c.putCut(y+3+i, gx+helpKeys+1, []seg{{r.what, style{fg: p.text}}}, colW-helpKeys-2, style{fg: p.overlay})
 		}
 	}
 }

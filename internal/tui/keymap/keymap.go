@@ -26,6 +26,8 @@ const (
 	Down       Action = "down"
 	Top        Action = "top"
 	Bottom     Action = "bottom"
+	PageUp     Action = "page_up"
+	PageDown   Action = "page_down"
 	PrevFile   Action = "prev_file"
 	NextFile   Action = "next_file"
 	Mine       Action = "tab_mine"
@@ -66,6 +68,10 @@ const (
 // boxActions are read over the screen, not on the list.
 var boxActions = []Action{Confirm, Overwrite, Reload, OnlyFile, EditAgain, Create, OpenEditor}
 
+// sharedActions are read on the list and in the box of a diff, so their keys
+// must not be those of what that box does.
+var sharedActions = []Action{Up, Down, PageUp, PageDown, ScrollUp, ScrollDown}
+
 // ScopeOf is where action's keys are read.
 func ScopeOf(a Action) Scope {
 	if slices.Contains(boxActions, a) {
@@ -90,6 +96,8 @@ var Defaults = []Def{
 	{Down, []string{"j", "down"}, "down"},
 	{Top, []string{"g", "home"}, "top"},
 	{Bottom, []string{"G", "end"}, "bottom"},
+	{PageUp, []string{"pgup", "ctrl+u"}, "page up"},
+	{PageDown, []string{"pgdown", "ctrl+d"}, "page down"},
 	{PrevFile, []string{"h", "left", "["}, "previous file"},
 	{NextFile, []string{"l", "right", "]"}, "next file"},
 	{Mine, []string{"1"}, "mine"},
@@ -169,12 +177,17 @@ func (m Map) With(over map[string][]string) (Map, error) {
 	}
 	bound := map[Scope]map[string]Action{ScopeList: {}, ScopeBox: {}}
 	for _, name := range names {
-		scope := bound[ScopeOf(Action(name))]
+		scopes := []Scope{ScopeOf(Action(name))}
+		if slices.Contains(sharedActions, Action(name)) {
+			scopes = append(scopes, ScopeBox)
+		}
 		for _, k := range out.keys[Action(name)] {
-			if other, ok := scope[k]; ok {
-				return m, fmt.Errorf("keys: %s is bound to both %s and %s", k, other, name)
+			for _, sc := range scopes {
+				if other, ok := bound[sc][k]; ok {
+					return m, fmt.Errorf("keys: %s is bound to both %s and %s", k, other, name)
+				}
+				bound[sc][k] = Action(name)
 			}
-			scope[k] = Action(name)
 		}
 	}
 	return out, nil
@@ -190,7 +203,7 @@ func (m Map) Keys(action Action) []string { return m.keys[action] }
 func (m Map) HelpOf(action Action) string { return m.help[action] }
 
 // glyphs are how key names show.
-var glyphs = map[string]string{"up": "↑", "down": "↓", "left": "←", "right": "→"}
+var glyphs = map[string]string{"up": "↑", "down": "↓", "left": "←", "right": "→", "pgup": "PgUp", "pgdown": "PgDn"}
 
 // Hint is how action's keys show: its first, or its first of several joined,
 // each as a person reads it. "" for an action with no keys.
