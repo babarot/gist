@@ -30,3 +30,7 @@ go mod tidy -diff
 [tasks.vuln]
 description = "Check the dependencies and the standard library for known vulnerabilities"
 run = "go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./..."
+
+[tasks.demo]
+description = "Record the demo with VHS in Docker into docs/demo.gif: mise run demo [TAPE ...]"
+file = "demo/recording/tapes/record.sh"

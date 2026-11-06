@@ -909,3 +909,11 @@ func TestGoldenPreview(t *testing.T) {
 	press(t, empty, "c")
 	golden(t, "preview-no-comments", screen(empty))
 }
+
+func TestAGistJustChangedIsNotNowAgo(t *testing.T) {
+	g := gist("1111111", "x", 0, "a.go")
+	m := loaded(t, []model.Gist{g}, 120, 34)
+	if s := screen(m); strings.Contains(s, "now ago") {
+		t.Errorf("got:\n%s", s)
+	}
+}

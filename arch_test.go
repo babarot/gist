@@ -48,6 +48,8 @@ var layers = []layer{
 		[]string{"charm.land/bubbles/v2", "charm.land/bubbletea/v2", "charm.land/lipgloss/v2", "github.com/rivo/uniseg"}, "The terminal UI"},
 	{"internal/app", 4, []string{"internal/cli", "internal/config", "internal/edit", "internal/github", "internal/logging", "internal/model", "internal/release", "internal/state", "internal/tui", "internal/tui/keymap", "internal/version", "internal/xdg"}, []string{"github.com/cli/go-gh/v2", "github.com/spf13/cobra"}, "Putting it together: commands and flags, the log, and what each command runs with"},
 	{"", 5, []string{"internal/app"}, nil, "Calls app.Run"},
+	{"demo/internal/recording", 4, []string{"internal/config", "internal/edit", "internal/fakegist", "internal/github", "internal/logging", "internal/model", "internal/state", "internal/tui", "internal/tui/keymap"}, nil, "The recording in the README: the TUI against a made-up GitHub"},
+	{"demo/recording", 5, []string{"demo/internal/recording"}, nil, "Runs the recording"},
 }
 
 // layer is a package's place: its layer, the packages of this module
@@ -67,8 +69,8 @@ type layer struct {
 // showing in a diff. An entry may name a package not written yet.
 var reach = map[string][]string{
 	"internal/text": {"internal/markdown", "internal/tui"},
-	"net":           {"internal/fakegist", "internal/github", "internal/update"},
-	"net/http":      {"internal/fakegist", "internal/github", "internal/update"},
+	"net":           {"internal/fakegist", "internal/github"},
+	"net/http":      {"internal/fakegist", "internal/github"},
 	"os/exec":       {"internal/app", "internal/cli", "internal/tui"},
 	"syscall":       {"internal/state"},
 }

@@ -498,8 +498,8 @@ func (m *Model) drawInfo(c *canvas, l layout, g model.Gist, f model.File, read b
 		row{"files", fmt.Sprintf("%d · %s", len(g.Files), size(total)), plain},
 		row{"revisions", revisions, plain},
 		row{"comments", strconv.Itoa(g.Comments), plain},
-		row{"created", ago(now.Sub(g.Created)) + " ago", plain},
-		row{"updated", ago(now.Sub(g.Updated)) + " ago", plain},
+		row{"created", when(now.Sub(g.Created)), plain},
+		row{"updated", when(now.Sub(g.Updated)), plain},
 	)
 	if len(g.Files) > 0 {
 		rows = append(rows, row{}, row{"file", f.Name, plain})

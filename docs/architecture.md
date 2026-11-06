@@ -29,14 +29,16 @@ The packages are layered: a package imports only from lower layers, and only the
 | 3 | `internal/tui` | The terminal UI | `internal/cache`, `internal/config`, `internal/diff`, `internal/edit`, `internal/filter`, `internal/github`, `internal/highlight`, `internal/markdown`, `internal/model`, `internal/release`, `internal/state`, `internal/text`, `internal/tui/keymap`, `internal/tui/statusline` | `charm.land/bubbles/v2`, `charm.land/bubbletea/v2`, `charm.land/lipgloss/v2`, `github.com/rivo/uniseg` |
 | 4 | `internal/app` | Putting it together: commands and flags, the log, and what each command runs with | `internal/cli`, `internal/config`, `internal/edit`, `internal/github`, `internal/logging`, `internal/model`, `internal/release`, `internal/state`, `internal/tui`, `internal/tui/keymap`, `internal/version`, `internal/xdg` | `github.com/cli/go-gh/v2`, `github.com/spf13/cobra` |
 | 5 | `main` | Calls app.Run | `internal/app` | - |
+| 4 | `demo/internal/recording` | The recording in the README: the TUI against a made-up GitHub | `internal/config`, `internal/edit`, `internal/fakegist`, `internal/github`, `internal/logging`, `internal/model`, `internal/state`, `internal/tui`, `internal/tui/keymap` | - |
+| 5 | `demo/recording` | Runs the recording | `demo/internal/recording` | - |
 
 Packages only some may use:
 
 | Package | Only in |
 |---|---|
 | `internal/text` | `internal/markdown`, `internal/tui` |
-| `net` | `internal/fakegist`, `internal/github`, `internal/update` |
-| `net/http` | `internal/fakegist`, `internal/github`, `internal/update` |
+| `net` | `internal/fakegist`, `internal/github` |
+| `net/http` | `internal/fakegist`, `internal/github` |
 | `os/exec` | `internal/app`, `internal/cli`, `internal/tui` |
 | `syscall` | `internal/state` |
 <!-- layers:end -->

@@ -1,57 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-44183504-3"></script>
-        <script>
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'UA-44183504-3');
-        </script>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="Read and edit your GitHub Gists from the terminal.">
+    <link href="./project.css" rel="stylesheet">
+    <title>gist</title>
+  </head>
+  <body>
+    <header>
+      <h1>gist</h1>
+      <p>Read and edit your GitHub Gists from the terminal.</p>
+      <nav>
+        <a href="https://github.com/babarot/gist">GitHub</a>
+        <a href="https://github.com/babarot/gist/releases">Releases</a>
+      </nav>
+    </header>
 
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1">
-        <link href="./project.css" rel="stylesheet">
-        <link href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" rel="stylesheet">
+    <main>
+      <img class="demo" src="demo.gif" alt="gist with made-up gists: looking through them, filtering them, and editing one">
 
-        <title>gist</title>
-    </head>
-    <body>
-        <div class="container">
-            <header>
-                <h1>gist</h1>
-                <p>A simple gist editor for CLI</p>
-                <nav>
-                    <a href="https://github.com/babarot/gist">GitHub</a>
-                    <a href="https://github.com/babarot/gist/releases">Releases</a>
-                </na>
-            </header>
+      <section>
+        <h2>What it does</h2>
+        <ul>
+          <li>Your gists in a list, with the files of the one under the cursor beside it.</li>
+          <li>A filter, fuzzy over what you type, with <code>file:</code>, <code>lang:</code>, <code>vis:</code> and <code>desc:</code> to look in one thing.</li>
+          <li>Edits in your own editor, with the diff to read before anything is pushed.</li>
+          <li>A push that stops when the gist changed on GitHub since you opened it.</li>
+          <li>A CLI that does the same from a script.</li>
+        </ul>
+      </section>
 
-            <main>
-                <section class="features">
-                    <h2>Features</h2>
-                    <ul>
-                        <li>Super fast, super interactive.</li>
-                        <li>Easy to view, edit, upload and delete.</li>
-                        <li>Edit as you like, then just save it. It would be uploaded to your Gist.</li>
-                        <li>Simple and intuitive CLI UX, no complex flags or lots subcommands.</li>
-                        <li>One binary, just grab from GitHub Releases.</li>
-                    </ul>
-                </section>
+      <section>
+        <h2>Install</h2>
+<pre><code>brew install babarot/tap/gist
+nix profile install github:babarot/nur-packages#gist
+go install github.com/babarot/gist/v2@latest</code></pre>
+        <p>Or take a binary from the <a href="https://github.com/babarot/gist/releases">releases</a>. gist reads GitHub with the account <a href="https://cli.github.com/">gh</a> is logged in to, or with <code>GH_TOKEN</code> or <code>GITHUB_TOKEN</code>.</p>
+      </section>
 
-                <section class="screenshot">
-                    <img src="screenshot.png" width="1000">
-                </section
-            </main>
-        </div>
+      <section>
+        <h2>Use it</h2>
+<pre><code>gist                               # the list
+gist new --public main.go go.mod   # a gist, printing its URL
+gist view 1a2b3c main.go           # a file as it is written
+gist edit 1a2b3c main.go           # in your editor</code></pre>
+        <p>Press <code>?</code> in the list for every key. The <a href="https://github.com/babarot/gist#readme">README</a> has the rest.</p>
+      </section>
+    </main>
 
-        <footer>
-            <nav>
-                <a href="https://github.com/babarot"><i class="fab fa-github"></i></a>
-                <a href="https://twitter.com/babarot"><i class="fab fa-twitter"></i></a>
-                <a href="https://tellme.tokyo"><i class="fas fa-blog"></i></a>
-            </nav>
-            <p>Copyright &#169; BABAROT All Rights Reserved.</p>
-        </footer>
-    </body>
+    <footer>
+      <p>MIT · <a href="https://github.com/babarot">babarot</a></p>
+    </footer>
+  </body>
 </html>
