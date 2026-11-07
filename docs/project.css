@@ -27,7 +27,7 @@
   --link: #e6e8f2;
   --word: #e6e8f2;
   --sheet: linear-gradient(90deg, rgb(5 6 12 / 0.95) 0, rgb(5 6 12 / 0.92) 54rem, rgb(5 6 12 / 0.08) 70rem);
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --mono: "Departure Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: dark;
 }
 
@@ -156,7 +156,7 @@ main > :not(.term):not(.demo) {
   padding: 0 10px;
   background: var(--word);
   color: var(--bg);
-  font: 11px "Departure Mono", ui-monospace, Menlo, monospace;
+  font: 11px var(--mono);
 }
 
 .window:focus-within .titlebar {
@@ -215,7 +215,7 @@ li + li {
 code {
   padding: 1px 5px;
   background: var(--surface);
-  font: 0.82em var(--mono);
+  font: 16.5px var(--mono);
 }
 
 pre {
@@ -228,7 +228,7 @@ pre {
 pre code {
   padding: 0;
   background: none;
-  font-size: 15px;
+  font-size: 16.5px;
 }
 
 /* The tabs are radio buttons, so the keyboard works and no script is needed. */
@@ -293,5 +293,5 @@ footer p {
 }
 
 #elapsed {
-  font: 0.86em var(--mono);
+  font: 16.5px var(--mono);
 }
