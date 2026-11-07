@@ -64,7 +64,7 @@ type noteRow struct {
 	segs []seg
 }
 
-// releaseBox is the box of release notes, over the key list.
+// releaseBox is the box of release notes, shown in place of the key list.
 type releaseBox struct {
 	top int
 }
@@ -156,7 +156,7 @@ func (m *Model) gotReleases(msg releasesMsg) {
 	m.tellRelease()
 }
 
-// openReleaseNotes opens the box over the key list, reading the releases when
+// openReleaseNotes opens the box in place of the key list, reading the releases when
 // they are not read yet, or again after a reading that failed.
 func (m *Model) openReleaseNotes() tea.Cmd {
 	if m.opt.Release == nil {

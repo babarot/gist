@@ -110,8 +110,6 @@ func (m *Model) paint() *canvas {
 	case uiHelp:
 		m.drawHelp(c)
 	case uiReleaseNotes:
-		m.drawHelp(c)
-		c.dim(l.statusY, m.pal.dim)
 		m.drawReleases(c)
 	case uiConfirmPush:
 		m.drawDiff(c)

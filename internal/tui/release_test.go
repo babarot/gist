@@ -97,6 +97,23 @@ func TestReleaseNotesAreReadWhenOpened(t *testing.T) {
 	}
 }
 
+func TestReleaseNotesTakeThePlaceOfTheKeyList(t *testing.T) {
+	m := releaseModel(t, &Release{Version: "2.0.0", Running: "2.0.0", Source: twoReleases()}, 120, 34)
+	press(t, m, "?")
+	const about = "gist 2.0.0 · https://github.com/babarot/gist"
+	if !strings.Contains(screen(m), about) {
+		t.Fatalf("no key list:\n%s", screen(m))
+	}
+	press(t, m, "w")
+	if s := screen(m); strings.Contains(s, about) || strings.Contains(s, " keys ") {
+		t.Errorf("the key list is still drawn:\n%s", s)
+	}
+	press(t, m, "esc")
+	if !strings.Contains(screen(m), about) {
+		t.Errorf("esc did not bring the key list back:\n%s", screen(m))
+	}
+}
+
 func TestABuildFromSourceMarksNoRelease(t *testing.T) {
 	m := releaseModel(t, &Release{Version: "2.0.0 (abc1234)", Running: "2.0.0", FromSource: true, Source: twoReleases()}, 120, 34)
 	press(t, m, "?")
