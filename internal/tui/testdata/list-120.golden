@@ -1,10 +1,10 @@
 gist // @alice     1 mine (5)    2 starred (…)                                                                   via gh 
-    DESCRIPTION                                                                        FILES  COMMENTS  VIS     UPDATED
-▎   a public gist with a comment                                                           3         3  public       5m 
-    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確かめるための…      2            secret       3h
-    no-description.txt +1                                                                  2            secret       2d
-    emoji ❤️ and a family 👨‍👩‍👦 and é                                                         1            secret      4mo
-    escape sequence    and a tab                                                           1            secret      10y
+    DESCRIPTION                                                             COMMENTS  FILES       SIZE  VIS     UPDATED
+▎   a public gist with a comment                                                   3      3     3.6 KB  public       5m 
+    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確…                 2     2.4 KB  secret       3h
+    no-description.txt +1                                                                 2     2.4 KB  secret       2d
+    emoji ❤️ and a family 👨‍👩‍👦 and é                                                        1     1.2 KB  secret      4mo
+    escape sequence    and a tab                                                          1     1.2 KB  secret      10y
 
 
 

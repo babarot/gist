@@ -31,7 +31,7 @@ func rowsOf(gists []model.Gist, query string) []row {
 			rows = append(rows, row{gist: g})
 			continue
 		}
-		it := filter.Item{Description: text.Line(g.Description), Public: g.Public}
+		it := filter.Item{Description: text.Line(g.Description), Public: g.Public, Size: totalSize(g)}
 		for _, f := range g.Files {
 			it.Files = append(it.Files, text.Line(f.Name))
 			if f.Language != "" {
@@ -194,7 +194,8 @@ func (m *Model) completeFilter() {
 }
 
 // filterGhost is what shows faint after the cursor: the keys while the filter is
-// empty, then what tab would fill in, and which of the values it is on.
+// empty, then what tab would fill in, and which of the values it is on. A size
+// has no values, so there it says how to write one.
 func (m *Model) filterGhost() string {
 	f := m.filtering
 	if f == nil || !f.atEnd() {
@@ -206,6 +207,9 @@ func (m *Model) filterGhost() string {
 	}
 	if rest := filter.KeyRest(value); rest != "" {
 		return rest
+	}
+	if hint := filter.SizeHint(filter.LastWord(value)); hint != "" {
+		return hint
 	}
 	count := func(i, n int) string {
 		if n < 2 {

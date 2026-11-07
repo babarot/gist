@@ -1,10 +1,10 @@
 gist // @alice     1 mine (5)    2 starred (…)                                                                   via gh
-    DESCRIPTION                                                                        FILES  COMMENTS  VIS     UPDATED
-▎   a public gist with a comment                                                           3         3  public       <age>
-    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確かめるための…      2            secret       <age>
-    no-description.tx╭ new gist ──────────────────────────────────────────────────────────────────╮     secret       <age>
-    emoji ❤️ and a fa│                                                                            │     secret      <age>
-    escape sequence  │  filename    ┃                                                             │     secret      <age>
+    DESCRIPTION                                                             COMMENTS  FILES       SIZE  VIS     UPDATED
+▎   a public gist with a comment                                                   3      3     3.6 KB  public       <age>
+    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確…                 2     2.4 KB  secret       <age>
+    no-description.tx╭ new gist ──────────────────────────────────────────────────────────────────╮ KB  secret       <age>
+    emoji ❤️ and a fa│                                                                            │ KB  secret      <age>
+    escape sequence  │  filename    ┃                                                             │ KB  secret      <age>
                      │  description ┃ (optional)                                                  │
                      │                                                                            │
                      │  visibility    ● secret   ○ public                                         │

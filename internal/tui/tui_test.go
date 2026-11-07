@@ -1230,3 +1230,33 @@ func TestWhatIsUnderABoxIsDimmed(t *testing.T) {
 		}
 	}
 }
+
+func TestTheSizeColumn(t *testing.T) {
+	gs := fixture()
+	gs[0].Files[0].Size, gs[0].Files[1].Size, gs[0].Files[2].Size = 1024, 512, 512
+	wide := screen(loaded(t, gs, 100, 30))
+	head, row, _ := strings.Cut(wide[strings.Index(wide, "COMMENTS"):], "\n")
+	if !strings.Contains(head, "FILES") || !strings.Contains(head, "SIZE") || strings.Index(head, "SIZE") < strings.Index(head, "FILES") {
+		t.Errorf("the header is %q", head)
+	}
+	if !strings.Contains(row, "2.0 KB") {
+		t.Errorf("the files of a gist are not added up:\n%s", wide)
+	}
+	if s := screen(loaded(t, gs, 99, 30)); strings.Contains(s, "SIZE") || !strings.Contains(s, "COMMENTS") {
+		t.Errorf("a narrower terminal keeps SIZE:\n%s", s)
+	}
+}
+
+func TestThereIsNoFilesColumnWithTheFileFirst(t *testing.T) {
+	o := options(t, &source{pages: onePage(fixture())})
+	o.Config.List.Lead = config.LeadFile
+	m := newModel(t, o, 120, 34)
+	settle(t, m, m.Init())
+	s := screen(m)
+	if strings.Contains(s, "FILES") || !strings.Contains(s, "FILE ") || !strings.Contains(s, "main.go +2") {
+		t.Errorf("got:\n%s", s)
+	}
+	if s := screen(loaded(t, fixture(), 120, 34)); !strings.Contains(s, "FILES") {
+		t.Errorf("no FILES with the description first:\n%s", s)
+	}
+}

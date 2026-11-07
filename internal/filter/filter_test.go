@@ -133,3 +133,82 @@ func TestValueTerm(t *testing.T) {
 		}
 	}
 }
+
+func TestSize(t *testing.T) {
+	const kb = 1 << 10
+	tests := []struct {
+		query string
+		size  int64
+		want  bool
+	}{
+		{"size:>200kb", 200*kb + 1, true},
+		{"size:>200KB", 200 * kb, false},
+		{"size:>=200kb", 200 * kb, true},
+		{"size:<1k", kb - 1, true},
+		{"size:<1k", kb, false},
+		{"size:<=1k", kb, true},
+		{"size:>1.5m", 2 * 1 << 20, true},
+		{"size:>1.5mb", 1 << 20, false},
+		{"size:>100", 101, true},
+		{"size:>100b", 100, false},
+		{"size:>1k size:<2k", 1500, true},
+		{"size:>1k size:<2k", 3 * kb, false},
+		{"retry size:>1k", 2 * kb, true},
+		{"nothing size:>1k", 2 * kb, false},
+		// Still being typed: everything stays
+		{"size:", 1, true},
+		{"size:>", 1, true},
+		{"size:>=", 1, true},
+		// Wrong: nothing does
+		{"size:big", 1 << 30, false},
+		{"size:200kb", 200 * kb, false},
+		{"size:>2gb", 1 << 40, false},
+		{"size:>inf", 1 << 40, false},
+	}
+	for _, tt := range tests {
+		it := Item{Description: "retry", Files: []string{"a.go"}, Size: tt.size}
+		if _, got := Match(Parse(tt.query), it); got != tt.want {
+			t.Errorf("%q on %d: %v", tt.query, tt.size, got)
+		}
+	}
+}
+
+func TestASizeKeepsTheQueryFromBeingEmpty(t *testing.T) {
+	if Parse("size:>1k").Empty() {
+		t.Error("a bound narrows nothing")
+	}
+	if !Parse("size:>").Empty() {
+		t.Error("a bound being typed narrows something")
+	}
+}
+
+func TestSizeCompletesItsKeyOnly(t *testing.T) {
+	if got := KeyRest("si"); got != "ze:" {
+		t.Errorf("KeyRest is %q", got)
+	}
+	if _, _, ok := ValueTerm("size:>1"); ok {
+		t.Error("a size has values to list")
+	}
+}
+
+func TestSizeHint(t *testing.T) {
+	for word, want := range map[string]string{
+		"size:":       ">200KB, <1MB, also >= and <=",
+		"SIZE:":       ">200KB, <1MB, also >= and <=",
+		"size:>":      "200KB",
+		"size:<=":     "200KB",
+		"size:>200":   " bytes, or KB, MB",
+		"size:>1.":    " bytes, or KB, MB",
+		"size:>200k":  "",
+		"size:>200KB": "",
+		"size:200kb":  "  not a size: try size:>200KB",
+		"size:>2gb":   "  not a size: try size:>200KB",
+		"file:a":      "",
+		"retry":       "",
+		"":            "",
+	} {
+		if got := SizeHint(word); got != want {
+			t.Errorf("%q: %q", word, got)
+		}
+	}
+}
