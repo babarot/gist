@@ -1191,3 +1191,13 @@ func TestAFileTooLargeIsNotRead(t *testing.T) {
 		t.Errorf("got:\n%s", got)
 	}
 }
+
+func TestADeleteAnsweredNotFoundSaysSo(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	w.s.Fail("DELETE", http.StatusNotFound)
+	press(t, w.m, "D", "y")
+	w.wants("refused by the test")
+	if len(w.m.tab().gists) != 1 || strings.Contains(screen(w.m), "✓ deleted") {
+		t.Errorf("the gist went from the list:\n%s", screen(w.m))
+	}
+}

@@ -689,17 +689,11 @@ type deletedMsg struct {
 }
 
 func (m *Model) deleteGist(g model.Gist) tea.Cmd {
-	editor, src, ctx := m.opt.Editor, m.opt.Source, m.ctx
+	editor, ctx := m.opt.Editor, m.ctx
 	return func() tea.Msg {
-		l, err := editor.State.Lock(g.ID)
-		if err != nil {
-			return deletedMsg{g.ID, err}
-		}
-		defer func() { _ = l.Release() }()
-		err = src.Delete(ctx, g.ID)
-		if err == nil || github.IsNotFound(err) {
-			// There is nothing left to send them to
-			_ = l.DeleteDrafts()
+		err := editor.Delete(ctx, g.ID)
+		if errors.Is(err, edit.ErrDraftsLeft) {
+			err = nil
 		}
 		return deletedMsg{g.ID, err}
 	}
@@ -707,7 +701,7 @@ func (m *Model) deleteGist(g model.Gist) tea.Cmd {
 
 func (m *Model) gotDeleted(msg deletedMsg) {
 	delete(m.writing, msg.gist)
-	if msg.err != nil && !github.IsNotFound(msg.err) {
+	if msg.err != nil {
 		m.fail(msg.err)
 		return
 	}
