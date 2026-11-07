@@ -1228,16 +1228,3 @@ func TestWhatIsUnderABoxIsDimmed(t *testing.T) {
 		}
 	}
 }
-
-func TestTheKeyListIsDimmedUnderTheNotes(t *testing.T) {
-	m := releaseModel(t, &Release{Version: "2.0.0", Running: "2.0.0", Source: twoReleases()}, 120, 34)
-	press(t, m, "?")
-	x := (120 - 96) / 2 // the left of the key list's frame, on its top row
-	if got := m.paint().rows[4][x]; got.style.fg != m.pal.blue {
-		t.Fatalf("the frame of the key list is %+v", got)
-	}
-	press(t, m, "w")
-	if got := m.paint().rows[4][x]; got.style.fg != m.pal.dim {
-		t.Errorf("under the notes it is %+v", got)
-	}
-}

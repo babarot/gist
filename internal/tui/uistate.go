@@ -10,7 +10,7 @@ const (
 	uiList            uiState = iota // the list, with info beside the preview
 	uiListComments                   // the list, with comments beside the preview
 	uiHelp                           // the key list
-	uiReleaseNotes                   // the release notes, over the key list
+	uiReleaseNotes                   // the release notes, in place of the key list
 	uiConfirmPush                    // the diff of an edit
 	uiConfirmConflict                // GitHub moved on from an edit
 	uiConfirmDelete                  // deleting a gist or a file
