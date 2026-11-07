@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -13,8 +14,9 @@ import (
 )
 
 func TestDefaultPath(t *testing.T) {
-	t.Setenv("XDG_STATE_HOME", "/state")
-	if got, want := DefaultPath(), "/state/gist/log/gist.log"; got != want {
+	dir := t.TempDir()
+	t.Setenv("XDG_STATE_HOME", dir)
+	if got, want := DefaultPath(), filepath.Join(dir, "gist", "log", "gist.log"); got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
@@ -63,7 +65,7 @@ func TestOpenAppendsOwnerOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := fi.Mode().Perm(); got != 0o600 {
+	if got := fi.Mode().Perm(); runtime.GOOS != "windows" && got != 0o600 {
 		t.Errorf("mode is %o, want 600", got)
 	}
 }
