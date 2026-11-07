@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"testing"
 )
@@ -45,7 +46,7 @@ func TestWorkspaceRoundTrip(t *testing.T) {
 	if err != nil || string(b) != raw {
 		t.Errorf("got %q, %v", b, err)
 	}
-	if fi, err := os.Stat(filepath.Dir(paths[0])); err != nil || fi.Mode().Perm() != 0o700 {
+	if fi, err := os.Stat(filepath.Dir(paths[0])); err != nil || runtime.GOOS != "windows" && fi.Mode().Perm() != 0o700 {
 		t.Errorf("the directory is %v, %v", fi.Mode(), err)
 	}
 	if err := os.WriteFile(paths[1], []byte("edited"), 0o600); err != nil {

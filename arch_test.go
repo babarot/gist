@@ -26,7 +26,7 @@ var layers = []layer{
 	{"internal/model", 0, nil, nil, "Shared types: gists, their files and comments, and changes to them"},
 	{"internal/version", 0, nil, nil, "The release version, which tagpr updates"},
 	{"internal/xdg", 0, nil, nil, "Where gist keeps its config, state and cache"},
-	{"internal/state", 0, nil, nil, "What would be missed if lost: drafts, the locks that guard them, and the layout"},
+	{"internal/state", 0, nil, []string{"golang.org/x/sys"}, "What would be missed if lost: drafts, the locks that guard them, and the layout"},
 	{"internal/near", 0, nil, nil, "The closest of a few names to one mistyped, for a did-you-mean"},
 	{"internal/text", 0, nil, []string{"github.com/charmbracelet/x/ansi", "github.com/rivo/uniseg"}, "Making text from GitHub fit to draw, and its width"},
 	{"internal/diff", 0, nil, []string{"github.com/pmezard/go-difflib"}, "What changed between two versions of a file"},
@@ -82,22 +82,40 @@ type goPackage struct {
 	Imports    []string
 }
 
+// releaseOS are the systems a release is built for. What a package imports can
+// differ between them, as the lock does.
+var releaseOS = []string{"darwin", "linux", "windows"}
+
+// listPackages are the packages, each with what it imports on any of releaseOS.
 func listPackages(t *testing.T) []goPackage {
 	t.Helper()
-	out, err := exec.Command("go", "list", "-json", "./...").Output()
-	if err != nil {
-		t.Fatalf("go list: %v", err)
-	}
 	var pkgs []goPackage
-	dec := json.NewDecoder(bytes.NewReader(out))
-	for {
-		var p goPackage
-		if err := dec.Decode(&p); err == io.EOF {
-			break
-		} else if err != nil {
-			t.Fatal(err)
+	for _, goos := range releaseOS {
+		cmd := exec.Command("go", "list", "-json", "./...")
+		cmd.Env = append(os.Environ(), "GOOS="+goos)
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("go list: %v", err)
 		}
-		pkgs = append(pkgs, p)
+		dec := json.NewDecoder(bytes.NewReader(out))
+		for {
+			var p goPackage
+			if err := dec.Decode(&p); err == io.EOF {
+				break
+			} else if err != nil {
+				t.Fatal(err)
+			}
+			i := slices.IndexFunc(pkgs, func(q goPackage) bool { return q.ImportPath == p.ImportPath })
+			if i < 0 {
+				pkgs = append(pkgs, p)
+				continue
+			}
+			for _, imp := range p.Imports {
+				if !slices.Contains(pkgs[i].Imports, imp) {
+					pkgs[i].Imports = append(pkgs[i].Imports, imp)
+				}
+			}
+		}
 	}
 	return pkgs
 }

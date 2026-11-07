@@ -53,6 +53,12 @@ func newWorld(t *testing.T, setup func(*fakegist.Server)) *world {
 	m := New(o)
 	m.clockless = true
 	t.Cleanup(m.cancel)
+	// Windows cannot remove the lock of an edit left open
+	t.Cleanup(func() {
+		if m.editing != nil {
+			_ = m.editing.session.Close()
+		}
+	})
 	w.m = m
 	m.runEditor = func(args []string) tea.Cmd {
 		w.opened++

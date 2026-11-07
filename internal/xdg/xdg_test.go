@@ -6,8 +6,9 @@ import (
 )
 
 func TestDirs(t *testing.T) {
-	home := t.TempDir()
+	home, base := t.TempDir(), t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // where Windows looks
 	dirs := []struct {
 		name     string
 		env      string
@@ -23,7 +24,7 @@ func TestDirs(t *testing.T) {
 			fallback := filepath.Join(home, d.fallback)
 			for _, tt := range []struct{ name, value, want string }{
 				{"unset", "", fallback},
-				{"absolute", "/base", "/base/gist"},
+				{"absolute", base, filepath.Join(base, "gist")},
 				{"relative is ignored", "base", fallback},
 			} {
 				t.Run(tt.name, func(t *testing.T) {
