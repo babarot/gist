@@ -7,7 +7,7 @@ import (
 )
 
 // Version is the current release.
-const Version = "2.0.0"
+const Version = "2.1.0"
 
 // Source is "release" in the builds the release workflow makes, set at link
 // time by GoReleaser, and empty in any other build. It is not state: no
