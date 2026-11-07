@@ -1,5 +1,21 @@
 # Changelog
 
+## [v2.1.0](https://github.com/babarot/gist/compare/v2.0.0...v2.1.0) - 2026-11-07
+### New Features
+- Copy the file shown with Y by @babarot in https://github.com/babarot/gist/pull/45
+- Show the size of a gist in the list, and filter by it by @babarot in https://github.com/babarot/gist/pull/48
+- Filter by owner, by when a gist changed and by its comments by @babarot in https://github.com/babarot/gist/pull/49
+### Bug fixes
+- Bring back --version by @babarot in https://github.com/babarot/gist/pull/47
+- Stop losing edits to names that differ in case and to failed deletes by @babarot in https://github.com/babarot/gist/pull/50
+- Lock gists on Windows, and run the tests there by @babarot in https://github.com/babarot/gist/pull/53
+### Improvements
+- Show the release notes in place of the key list by @babarot in https://github.com/babarot/gist/pull/43
+- Fade the tabs of the preview into its frame by @babarot in https://github.com/babarot/gist/pull/46
+### Refactorings
+- Test what HTML in Markdown becomes, and steady the long line test by @babarot in https://github.com/babarot/gist/pull/51
+- Remove what nothing uses, and test where fuzzy matching moves a hit by @babarot in https://github.com/babarot/gist/pull/54
+
 ## [v2.0.0](https://github.com/babarot/gist/compare/v1.2.8...v2.0.0) - 2026-11-07
 ### Breaking Changes
 - Replace the v1 code with the foundation of v2 by @babarot in https://github.com/babarot/gist/pull/25
