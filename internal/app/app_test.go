@@ -1,0 +1,312 @@
+package app
+
+import (
+	"bytes"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/babarot/gist/v2/internal/state"
+	"github.com/babarot/gist/v2/internal/version"
+)
+
+// gist runs gist and returns what it printed and its exit code.
+func gist(t *testing.T, args ...string) (stdout, stderr string, code int) {
+	t.Helper()
+	var out, errOut bytes.Buffer
+	code = Run(args, strings.NewReader(""), &out, &errOut)
+	return out.String(), errOut.String(), code
+}
+
+func setHome(t *testing.T) (stateHome string) {
+	t.Helper()
+	home := t.TempDir()
+	stateHome = filepath.Join(home, "state")
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_STATE_HOME", stateHome)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "config"))
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, "cache"))
+	t.Setenv(EnvLogLevel, "")
+	return stateHome
+}
+
+func TestVersion(t *testing.T) {
+	setHome(t)
+	stdout, stderr, code := gist(t, "version")
+	if code != 0 || stderr != "" {
+		t.Fatalf("exit %d, stderr %q", code, stderr)
+	}
+	if want := version.String() + "\n"; stdout != want {
+		t.Errorf("stdout is %q, want %q", stdout, want)
+	}
+}
+
+func TestHelp(t *testing.T) {
+	setHome(t)
+	stdout, _, code := gist(t, "--help")
+	if code != 0 || !strings.Contains(stdout, "edit your GitHub Gists") {
+		t.Errorf("exit %d, stdout %q", code, stdout)
+	}
+}
+
+func TestCalledWrongly(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		args []string
+		want string
+	}{
+		{"unknown command", []string{"nope"}, `unknown command "nope"`},
+		{"unknown flag", []string{"--nope"}, "unknown flag: --nope"},
+		{"arguments to version", []string{"version", "x"}, "unknown command"},
+		{"unknown debug value", []string{"--debug=loud"}, "invalid --debug=loud"},
+		{"live with a command", []string{"version", "--debug=live"}, "--debug=live takes no command"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			setHome(t)
+			stdout, stderr, code := gist(t, tt.args...)
+			if code != 2 {
+				t.Errorf("exit %d, want 2", code)
+			}
+			if stdout != "" {
+				t.Errorf("stdout is %q, want nothing", stdout)
+			}
+			if !strings.Contains(stderr, tt.want) {
+				t.Errorf("stderr is %q, want %q", stderr, tt.want)
+			}
+		})
+	}
+}
+
+// logLines are the log lines a run wrote, decoded.
+func logLines(t *testing.T, stateHome string) []map[string]any {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(stateHome, "gist", "log", "gist.log"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var lines []map[string]any
+	for line := range strings.Lines(string(b)) {
+		var m map[string]any
+		if err := json.Unmarshal([]byte(line), &m); err != nil {
+			t.Fatalf("%q: %v", line, err)
+		}
+		lines = append(lines, m)
+	}
+	return lines
+}
+
+func TestLogsEachRun(t *testing.T) {
+	state := setHome(t)
+	gist(t, "version")
+	gist(t, "version")
+	lines := logLines(t, state)
+	if len(lines) != 4 {
+		t.Fatalf("got %d lines, want a start and an exit for each run: %v", len(lines), lines)
+	}
+	if lines[0]["msg"] != "start" || lines[1]["msg"] != "exit" {
+		t.Errorf("lines are %v", lines)
+	}
+	if lines[0]["run"] == "" || lines[0]["run"] != lines[1]["run"] {
+		t.Errorf("a run's lines do not share its ID: %v", lines[:2])
+	}
+	if lines[0]["run"] == lines[2]["run"] {
+		t.Errorf("two runs share an ID: %v", lines)
+	}
+}
+
+func TestLogLevel(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		env  string
+		flag string
+		want int // the lines logged by a run, whose lines are at info
+	}{
+		{"default", "", "", 2},
+		{"from the environment", "error", "", 0},
+		{"the flag wins", "error", "--debug", 2},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			state := setHome(t)
+			t.Setenv(EnvLogLevel, tt.env)
+			args := []string{"version"}
+			if tt.flag != "" {
+				args = append(args, tt.flag)
+			}
+			if _, stderr, code := gist(t, args...); code != 0 {
+				t.Fatalf("exit %d, stderr %q", code, stderr)
+			}
+			if got := len(logLines(t, state)); got != tt.want {
+				t.Errorf("got %d lines, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestBadLogLevelFails(t *testing.T) {
+	setHome(t)
+	t.Setenv(EnvLogLevel, "loud")
+	stdout, stderr, code := gist(t, "version")
+	if code != 1 || stdout != "" || !strings.Contains(stderr, EnvLogLevel) {
+		t.Errorf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
+	}
+}
+
+func TestRunsWithoutALog(t *testing.T) {
+	state := setHome(t)
+	// A file where the state directory should go
+	if err := os.WriteFile(state, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	stdout, stderr, code := gist(t, "version")
+	if code != 0 || stdout == "" {
+		t.Errorf("exit %d, stdout %q", code, stdout)
+	}
+	if !strings.Contains(stderr, "writing no log") {
+		t.Errorf("stderr is %q", stderr)
+	}
+}
+
+func TestAuthWithoutAToken(t *testing.T) {
+	setHome(t)
+	t.Setenv("GH_TOKEN", "")
+	t.Setenv("GITHUB_TOKEN", "")
+	t.Setenv("GH_CONFIG_DIR", t.TempDir())
+	t.Setenv("GH_PATH", "")
+	t.Setenv("PATH", "")
+	stdout, stderr, code := gist(t, "auth")
+	if code != 1 || stdout != "" {
+		t.Errorf("exit %d, stdout %q", code, stdout)
+	}
+	if !strings.Contains(stderr, "gh auth login") || !strings.Contains(stderr, "Gists read and write") {
+		t.Errorf("stderr is %q", stderr)
+	}
+}
+
+func TestLogPrintsWhereTheLogIs(t *testing.T) {
+	state := setHome(t)
+	stdout, stderr, code := gist(t, "log")
+	if code != 0 || stderr != "" {
+		t.Fatalf("exit %d, stderr %q", code, stderr)
+	}
+	if got := strings.TrimSpace(stdout); !strings.HasPrefix(got, state) || !strings.HasSuffix(got, ".log") {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestConfigCheck(t *testing.T) {
+	setHome(t)
+	dir := t.TempDir()
+	write := func(content string) string {
+		path := filepath.Join(dir, "config.toml")
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	if got, _, code := gist(t, "config", "check", filepath.Join(dir, "none.toml")); code != 0 || !strings.Contains(got, "the defaults are used") {
+		t.Errorf("missing: %d, %q", code, got)
+	}
+	if got, _, code := gist(t, "config", "check", write("theme = \"latte\"\n")); code != 0 || !strings.Contains(got, "no mistakes") {
+		t.Errorf("fine: %d, %q", code, got)
+	}
+	got, _, code := gist(t, "config", "check", write("theme = \"lattee\"\n[keys]\nqiut = [\"q\"]\nhelp = [\"esc\"]\n"))
+	if code != 1 {
+		t.Errorf("exit %d", code)
+	}
+	for _, want := range []string{
+		`config.toml:1:9: theme must be one of`,
+		`config.toml:3:1: keys: no action is named "qiut"; did you mean "quit"?`,
+		`config.toml:4:9: keys: esc is fixed`,
+		"3 | qiut = [\"q\"]\n  | ^~~~",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("no %q in\n%s", want, got)
+		}
+	}
+	// It reads the file it is given, and writes none
+	if _, err := os.Stat(filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "gist", "config.toml")); err == nil {
+		t.Error("the check wrote a config file")
+	}
+}
+
+func TestABadConfigStopsACommandAndSaysWhere(t *testing.T) {
+	setHome(t)
+	t.Setenv("GH_TOKEN", "x")
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte("[keys]\nnope = [\"x\"]\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(t.TempDir(), "a.txt")
+	if err := os.WriteFile(file, []byte("a"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, stderr, code := gist(t, "--config", path, "new", file)
+	if code != 1 || !strings.Contains(stderr, "config.toml:2:1:") {
+		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+}
+
+func TestVersionSaysNothingOfANewerReleaseOnABuildFromSource(t *testing.T) {
+	stateHome := setHome(t)
+	if err := state.Open(stateHome + "/gist").SaveReleaseSeen(state.ReleaseSeen{Latest: "99.0.0"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, stderr, code := gist(t, "version"); code != 0 || stderr != "" {
+		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+}
+
+func TestReleaseOptions(t *testing.T) {
+	st := state.Open(t.TempDir())
+	now := time.Date(2026, 11, 7, 12, 0, 0, 0, time.UTC)
+	if err := st.SaveReleaseSeen(state.ReleaseSeen{Checked: now.Add(-time.Hour), Latest: "9.0.0", Told: "8.0.0"}); err != nil {
+		t.Fatal(err)
+	}
+	src := &releaseSource{store: st}
+	if r := releaseOptions(src, true, now); !r.FromSource || r.Tell || r.Due {
+		t.Errorf("a build from source: %+v", r)
+	}
+	version.Source = "release"
+	t.Cleanup(func() { version.Source = "" })
+	r := releaseOptions(src, true, now)
+	if r.FromSource || !r.Tell || r.Due || r.Latest != "9.0.0" || r.Told != "8.0.0" {
+		t.Errorf("a release: %+v", r)
+	}
+	if r := releaseOptions(src, true, now.Add(25*time.Hour)); !r.Due {
+		t.Error("a day later is not due")
+	}
+	if r := releaseOptions(src, false, now); r.Tell || r.Due {
+		t.Errorf("with the check turned off: %+v", r)
+	}
+}
+
+func TestSeenKeepsThePreviewHeight(t *testing.T) {
+	st := state.Open(t.TempDir())
+	if err := st.SavePreviewHeight(9); err != nil {
+		t.Fatal(err)
+	}
+	src := &releaseSource{store: st}
+	if err := src.Checked("2.0.0"); err != nil {
+		t.Fatal(err)
+	}
+	if err := src.Checked(""); err != nil {
+		t.Fatal(err)
+	}
+	if err := src.Told("2.0.0"); err != nil {
+		t.Fatal(err)
+	}
+	seen := st.ReleaseSeen()
+	if st.PreviewHeight() != 9 || seen.Latest != "2.0.0" || seen.Told != "2.0.0" || seen.Checked.IsZero() {
+		t.Errorf("height %d, %+v", st.PreviewHeight(), seen)
+	}
+}
+
+func TestNewHasNoShortFlagForSecret(t *testing.T) {
+	setHome(t)
+	if _, stderr, code := gist(t, "new", "-p", "a.txt"); code != 2 || !strings.Contains(stderr, "shorthand") {
+		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+}

@@ -1,0 +1,36 @@
+# Tasks for developing gist: mise tasks lists them, mise run <task> runs one.
+# Go comes from wherever you have it (go.mod sets the minimum), the other
+# tools from [tools] below.
+
+[tools]
+golangci-lint = "2.15.0"
+
+[tasks.build]
+description = "Build ./gist"
+run = "go build -trimpath -o gist ."
+
+[tasks.clean]
+description = "Remove ./gist, dist and coverage.out"
+run = "rm -rf gist dist coverage.out"
+
+[tasks.test]
+description = "Check formatting, and run the Go tests with the race detector, writing coverage.out"
+run = '''
+test -z "$(gofmt -l .)" || { gofmt -l .; echo "gofmt: the files above are not formatted"; exit 1; }
+go test -race ./... -coverprofile=coverage.out -covermode=atomic
+'''
+
+[tasks.lint]
+description = "Run golangci-lint, and check that go.mod and go.sum are tidy"
+run = '''
+golangci-lint run ./...
+go mod tidy -diff
+'''
+
+[tasks.vuln]
+description = "Check the dependencies and the standard library for known vulnerabilities"
+run = "go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./..."
+
+[tasks.demo]
+description = "Record the demo with VHS in Docker into docs/demo.gif: mise run demo [TAPE ...]"
+file = "demo/recording/tapes/record.sh"

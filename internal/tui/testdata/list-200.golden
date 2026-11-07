@@ -1,0 +1,30 @@
+gist // @alice     1 mine (5)    2 starred (…)                                                                                                                                                   via gh 
+    DESCRIPTION                                                                                                                                                        FILES  COMMENTS  VIS     UPDATED
+▎   a public gist with a comment                                                                                                                                           3         3  public       5m 
+    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確かめるための文字列を足していく                                                                     2            secret       3h
+    no-description.txt +1                                                                                                                                                  2            secret       2d
+    emoji ❤️ and a family 👨‍👩‍👦 and é                                                                                                                                         1            secret      4mo
+    escape sequence    and a tab                                                                                                                                           1            secret      10y
+
+
+
+
+╭  main.go   README.md   go.mod  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬  info   comments (3)  ────────╮
+│    1  content of main.go                                                                                                                                             │ gist       1111111            │
+│                                                                                                                                                                      │ visibility public             │
+│                                                                                                                                                                      │ files      3 · 3.6 KB         │
+│                                                                                                                                                                      │ revisions  2                  │
+│                                                                                                                                                                      │ comments   3                  │
+│                                                                                                                                                                      │ created    10m ago            │
+│                                                                                                                                                                      │ updated    5m ago             │
+│                                                                                                                                                                      │                               │
+│                                                                                                                                                                      │ file       main.go            │
+│                                                                                                                                                                      │ type       go                 │
+│                                                                                                                                                                      │ size       1.2 KB · 1 lines   │
+│                                                                                                                                                                      │                               │
+│                                                                                                                                                                      │                               │
+│                                                                                                                                                                      │                               │
+│                                                                                                                                                                      │                               │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 1111111 · h/l file · c comments ─╯
+✓ 5 gists · saved to the cache
+enter edit · n new · o browser · y copy url · D delete · E desc · r rename · h/l file · c comments · / filter · R refresh · ? keys

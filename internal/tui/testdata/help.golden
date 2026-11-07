@@ -1,0 +1,30 @@
+gist // @alice     1 mine (5)    2 starred (…)                                                                   via gh
+    DESCRIPTION                                                                        FILES  COMMENTS  VIS     UPDATED
+▎   a public gist with a comment                                                           3         3  public       5m
+    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確かめるための…      2            secret       3h
+    no-descr╭ keys ────────────────────────────────────────────────────────────────────────────────────────╮et       2d
+    emoji ❤️│                                                                                              │et      4mo
+    escape s│ move                          act                           view                             │et      10y
+            │ j/k       down / up           enter     edit, then push     c         info / comments        │
+            │ g/G       top / bottom        n         new gist            m         markdown / plain       │
+            │ PgDn/PgUp page down / up      E         edit the descripti… +/-       preview height         │
+            │ J/K       scroll the preview  r         rename the file     /         fuzzy filter           │
+╭  main.go  │ h/l       prev / next file    D         delete              o         open in the browser    │)  ────────╮
+│    1  cont│ 1         mine                X         discard the draft   y         copy the URL           │           │
+│           │ 2         starred                                           R         refresh now            │           │
+│           │                                                             ?         this help              │KB         │
+│           │                                                             q         quit                   │           │
+│           │                                                                                              │           │
+│           │                                                                                              │           │
+│           ╰──────────────────────────────────────────────────────────────────────────────────────────────╯           │
+│                                                                                      │                               │
+│                                                                                      │ file       main.go            │
+│                                                                                      │ type       go                 │
+│                                                                                      │ size       1.2 KB · 1 lines   │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+╰──────────────────────────────────────────────────────────────────────────────────── 1111111 · h/l file · c comments ─╯
+✓ 5 gists · saved to the cache
+esc close
