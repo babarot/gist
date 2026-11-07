@@ -34,13 +34,17 @@ func setHome(t *testing.T) (stateHome string) {
 }
 
 func TestVersion(t *testing.T) {
-	setHome(t)
-	stdout, stderr, code := gist(t, "version")
-	if code != 0 || stderr != "" {
-		t.Fatalf("exit %d, stderr %q", code, stderr)
-	}
-	if want := version.String() + "\n"; stdout != want {
-		t.Errorf("stdout is %q, want %q", stdout, want)
+	for _, arg := range []string{"version", "--version", "-v"} {
+		t.Run(arg, func(t *testing.T) {
+			setHome(t)
+			stdout, stderr, code := gist(t, arg)
+			if code != 0 || stderr != "" {
+				t.Fatalf("exit %d, stderr %q", code, stderr)
+			}
+			if want := version.String() + "\n"; stdout != want {
+				t.Errorf("stdout is %q, want %q", stdout, want)
+			}
+		})
 	}
 }
 
