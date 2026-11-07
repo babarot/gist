@@ -1,6 +1,10 @@
 package tui
 
 import (
+	"fmt"
+	"strings"
+	"unicode/utf8"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/babarot/gist/v2/internal/tui/keymap"
@@ -106,6 +110,8 @@ func (m *Model) listKey(k string) tea.Cmd {
 		return m.browse()
 	case on(keymap.CopyURL):
 		return m.copyURL()
+	case on(keymap.CopyFile):
+		return m.copyFile()
 	case on(keymap.ScrollDown):
 		m.scroll(scrollStep)
 	case on(keymap.ScrollUp):
@@ -201,6 +207,48 @@ func (m *Model) copyURL() tea.Cmd {
 	}
 	m.line.Say(m.now(), "✓ copied "+g.URL)
 	return tea.SetClipboard(g.URL)
+}
+
+// maxCopy is the most that goes to the clipboard: it goes through the terminal,
+// and past about this some terminals drop it, saying nothing.
+const maxCopy = 1 << 20
+
+// copyMsg is a file read to be copied.
+type copyMsg struct {
+	name, content string
+	err           error
+}
+
+// copyFile copies the file shown, as it is written: what the preview has is
+// cleaned for drawing, and cut at a megabyte.
+func (m *Model) copyFile() tea.Cmd {
+	g, ok := m.selected()
+	if !ok || len(g.Files) == 0 {
+		return nil
+	}
+	f := g.Files[m.selectedFile(g)]
+	if f.Size > maxCopy {
+		m.line.Refuse(m.now(), f.Name+" is too large to copy: use gist view")
+		return nil
+	}
+	ctx, src := m.ctx, m.opt.Source
+	return func() tea.Msg {
+		content, err := src.Raw(ctx, f)
+		return copyMsg{f.Name, content, err}
+	}
+}
+
+func (m *Model) gotCopy(msg copyMsg) tea.Cmd {
+	switch {
+	case msg.err != nil:
+		m.line.Fail(m.now(), fmt.Sprintf("%s cannot be read: %v", msg.name, msg.err))
+		return nil
+	case !utf8.ValidString(msg.content) || strings.ContainsRune(msg.content, 0):
+		m.line.Refuse(m.now(), "a binary file cannot be copied: use gist view")
+		return nil
+	}
+	m.line.Say(m.now(), fmt.Sprintf("✓ copied %s (%s)", msg.name, size(int64(len(msg.content)))))
+	return tea.SetClipboard(msg.content)
 }
 
 // hint is a key and what it does, for the key line.
@@ -316,6 +364,7 @@ var helpGroups = []helpGroup{
 		{[]keymap.Action{keymap.Filter}, "fuzzy filter"},
 		{[]keymap.Action{keymap.Browse}, "open in the browser"},
 		{[]keymap.Action{keymap.CopyURL}, "copy the URL"},
+		{[]keymap.Action{keymap.CopyFile}, "copy the file"},
 		{[]keymap.Action{keymap.Refresh}, "refresh now"},
 		{[]keymap.Action{keymap.Help}, "this help"},
 		{[]keymap.Action{keymap.Quit}, "quit"},
