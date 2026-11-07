@@ -151,8 +151,6 @@ func (s *source) listed() []model.Gist {
 
 func (s *source) Raw(context.Context, model.File) (string, error) { return "", nil }
 
-func (s *source) Delete(context.Context, string) error { return nil }
-
 func (s *source) Create(context.Context, model.NewGist) (model.Gist, error) {
 	return model.Gist{}, errors.New("not in these tests")
 }

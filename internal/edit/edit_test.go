@@ -457,3 +457,40 @@ func TestADraftBehindTheGistStopsThePushOfTheOthers(t *testing.T) {
 		t.Errorf("got %v", err)
 	}
 }
+
+func TestDeleteTakesTheDraftsWithIt(t *testing.T) {
+	e, s := setup(t)
+	g := s.Add("", false, map[string]string{"a.txt": "a\n"})
+	es := begin(t, e, g.ID, "a.txt")
+	keep(t, es, "edited\n")
+	if err := es.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.Delete(ctx, g.ID); err != nil {
+		t.Fatal(err)
+	}
+	if s.Get(g.ID) != nil || e.State.HasDraft(g.ID, "a.txt") {
+		t.Error("the gist or its draft stayed")
+	}
+}
+
+func TestADeleteThatDidNotHappenKeepsTheDrafts(t *testing.T) {
+	for _, status := range []int{http.StatusNotFound, http.StatusForbidden, http.StatusInternalServerError} {
+		e, s := setup(t)
+		g := s.Add("", false, map[string]string{"a.txt": "a\n"})
+		es := begin(t, e, g.ID, "a.txt")
+		keep(t, es, "edited\n")
+		if err := es.Close(); err != nil {
+			t.Fatal(err)
+		}
+		s.Fail("DELETE", status)
+		if err := e.Delete(ctx, g.ID); err == nil {
+			t.Fatalf("%d: no error", status)
+		}
+		if d, ok, err := e.Draft(g.ID, "a.txt"); err != nil || !ok || string(d.Content) != "edited\n" {
+			t.Errorf("%d: the draft is %+v, %v, %v", status, d, ok, err)
+		}
+		// The lock was let go: the edit can go on
+		_ = begin(t, e, g.ID, "a.txt")
+	}
+}

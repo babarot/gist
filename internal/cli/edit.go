@@ -379,27 +379,13 @@ func (c *CLI) Delete(ctx context.Context, args []string, yes bool) error {
 		}
 	}
 	for _, id := range ids {
-		l, err := c.Editor.State.Lock(id)
-		if err != nil {
-			return fmt.Errorf("%s: %w", id, err)
-		}
-		err = c.API.Delete(ctx, id)
-		if err == nil || github.IsNotFound(err) {
-			// There is nothing left to send them to
-			if derr := l.DeleteDrafts(); derr != nil {
-				c.Log.Warn("the drafts cannot be removed", "gist", id, "err", derr.Error())
-			}
-		}
-		if releaseErr := l.Release(); err == nil {
-			err = releaseErr
-		}
-		if github.IsNotFound(err) {
-			fmt.Fprintf(c.Stderr, "gist: %s was already gone\n", id)
+		err := c.Editor.Delete(ctx, id)
+		if errors.Is(err, edit.ErrDraftsLeft) {
+			c.Log.Warn("the drafts cannot be removed", "gist", id, "err", err.Error())
 		} else if err != nil {
 			return fmt.Errorf("%s: %w", id, err)
-		} else {
-			fmt.Fprintf(c.Stderr, "✓ deleted %s\n", id)
 		}
+		fmt.Fprintf(c.Stderr, "✓ deleted %s\n", id)
 		c.remember(ctx, func(l *cache.List) {
 			l.Gists = slices.DeleteFunc(l.Gists, func(g model.Gist) bool { return g.ID == id })
 		})

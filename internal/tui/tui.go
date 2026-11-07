@@ -28,7 +28,6 @@ type Source interface {
 	Get(ctx context.Context, id string) (model.Gist, error)
 	Raw(ctx context.Context, f model.File) (string, error)
 	Comments(ctx context.Context, id string) ([]model.Comment, error)
-	Delete(ctx context.Context, id string) error
 	Create(ctx context.Context, n model.NewGist) (model.Gist, error)
 }
 

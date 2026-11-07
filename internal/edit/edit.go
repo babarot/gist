@@ -12,6 +12,7 @@
 package edit
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -27,6 +28,7 @@ type API interface {
 	Get(ctx context.Context, id string) (model.Gist, error)
 	Raw(ctx context.Context, f model.File) (string, error)
 	Update(ctx context.Context, id string, ch model.Change) (model.Gist, error)
+	Delete(ctx context.Context, id string) error
 }
 
 // ChangedError says the gist on GitHub is not what the change was based on.
@@ -40,6 +42,9 @@ type ChangedError struct {
 func (e *ChangedError) Error() string {
 	return fmt.Sprintf("the %s of gist %s changed on GitHub", e.What, e.Current.ID)
 }
+
+// ErrDraftsLeft says a gist was deleted but its drafts could not be.
+var ErrDraftsLeft = errors.New("the drafts of the deleted gist cannot be removed")
 
 // ErrNoFile says the gist has no such file.
 var ErrNoFile = errors.New("no such file in the gist")
@@ -57,6 +62,25 @@ func (e *Editor) now() time.Time {
 		return e.Now()
 	}
 	return time.Now()
+}
+
+// Delete deletes a gist under its lock, and its drafts with it once GitHub has
+// deleted it. Any answer but that keeps them, not found among them: a token
+// without the permission gets that for a gist that is still there, and a draft
+// can be the only copy of an edit.
+func (e *Editor) Delete(ctx context.Context, gist string) (err error) {
+	l, err := e.State.Lock(gist)
+	if err != nil {
+		return err
+	}
+	defer func() { err = cmp.Or(err, l.Release()) }()
+	if err := e.API.Delete(ctx, gist); err != nil {
+		return err
+	}
+	if err := l.DeleteDrafts(); err != nil {
+		return fmt.Errorf("%w: %w", ErrDraftsLeft, err)
+	}
+	return nil
 }
 
 // Result is what a change did.

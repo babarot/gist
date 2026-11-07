@@ -161,3 +161,49 @@ func TestDraftGists(t *testing.T) {
 		t.Errorf("got %v, %v", got, err)
 	}
 }
+
+func TestDraftsOfNamesThatDifferOnlyInCase(t *testing.T) {
+	s := Open(t.TempDir())
+	l, err := s.Lock("a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = l.Release() }()
+	for _, f := range []string{"A.go", "a.go", "%41.go"} {
+		if err := l.SaveDraft(Draft{Gist: "a", File: f, Content: []byte(f)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, f := range []string{"A.go", "a.go", "%41.go"} {
+		if d, ok, err := s.Draft("a", f); err != nil || !ok || string(d.Content) != f {
+			t.Errorf("%s: %+v, %v, %v", f, d, ok, err)
+		}
+	}
+	if err := l.DeleteDraft("a.go"); err != nil {
+		t.Fatal(err)
+	}
+	if !s.HasDraft("a", "A.go") || s.HasDraft("a", "a.go") {
+		t.Error("the other one went")
+	}
+}
+
+func TestDraftsKeptUnderTheOldNamesAreFound(t *testing.T) {
+	dir := t.TempDir()
+	draftDir := filepath.Join(dir, "drafts", "a")
+	if err := os.MkdirAll(draftDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(draftDir, "Main.go.json"), []byte(`{"gist":"a","file":"Main.go","content":"a2VwdA=="}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(draftDir, "broken.json"), []byte("{"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s := Open(dir)
+	if d, ok, err := s.Draft("a", "Main.go"); err != nil || !ok || string(d.Content) != "kept" {
+		t.Errorf("got %+v, %v, %v", d, ok, err)
+	}
+	if _, err := os.Stat(filepath.Join(draftDir, "broken.json")); err != nil {
+		t.Errorf("a draft that cannot be read went: %v", err)
+	}
+}

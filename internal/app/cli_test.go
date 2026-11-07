@@ -559,6 +559,13 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func TestADeleteAnsweredNotFoundFails(t *testing.T) {
+	e := newEnv(t)
+	g := e.s.Add("a", false, map[string]string{"a.txt": "a"})
+	e.s.Fail("DELETE", http.StatusNotFound)
+	e.fails(1, "refused by the test", "delete", g.ID, "--yes")
+}
+
 func TestDeleteFindsThemAllFirst(t *testing.T) {
 	e := newEnv(t)
 	a := e.s.Add("a", false, map[string]string{"a.txt": "a"})
