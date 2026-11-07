@@ -31,7 +31,7 @@ func rowsOf(gists []model.Gist, query string) []row {
 			rows = append(rows, row{gist: g})
 			continue
 		}
-		it := filter.Item{Description: text.Line(g.Description), Public: g.Public, Size: totalSize(g)}
+		it := filter.Item{Description: text.Line(g.Description), Public: g.Public, Owner: text.Line(g.Owner), Size: totalSize(g)}
 		for _, f := range g.Files {
 			it.Files = append(it.Files, text.Line(f.Name))
 			if f.Language != "" {
@@ -136,6 +136,12 @@ func valuesOf(key string, g model.Gist) []string {
 			return []string{"public"}
 		}
 		return []string{"secret"}
+	}
+	if key == filter.OwnerKey {
+		if g.Owner == "" {
+			return nil
+		}
+		return []string{text.Line(g.Owner)}
 	}
 	var out []string
 	for _, f := range g.Files {

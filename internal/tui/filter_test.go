@@ -738,3 +738,22 @@ func TestTheGhostSaysHowToWriteASize(t *testing.T) {
 		t.Errorf("got:\n%s", s)
 	}
 }
+
+func TestFilteringByOwner(t *testing.T) {
+	gs := fixture()
+	for i := range gs {
+		gs[i].Owner = "alice"
+	}
+	gs[1].Owner = "bob"
+	m := loaded(t, gs, 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "owner:")
+	if s := screen(m); !strings.Contains(s, "/ owner:alice (1/2)") {
+		t.Errorf("got:\n%s", s)
+	}
+	pressTab(t, m)
+	pressTab(t, m)
+	if got := m.tab().query; got != "owner:bob" || len(m.tab().rows) != 1 {
+		t.Errorf("got %q, %d rows", got, len(m.tab().rows))
+	}
+}

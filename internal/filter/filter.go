@@ -1,6 +1,6 @@
 // Package filter narrows the list of gists: words found in order in a gist's
 // description or file names, and key:value terms that look in one thing only:
-// file:, desc:, vis:, lang: and size:.
+// file:, desc:, vis:, lang:, owner: and size:.
 package filter
 
 import (
@@ -14,23 +14,24 @@ import (
 
 // The keys, with their colon.
 const (
-	FileKey = "file:"
-	DescKey = "desc:"
-	VisKey  = "vis:"
-	LangKey = "lang:"
-	SizeKey = "size:"
+	FileKey  = "file:"
+	DescKey  = "desc:"
+	VisKey   = "vis:"
+	LangKey  = "lang:"
+	OwnerKey = "owner:"
+	SizeKey  = "size:"
 )
 
 // Keys are the keys.
-var Keys = []string{FileKey, DescKey, VisKey, LangKey, SizeKey}
+var Keys = []string{FileKey, DescKey, VisKey, LangKey, OwnerKey, SizeKey}
 
 // Query is the parsed filter, lower-cased.
 type Query struct {
 	Words []string
 	// File and Desc are parts of a file name or the description, Vis is secret
-	// or public, Lang part of a file's language. Several of one key match any
-	// of them.
-	File, Desc, Vis, Lang []string
+	// or public, Lang part of a file's language, Owner part of the owner's
+	// login. Several of one key match any of them.
+	File, Desc, Vis, Lang, Owner []string
 	// Size are bounds on the size of a gist's files together, all of which hold,
 	// so that two of them make a range.
 	Size []SizeBound
@@ -111,7 +112,7 @@ func SizeHint(word string) string {
 // read is a plain word too, which leaves no rows rather than all of them.
 func Parse(s string) Query {
 	var q Query
-	fields := map[string]*[]string{FileKey: &q.File, DescKey: &q.Desc, VisKey: &q.Vis, LangKey: &q.Lang}
+	fields := map[string]*[]string{FileKey: &q.File, DescKey: &q.Desc, VisKey: &q.Vis, LangKey: &q.Lang, OwnerKey: &q.Owner}
 	for w := range strings.FieldsSeq(strings.ToLower(s)) {
 		if key, v, ok := strings.Cut(w, ":"); ok {
 			if key+":" == SizeKey {
@@ -171,7 +172,7 @@ func KeyRest(query string) string {
 func ValueTerm(word string) (key, value string, ok bool) {
 	k, v, found := strings.Cut(word, ":")
 	key = strings.ToLower(k) + ":"
-	if !found || !slices.Contains([]string{FileKey, VisKey, LangKey}, key) {
+	if !found || !slices.Contains([]string{FileKey, VisKey, LangKey, OwnerKey}, key) {
 		return "", "", false
 	}
 	return key, v, true
@@ -179,7 +180,7 @@ func ValueTerm(word string) (key, value string, ok bool) {
 
 // Empty says the query narrows nothing.
 func (q Query) Empty() bool {
-	return len(q.Words)+len(q.File)+len(q.Desc)+len(q.Vis)+len(q.Lang)+len(q.Size) == 0
+	return len(q.Words)+len(q.File)+len(q.Desc)+len(q.Vis)+len(q.Lang)+len(q.Owner)+len(q.Size) == 0
 }
 
 // Item is what is looked in.
@@ -188,6 +189,7 @@ type Item struct {
 	Files       []string
 	Languages   []string
 	Public      bool
+	Owner       string
 	// Size is the size of the files together.
 	Size int64
 }
@@ -227,6 +229,9 @@ func Match(q Query, it Item) (Hits, bool) {
 		return Hits{}, false
 	}
 	if len(q.Lang) > 0 && !anyContains(it.Languages, q.Lang) {
+		return Hits{}, false
+	}
+	if len(q.Owner) > 0 && !anyContains([]string{it.Owner}, q.Owner) {
 		return Hits{}, false
 	}
 	vis := "secret"

@@ -212,3 +212,27 @@ func TestSizeHint(t *testing.T) {
 		}
 	}
 }
+
+func TestOwner(t *testing.T) {
+	it := Item{Files: []string{"a.go"}, Owner: "babarot"}
+	for query, want := range map[string]bool{
+		"owner:babarot":        true,
+		"owner:BABA":           true,
+		"owner:alice":          false,
+		"owner:alice owner:ba": true,
+		"owner:":               true,
+	} {
+		if _, got := Match(Parse(query), it); got != want {
+			t.Errorf("%q: %v", query, got)
+		}
+	}
+	if _, got := Match(Parse("owner:x"), Item{Files: []string{"a.go"}}); got {
+		t.Error("a gist with no owner matched")
+	}
+	if key, value, ok := ValueTerm("owner:ba"); key != OwnerKey || value != "ba" || !ok {
+		t.Errorf("got %q %q %v", key, value, ok)
+	}
+	if got := KeyRest("ow"); got != "ner:" {
+		t.Errorf("KeyRest is %q", got)
+	}
+}
