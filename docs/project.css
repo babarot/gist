@@ -6,6 +6,13 @@
 }
 
 @font-face {
+  font-family: "Departure Mono";
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/departure-mono-400.woff2) format("woff2");
+}
+
+@font-face {
   font-family: "Redaction 50";
   font-weight: 400;
   font-display: swap;
@@ -107,7 +114,7 @@ main::before {
   mask-image: linear-gradient(180deg, transparent 0, #000 320px);
 }
 
-main > * {
+main > :not(.term):not(.demo) {
   max-width: 44rem;
 }
 
@@ -116,6 +123,78 @@ main > * {
   width: 100%;
   max-width: 1040px;
   height: auto;
+}
+
+/* The terminal takes the place of the recording where a keyboard is likely. */
+.term {
+  display: none;
+  max-width: 1040px;
+}
+
+.live .term {
+  display: block;
+}
+
+.live .demo {
+  display: none;
+}
+
+/* A window of a terminal app, in the ink and paper of the page. As on an old
+   desktop, its title bar has stripes when it is the window that has the keys. */
+.window {
+  display: inline-block;
+  border: 2px solid var(--word);
+  background: var(--word);
+  box-shadow: 8px 8px 0 rgb(230 232 242 / 0.22);
+}
+
+.titlebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  background: var(--word);
+  color: var(--bg);
+  font: 11px "Departure Mono", ui-monospace, Menlo, monospace;
+}
+
+.window:focus-within .titlebar {
+  background: repeating-linear-gradient(180deg, var(--bg) 0 2px, var(--word) 2px 4px) 0 5px / 100% 16px no-repeat var(--word);
+}
+
+.titlebar i {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  background: var(--word);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--word);
+}
+
+.titlebar span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  padding: 0 10px;
+  background: var(--word);
+  line-height: 18px;
+  transform: translate(-50%, -50%);
+}
+
+#terminal {
+  display: block;
+  border: 10px solid #10111c;
+  border-width: 10px 12px 12px;
+  background: #10111c;
+  box-sizing: content-box;
+  outline: 0;
+}
+
+.hint {
+  margin: 20px 0 0;
+  color: var(--dim);
+  font-size: 16px;
 }
 
 h2 {

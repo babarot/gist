@@ -32,6 +32,16 @@
 
     <main>
       <img class="demo" src="demo.gif" alt="gist with made-up gists: looking through them, filtering them, and editing one">
+      <div class="term">
+        <div class="window">
+          <div class="titlebar" aria-hidden="true">
+            <i></i>
+            <span>gist &#8212; 120&#215;34</span>
+          </div>
+          <canvas id="terminal" tabindex="0" role="application" aria-label="gist with made-up gists. Use j, k, h, l, 1, 2 and the question mark."></canvas>
+        </div>
+        <p class="hint">Click it and try <code>j</code> <code>k</code>, <code>h</code> <code>l</code>, <code>1</code> <code>2</code>, <code>J</code> <code>K</code> and <code>?</code>. <span id="terminal-note" role="status"></span></p>
+      </div>
 
       <section>
         <h2>What it does</h2>
@@ -76,6 +86,7 @@
       <p>MIT license, sent by <a href="https://github.com/babarot">babarot</a>.</p>
     </footer>
     <script src="page.js" defer></script>
+    <script src="terminal.js" defer></script>
     <script src="space.js" defer></script>
   </body>
 </html>
