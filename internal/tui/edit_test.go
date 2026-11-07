@@ -2,6 +2,7 @@ package tui
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -1126,5 +1127,67 @@ func TestEveryBoxFitsTheTerminal(t *testing.T) {
 				t.Errorf("%s %v: %d lines", name, size, len(lines))
 			}
 		}
+	}
+}
+
+// copied presses the key and gives what was read for it.
+func copied(t *testing.T, m *Model) copyMsg {
+	t.Helper()
+	for _, msg := range run(hold(m, tea.KeyPressMsg{Text: "Y", Code: 'Y'})) {
+		if c, ok := msg.(copyMsg); ok {
+			return c
+		}
+	}
+	t.Fatal("nothing was read")
+	return copyMsg{}
+}
+
+func TestCopyingAFileGivesItAsWritten(t *testing.T) {
+	content := "a\x1b[31m red\n"
+	w, _ := one(t, map[string]string{"a.txt": content})
+	msg := copied(t, w.m)
+	if msg.err != nil || msg.content != content {
+		t.Fatalf("got %+v", msg)
+	}
+	cmd := w.m.gotCopy(msg)
+	if got := fmt.Sprint(cmd()); got != content {
+		t.Errorf("the clipboard got %q", got)
+	}
+	if s := screen(w.m); !strings.Contains(s, "copied a.txt") {
+		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestCopyingTheFileShown(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n", "b.txt": "b\n"})
+	press(t, w.m, "l")
+	if msg := copied(t, w.m); msg.name != "b.txt" || msg.content != "b\n" {
+		t.Errorf("got %+v", msg)
+	}
+}
+
+func TestCopyRefuses(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": "a\n"})
+	if cmd := w.m.gotCopy(copyMsg{name: "a.bin", content: "\x00\xff"}); cmd != nil {
+		t.Error("a binary file went to the clipboard")
+	}
+	if s := screen(w.m); !strings.Contains(s, "binary file cannot be copied") {
+		t.Errorf("got:\n%s", s)
+	}
+	if cmd := w.m.gotCopy(copyMsg{name: "a.txt", err: errors.New("no network")}); cmd != nil {
+		t.Error("a failed reading went to the clipboard")
+	}
+	if s := screen(w.m); !strings.Contains(s, "no network") {
+		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestAFileTooLargeIsNotRead(t *testing.T) {
+	w, _ := one(t, map[string]string{"a.txt": strings.Repeat("x", maxCopy+1)})
+	if cmd := w.m.copyFile(); cmd != nil {
+		t.Error("it was read")
+	}
+	if got := screen(w.m); !strings.Contains(got, "too large to copy") {
+		t.Errorf("got:\n%s", got)
 	}
 }

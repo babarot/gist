@@ -51,7 +51,7 @@ brews:
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     homepage: https://github.com/babarot/gist
-    description: A simple gist editor for CLI
+    description: Read and edit your GitHub Gists from the terminal
     license: MIT
 
 nix:
@@ -60,6 +60,6 @@ nix:
       name: nur-packages
       token: "{{ .Env.NUR_GITHUB_TOKEN }}"
     homepage: https://github.com/babarot/gist
-    description: A simple gist editor for CLI
+    description: Read and edit your GitHub Gists from the terminal
     license: mit
     main_program: gist

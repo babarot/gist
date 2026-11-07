@@ -53,6 +53,7 @@ gist reads GitHub with the account [gh](https://cli.github.com/) is logged in to
 | `enter` | edit the file in your editor, then read the diff and push it |
 | `n`, `D` | a new gist, delete |
 | `E`, `r` | change the description, rename the file |
+| `y`, `Y` | copy the URL, copy the file |
 | `/` | filter |
 | `1` `2` | your gists, the ones you starred |
 | `c`, `m` | the comments, Markdown as written |

@@ -26,6 +26,7 @@ type Source interface {
 	List(ctx context.Context, etags []string, got func(model.ListPage)) ([]model.ListPage, error)
 	Starred(ctx context.Context) ([]model.Gist, error)
 	Get(ctx context.Context, id string) (model.Gist, error)
+	Raw(ctx context.Context, f model.File) (string, error)
 	Comments(ctx context.Context, id string) ([]model.Comment, error)
 	Delete(ctx context.Context, id string) error
 	Create(ctx context.Context, n model.NewGist) (model.Gist, error)
@@ -281,6 +282,8 @@ func (m *Model) update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case releasesMsg:
 		m.gotReleases(msg)
+	case copyMsg:
+		return m.gotCopy(msg)
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		m.keepCursorShown()

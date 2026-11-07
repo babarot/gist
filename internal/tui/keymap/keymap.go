@@ -35,6 +35,7 @@ const (
 	Starred       Action = "tab_starred"
 	Browse        Action = "browse"
 	CopyURL       Action = "copy_url"
+	CopyFile      Action = "copy_file"
 	ScrollDown    Action = "scroll_down"
 	ScrollUp      Action = "scroll_up"
 	ToggleSide    Action = "toggle_comments"
@@ -108,6 +109,7 @@ var Defaults = []Def{
 	{Starred, []string{"2"}, "starred"},
 	{Browse, []string{"o"}, "browser"},
 	{CopyURL, []string{"y"}, "copy url"},
+	{CopyFile, []string{"Y"}, "copy file"},
 	{ScrollDown, []string{"J"}, "scroll down"},
 	{ScrollUp, []string{"K"}, "scroll up"},
 	{ToggleSide, []string{"c"}, "comments"},
