@@ -137,8 +137,9 @@ func TestATableOfManyColumnsDoesNotTakeLong(t *testing.T) {
 	}
 }
 
-// TestALongLineDoesNotTakeLong gives each a minute, far more than any machine
-// needs: without the bound on cutting a line, these take hours.
+// TestALongLineDoesNotTakeLong gives each five minutes, which the race detector
+// on a busy machine still needs a part of: without the bound on cutting a line,
+// these take hours.
 func TestALongLineDoesNotTakeLong(t *testing.T) {
 	line := strings.Repeat("日本語 x", 200000)
 	for name, src := range map[string]string{
@@ -156,7 +157,7 @@ func TestALongLineDoesNotTakeLong(t *testing.T) {
 			}()
 			select {
 			case <-done:
-			case <-time.After(time.Minute):
+			case <-time.After(5 * time.Minute):
 				t.Fatal("it took too long")
 			}
 		})
