@@ -37,11 +37,13 @@ for theme in "${themes[@]}"; do
     *) echo "ogimage: no theme $theme; dark or light" >&2; exit 1 ;;
   esac
   # a profile for each run, so that one Chrome does not take over another;
-  # the time budget lets the web fonts come in
+  # the time budget lets the fonts come in, and with reduced motion the page
+  # holds still, so that the image comes out the same each time
   profile="$(mktemp -d)"
   "$chrome" --headless=new --disable-gpu --hide-scrollbars --no-first-run \
     --user-data-dir="$profile" --force-device-scale-factor=1 \
     --window-size=1200,630 --timeout=25000 --virtual-time-budget=6000 \
+    --force-prefers-reduced-motion \
     --screenshot="$out_dir/$theme.png" \
     "file://$root/scripts/ogimage/og.html?v=$theme" 2>/dev/null
   rm -rf "$profile"

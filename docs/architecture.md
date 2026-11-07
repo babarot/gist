@@ -30,6 +30,7 @@ The packages are layered: a package imports only from lower layers, and only the
 | 4 | `internal/app` | Putting it together: commands and flags, the log, and what each command runs with | `internal/cli`, `internal/config`, `internal/edit`, `internal/github`, `internal/logging`, `internal/model`, `internal/release`, `internal/state`, `internal/tui`, `internal/tui/keymap`, `internal/version`, `internal/xdg` | `github.com/cli/go-gh/v2`, `github.com/spf13/cobra` |
 | 5 | `main` | Calls app.Run | `internal/app` | - |
 | 4 | `demo/internal/recording` | The recording in the README: the TUI against a made-up GitHub | `internal/config`, `internal/edit`, `internal/fakegist`, `internal/github`, `internal/logging`, `internal/model`, `internal/state`, `internal/tui`, `internal/tui/keymap` | - |
+| 4 | `demo/screens` | The screens on the page: walks the TUI against a made-up GitHub | `internal/config`, `internal/edit`, `internal/fakegist`, `internal/github`, `internal/logging`, `internal/model`, `internal/state`, `internal/tui`, `internal/tui/keymap` | `charm.land/bubbletea/v2`, `github.com/charmbracelet/x/ansi` |
 | 5 | `demo/recording` | Runs the recording | `demo/internal/recording` | - |
 
 Packages only some may use:

@@ -11,15 +11,16 @@
     <meta property="og:image" content="https://babarot.me/gist/ogimage/dark.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="gist, in large pixel letters, above the words: Read and edit your GitHub Gists from the terminal.">
+    <meta property="og:image:alt" content="gist, in large pixel letters, over a dithered moon and a space probe, with the words: Read and edit your GitHub Gists from the terminal.">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" href="favicon/green/favicon.ico" sizes="48x48">
-    <link rel="icon" href="favicon/green/favicon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="favicon/green/apple-touch-icon.png">
+    <link rel="icon" href="favicon/moon/favicon.ico" sizes="48x48">
+    <link rel="icon" href="favicon/moon/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="favicon/moon/apple-touch-icon.png">
     <link href="./project.css" rel="stylesheet">
     <title>gist</title>
   </head>
   <body>
+    <canvas id="field" aria-hidden="true"></canvas>
     <header>
       <h1>gist</h1>
       <p>Read and edit your GitHub Gists from the terminal.</p>
@@ -31,12 +32,22 @@
 
     <main>
       <img class="demo" src="demo.gif" alt="gist with made-up gists: looking through them, filtering them, and editing one">
+      <div class="term">
+        <div class="window">
+          <div class="titlebar" aria-hidden="true">
+            <i></i>
+            <span>gist &#8212; 120&#215;34</span>
+          </div>
+          <canvas id="terminal" tabindex="0" role="application" aria-label="gist with made-up gists. Use j, k, h, l, 1, 2 and the question mark."></canvas>
+        </div>
+        <p class="hint">Click it and try <code>j</code> <code>k</code>, <code>h</code> <code>l</code>, <code>1</code> <code>2</code>, <code>J</code> <code>K</code> and <code>?</code>. <span id="terminal-note" role="status"></span></p>
+      </div>
 
       <section>
         <h2>What it does</h2>
         <ul>
-          <li>Your gists in a list, with the files of the one under the cursor beside it.</li>
-          <li>A filter, fuzzy over what you type, with <code>file:</code>, <code>lang:</code>, <code>vis:</code> and <code>desc:</code> to look in one thing.</li>
+          <li>Your gists in a list, with the files of the one under the cursor below it.</li>
+          <li>A fuzzy filter, with <code>file:</code>, <code>lang:</code>, <code>size:</code> and more to look in one thing.</li>
           <li>Edits in your own editor, with the diff to read before anything is pushed.</li>
           <li>A push that stops when the gist changed on GitHub since you opened it.</li>
           <li>A CLI that does the same from a script.</li>
@@ -45,24 +56,37 @@
 
       <section>
         <h2>Install</h2>
-<pre><code>brew install babarot/tap/gist
-nix profile install github:babarot/nur-packages#gist
-go install github.com/babarot/gist/v2@latest</code></pre>
-        <p>Or take a binary from the <a href="https://github.com/babarot/gist/releases">releases</a>. gist reads GitHub with the account <a href="https://cli.github.com/">gh</a> is logged in to, or with <code>GH_TOKEN</code> or <code>GITHUB_TOKEN</code>.</p>
+        <div class="install">
+          <input type="radio" name="install" id="with-brew" checked>
+          <label for="with-brew">Homebrew</label>
+          <input type="radio" name="install" id="with-nix">
+          <label for="with-nix">Nix</label>
+          <input type="radio" name="install" id="with-go">
+          <label for="with-go">Go</label>
+          <input type="radio" name="install" id="with-binary">
+          <label for="with-binary">Binary</label>
+          <pre class="way brew"><code>brew install babarot/tap/gist</code></pre>
+          <pre class="way nix"><code>nix profile install github:babarot/nur-packages#gist</code></pre>
+          <pre class="way go"><code>go install github.com/babarot/gist/v2@latest</code></pre>
+          <p class="way binary">Take one for your machine from the <a href="https://github.com/babarot/gist/releases">releases</a>.</p>
+        </div>
+        <p>gist reads GitHub with the account <a href="https://cli.github.com/">gh</a> is logged in to, or with <code>GH_TOKEN</code> or <code>GITHUB_TOKEN</code>.</p>
       </section>
 
       <section>
         <h2>Use it</h2>
-<pre><code>gist                               # the list
-gist new --public main.go go.mod   # a gist, printing its URL
-gist view 1a2b3c main.go           # a file as it is written
-gist edit 1a2b3c main.go           # in your editor</code></pre>
-        <p>Press <code>?</code> in the list for every key. The <a href="https://github.com/babarot/gist#readme">README</a> has the rest.</p>
+<pre><code>gist</code></pre>
+        <p>Press <code>?</code> in the list for every key. <code>gist --help</code> lists the commands for a script, and the <a href="https://github.com/babarot/gist#readme">README</a> has the rest.</p>
       </section>
     </main>
 
     <footer>
-      <p>MIT · <a href="https://github.com/babarot">babarot</a></p>
+      <p class="end">End of transmission.</p>
+      <p>Lift-off 2017-04-19, in flight for <span id="elapsed">years</span>.</p>
+      <p>MIT license. Mission control: <a href="https://github.com/babarot">babarot</a>.</p>
     </footer>
+    <script src="page.js" defer></script>
+    <script src="terminal.js" defer></script>
+    <script src="space.js" defer></script>
   </body>
 </html>

@@ -6,7 +6,7 @@ Read and edit your GitHub Gists from the terminal.
 gist
 ```
 
-It opens your gists in a list, with the files of the one under the cursor beside it, and a CLI does the same from a script:
+It opens your gists in a list, with the files of the one under the cursor below it, and a CLI does the same from a script:
 
 - the files drawn with their syntax, and Markdown rendered
 - a filter, fuzzy over what you type, with `file:`, `lang:`, `vis:`, `owner:` and `desc:` to look in one thing, `size:>200KB`, `updated:<7d` and `comments:>0` to go by size, age and comments, and tab to fill them in

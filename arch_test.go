@@ -49,6 +49,7 @@ var layers = []layer{
 	{"internal/app", 4, []string{"internal/cli", "internal/config", "internal/edit", "internal/github", "internal/logging", "internal/model", "internal/release", "internal/state", "internal/tui", "internal/tui/keymap", "internal/version", "internal/xdg"}, []string{"github.com/cli/go-gh/v2", "github.com/spf13/cobra"}, "Putting it together: commands and flags, the log, and what each command runs with"},
 	{"", 5, []string{"internal/app"}, nil, "Calls app.Run"},
 	{"demo/internal/recording", 4, []string{"internal/config", "internal/edit", "internal/fakegist", "internal/github", "internal/logging", "internal/model", "internal/state", "internal/tui", "internal/tui/keymap"}, nil, "The recording in the README: the TUI against a made-up GitHub"},
+	{"demo/screens", 4, []string{"internal/config", "internal/edit", "internal/fakegist", "internal/github", "internal/logging", "internal/model", "internal/state", "internal/tui", "internal/tui/keymap"}, []string{"charm.land/bubbletea/v2", "github.com/charmbracelet/x/ansi"}, "The screens on the page: walks the TUI against a made-up GitHub"},
 	{"demo/recording", 5, []string{"demo/internal/recording"}, nil, "Runs the recording"},
 }
 
