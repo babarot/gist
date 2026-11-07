@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+  The share images of the page (og:image), 1200x630. scripts/ogimage.sh
+  takes a screenshot of each theme into docs/ogimage/THEME.png. ?v= picks
+  the theme: dark or light.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>gist og:image</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500&display=swap">
+<style>
+@font-face { font-family: "Redaction 70"; font-weight: 700; src: url(https://cdn.jsdelivr.net/npm/@fontsource/redaction-70@5.3.0/files/redaction-70-latin-700-normal.woff2); }
+:root { --bg: #1e1e2e; --word: #e0e4f0; --text: #b0b8d1; --dim: #8888a4; --url: #e0e4f0; }
+:root[data-theme="light"] { --bg: #eff1f5; --word: #1e1e2e; --text: #5c5f77; --dim: #6c6f85; --url: #1e1e2e; }
+html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: var(--bg); }
+.card { box-sizing: border-box; width: 1200px; height: 630px; padding: 0 80px; display: flex; flex-direction: column; justify-content: center; }
+p { margin: 34px 0 30px; color: var(--text); white-space: nowrap; font-family: "Redaction 70"; font-weight: 700; }
+.url { font: 500 30px "Fira Code", monospace; color: var(--dim); }
+.url b { font-weight: 500; color: var(--url); }
+</style>
+</head>
+<body>
+<div class="card">
+  <canvas width="1040" height="400"></canvas>
+  <p>Read and edit your GitHub Gists from the terminal.</p>
+  <div class="url"><b>babarot.me</b>/gist</div>
+</div>
+<script>
+// The word is drawn on a canvas, to fit it by the ink of its letters and
+// not by the box of the font.
+document.documentElement.dataset.theme = new URLSearchParams(location.search).get('v') || 'dark';
+(async () => {
+  const font = size => `700 ${size}px "Redaction 70"`;
+  await document.fonts.load(font(200), 'gist Read');
+  await document.fonts.ready;
+  const style = getComputedStyle(document.documentElement);
+  const canvas = document.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.font = font(200);
+  const m = ctx.measureText('gist');
+  const k = Math.min(1040 / (m.actualBoundingBoxLeft + m.actualBoundingBoxRight),
+    396 / (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent));
+  canvas.height = Math.ceil((m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) * k) + 4;
+  ctx.font = font(200 * k);
+  ctx.fillStyle = style.getPropertyValue('--word');
+  ctx.fillText('gist', m.actualBoundingBoxLeft * k, m.actualBoundingBoxAscent * k + 2);
+  const p = document.querySelector('p');
+  ctx.font = font(100);
+  p.style.fontSize = Math.min(1000 / ctx.measureText(p.textContent).width * 100, 48) + 'px';
+})();
+</script>
+</body>
+</html>
