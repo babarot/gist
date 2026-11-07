@@ -189,6 +189,50 @@ func TestHTML(t *testing.T) {
 	}
 }
 
+func TestHTMLToMarkdown(t *testing.T) {
+	for name, tt := range map[string]struct{ in, want string }{
+		"nothing to do":       {"plain text", "plain text"},
+		"heading":             {"<h3>Title</h3>", "### Title"},
+		"bold":                {"a <strong>b</strong> c", "a **b** c"},
+		"code":                {"a <code>b</code> c", "a `b` c"},
+		"pre":                 {"<pre>x := 1\ny := 2</pre>", "```\nx := 1\ny := 2\n```"},
+		"code in pre":         {"<pre><code>x</code></pre>", "```\nx\n```"},
+		"hr":                  {"a<hr>b", "a\n---\nb"},
+		"br":                  {"a<br>b", "a\nb"},
+		"br in a heading":     {"<h1>a<br>b</h1>", "# a b"},
+		"summary":             {"<details><summary>More</summary>hidden</details>", "▸ More\nhidden"},
+		"ol":                  {"<ol><li>a</li><li>b</li></ol>", "1. a\n2. b"},
+		"ol with a start":     {`<ol start="3"><li>a</li><li>b</li></ol>`, "3. a\n4. b"},
+		"ol with a bad one":   {`<ol start="x"><li>a</li></ol>`, "1. a"},
+		"nested":              {"<ul><li>a<ul><li>b</li></ul></li></ul>", "- a\n  - b"},
+		"img":                 {`<img src="a.png" alt="A">`, "![A](a.png)"},
+		"img without alt":     {`<img src='a.png'>`, "![](a.png)"},
+		"script":              {"a<script>alert(1)</script>b", "ab"},
+		"style":               {"a<style>p{}</style>b", "ab"},
+		"unknown tag":         {"<span>a</span>", "a"},
+		"autolink":            {"<https://example.com/a>", "https://example.com/a"},
+		"mail autolink":       {"<me@example.com>", "me@example.com"},
+		"entity":              {"a &amp; b", "a & b"},
+		"code span":           {"`<b>` and <b>c</b>", "`<b>` and **c**"},
+		"entity in a span":    {"`&amp;` &amp;", "`&amp;` &"},
+		"fence":               {"<b>a</b>\n```\n<b>c</b>\n```", "**a**\n```\n<b>c</b>\n```"},
+		"fence left open":     {"```\n<b>c</b>", "```\n<b>c</b>"},
+		"table":               {"<table><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr></table>", "| a | b |\n|---|---|\n| 1 | 2 |"},
+		"pipe in a cell":      {"<table><tr><td>a|b</td></tr></table>", "| a¦b |\n|---|"},
+		"cell over lines":     {"<table><tr><td>a\n  b</td></tr></table>", "| a b |\n|---|"},
+		"list in a cell":      {"<table><tr><td><ul><li>a</li><li>b</li></ul></td></tr></table>", "| a b |\n|---|"},
+		"table in a table":    {"<table><tr><td>a<table><tr><td>b</td></tr></table></td></tr></table>", "| ab |\n|---|"},
+		"empty table":         {"<table></table>", ""},
+		"rows without an end": {"<table><tr><td>a<tr><td>b</table>", "| a |\n|---|\n| b |"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if got := strings.TrimSpace(htmlToMarkdown(tt.in)); got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestDeepListsStayInProportion(t *testing.T) {
 	src := strings.Repeat("<ul>", 10000) + strings.Repeat("<li>x</li>", 50000)
 	if got := len(htmlToMarkdown(src)); got > len(src)*4 {
