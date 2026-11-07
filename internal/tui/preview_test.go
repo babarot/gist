@@ -917,3 +917,22 @@ func TestAGistJustChangedIsNotNowAgo(t *testing.T) {
 		t.Errorf("got:\n%s", s)
 	}
 }
+
+func TestTheTabsShownSitInTheFrame(t *testing.T) {
+	m := loaded(t, fixture(), 120, 34)
+	backs := map[any]bool{}
+	for _, cl := range m.paint().rows[m.layout().boxY] {
+		if cl.style.bg != nil {
+			backs[cl.style.bg] = true
+		}
+	}
+	if backs[m.pal.blue] {
+		t.Error("a tab is solid blue")
+	}
+	if !backs[m.pal.surface0] {
+		t.Error("the file shown has no tab of its own")
+	}
+	if !backs[m.pal.tab] {
+		t.Error("the side shown has no tab of its own")
+	}
+}

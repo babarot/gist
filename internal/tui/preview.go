@@ -303,7 +303,8 @@ func firstTab(widths []int, cur, room int) int {
 }
 
 // drawFileTabs lays the files along the top of the frame, keeping the one shown
-// in sight however many there are.
+// in sight however many there are. A file is a choice within the pane, so its
+// tab is fainter than those of drawSideTabs, which switch the pane.
 func (m *Model) drawFileTabs(c *canvas, l layout, g model.Gist, dx int) {
 	p := m.pal
 	line := style{fg: p.surface1}
@@ -320,7 +321,7 @@ func (m *Model) drawFileTabs(c *canvas, l layout, g model.Gist, dx int) {
 	}
 	for i := from; i < len(g.Files); i++ {
 		s := " " + g.Files[i].Name + " "
-		on := style{fg: p.base, bg: p.blue, bold: true}
+		on := style{fg: p.blue, bg: p.surface0, bold: true}
 		if x+widths[i] > end {
 			// Only the tab shown is cut, when it is wider than the frame
 			if i == cur {
@@ -352,7 +353,7 @@ func (m *Model) drawSideTabs(c *canvas, l layout, g model.Gist, dx int) {
 		x0 := x
 		s := " " + label + " "
 		if m.side == i {
-			x = c.put(l.boxY, x, s, style{fg: p.base, bg: p.blue, bold: true})
+			x = c.put(l.boxY, x, s, style{fg: p.text, bg: p.tab, bold: true})
 		} else {
 			x = c.put(l.boxY, x, s, style{fg: p.overlay})
 		}
