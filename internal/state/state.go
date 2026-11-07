@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 )
 
@@ -22,7 +23,11 @@ type Store struct {
 }
 
 // Open is the store in dir.
-func Open(dir string) *Store { return &Store{dir: dir} }
+func Open(dir string) *Store {
+	s := &Store{dir: dir}
+	s.renameDrafts()
+	return s
+}
 
 // settings are what is remembered between launches.
 type settings struct {
@@ -129,8 +134,51 @@ type Draft struct {
 
 func (s *Store) draftDir(gist string) string { return filepath.Join(s.DraftsDir(), gist) }
 
+// escapedPart is what url.PathEscape leaves, an escape or a capital.
+var escapedPart = regexp.MustCompile(`%[0-9A-F]{2}|[A-Z]`)
+
+// draftName is the file of a draft. Capitals are escaped too: A.go and a.go are
+// two files of a gist, but one file on the disks of macOS and Windows.
+func draftName(file string) string {
+	return escapedPart.ReplaceAllStringFunc(url.PathEscape(file), func(m string) string {
+		if len(m) > 1 {
+			return m
+		}
+		return fmt.Sprintf("%%%02X", m[0])
+	}) + ".json"
+}
+
 func (s *Store) draftPath(gist, file string) string {
-	return filepath.Join(s.draftDir(gist), url.PathEscape(file)+".json")
+	return filepath.Join(s.draftDir(gist), draftName(file))
+}
+
+// renameDrafts moves the drafts kept before capitals were escaped to the names
+// they are looked for by. One that cannot be read or moved is left where it is.
+func (s *Store) renameDrafts() {
+	gists, err := s.DraftGists()
+	if err != nil {
+		return
+	}
+	for _, gist := range gists {
+		entries, err := os.ReadDir(s.draftDir(gist))
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			path := filepath.Join(s.draftDir(gist), e.Name())
+			d, ok, err := readDraft(path)
+			if err != nil || !ok || d.Gist != gist {
+				continue
+			}
+			want := s.draftPath(gist, d.File)
+			if want == path {
+				continue
+			}
+			if _, err := os.Stat(want); errors.Is(err, fs.ErrNotExist) {
+				_ = os.Rename(path, want)
+			}
+		}
+	}
 }
 
 // SaveDraft keeps d, for the gist of the lock. It is written whole or not at

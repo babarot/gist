@@ -140,3 +140,39 @@ func TestScratch(t *testing.T) {
 		t.Errorf("the file stayed: %v", err)
 	}
 }
+
+func TestNamesThatDifferOnlyInCaseKeepTheirContent(t *testing.T) {
+	e, s := setup(t)
+	g := s.Add("", false, map[string]string{"A.go": "upper\n", "a.go": "lower\n", "b.go": "other\n"})
+	es := begin(t, e, g.ID, "A.go", "a.go", "b.go")
+	w, err := es.Workspace()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{}
+	for i, p := range w.Paths() {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want[es.Files[i].Name] = string(b)
+		if err := os.WriteFile(p, append(b, "more\n"...), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if want["A.go"] != "upper\n" || want["a.go"] != "lower\n" || want["b.go"] != "other\n" {
+		t.Fatalf("written as %q", want)
+	}
+	if changed, err := w.ReadBack(es); err != nil || !changed {
+		t.Fatalf("changed %v, %v", changed, err)
+	}
+	for name, content := range want {
+		if got := es.File(name).Content; got != content+"more\n" {
+			t.Errorf("%s is %q", name, got)
+		}
+		d, ok, err := e.Draft(g.ID, name)
+		if err != nil || !ok || d.File != name || string(d.Content) != content+"more\n" {
+			t.Errorf("the draft of %s is %+v, %v, %v", name, d, ok, err)
+		}
+	}
+}

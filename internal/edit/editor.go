@@ -32,15 +32,27 @@ type Workspace struct {
 }
 
 // Workspace writes the content of the files to a directory of their own, which
-// only the user can read.
+// only the user can read. Names that differ only in case are one file on the
+// disks of macOS and Windows, so all but the first of them go a directory down.
 func (s *Session) Workspace() (*Workspace, error) {
 	dir, err := os.MkdirTemp("", "gist-"+s.gist[:min(7, len(s.gist))]+"-*")
 	if err != nil {
 		return nil, err
 	}
 	w := &Workspace{dir: dir, paths: map[string]string{}}
+	seen := map[string]bool{}
 	for _, f := range s.Files {
-		path := filepath.Join(dir, filepath.Base(f.Name))
+		name := filepath.Base(f.Name)
+		at := dir
+		if low := strings.ToLower(name); seen[low] {
+			if at, err = os.MkdirTemp(dir, "same-name-*"); err != nil {
+				_ = os.RemoveAll(dir)
+				return nil, err
+			}
+		} else {
+			seen[low] = true
+		}
+		path := filepath.Join(at, name)
 		if err := os.WriteFile(path, []byte(f.Content), 0o600); err != nil {
 			_ = os.RemoveAll(dir)
 			return nil, err
