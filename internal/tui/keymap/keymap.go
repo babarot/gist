@@ -89,48 +89,47 @@ func ScopeOf(a Action) Scope {
 type Def struct {
 	Action Action
 	Keys   []string
-	Help   string
 }
 
 // Defaults are every action with its keys.
 var Defaults = []Def{
-	{Quit, []string{"q"}, "quit"},
-	{Help, []string{"?"}, "keys"},
-	{Refresh, []string{"R"}, "refresh"},
-	{Up, []string{"k", "up"}, "up"},
-	{Down, []string{"j", "down"}, "down"},
-	{Top, []string{"g", "home"}, "top"},
-	{Bottom, []string{"G", "end"}, "bottom"},
-	{PageUp, []string{"pgup", "ctrl+u"}, "page up"},
-	{PageDown, []string{"pgdown", "ctrl+d"}, "page down"},
-	{PrevFile, []string{"h", "left", "["}, "previous file"},
-	{NextFile, []string{"l", "right", "]"}, "next file"},
-	{Mine, []string{"1"}, "mine"},
-	{Starred, []string{"2"}, "starred"},
-	{Browse, []string{"o"}, "browser"},
-	{CopyURL, []string{"y"}, "copy url"},
-	{CopyFile, []string{"Y"}, "copy file"},
-	{ScrollDown, []string{"J"}, "scroll down"},
-	{ScrollUp, []string{"K"}, "scroll up"},
-	{ToggleSide, []string{"c"}, "comments"},
-	{ToggleMD, []string{"m"}, "markdown"},
-	{PreviewGrow, []string{"+"}, "taller preview"},
-	{PreviewShrink, []string{"-"}, "shorter preview"},
-	{ReleaseNotes, []string{"w"}, "release notes"},
-	{Edit, []string{"enter", "e"}, "edit"},
-	{Delete, []string{"D"}, "delete"},
-	{Describe, []string{"E"}, "desc"},
-	{Rename, []string{"r"}, "rename"},
-	{Discard, []string{"X"}, "discard draft"},
-	{Confirm, []string{"y"}, "yes"},
-	{Overwrite, []string{"o"}, "overwrite"},
-	{Reload, []string{"r"}, "reload"},
-	{OnlyFile, []string{"f"}, "only this file"},
-	{EditAgain, []string{"e"}, "edit again"},
-	{Filter, []string{"/"}, "filter"},
-	{New, []string{"n"}, "new"},
-	{Create, []string{"ctrl+s"}, "create"},
-	{OpenEditor, []string{"ctrl+e"}, "$EDITOR"},
+	{Quit, []string{"q"}},
+	{Help, []string{"?"}},
+	{Refresh, []string{"R"}},
+	{Up, []string{"k", "up"}},
+	{Down, []string{"j", "down"}},
+	{Top, []string{"g", "home"}},
+	{Bottom, []string{"G", "end"}},
+	{PageUp, []string{"pgup", "ctrl+u"}},
+	{PageDown, []string{"pgdown", "ctrl+d"}},
+	{PrevFile, []string{"h", "left", "["}},
+	{NextFile, []string{"l", "right", "]"}},
+	{Mine, []string{"1"}},
+	{Starred, []string{"2"}},
+	{Browse, []string{"o"}},
+	{CopyURL, []string{"y"}},
+	{CopyFile, []string{"Y"}},
+	{ScrollDown, []string{"J"}},
+	{ScrollUp, []string{"K"}},
+	{ToggleSide, []string{"c"}},
+	{ToggleMD, []string{"m"}},
+	{PreviewGrow, []string{"+"}},
+	{PreviewShrink, []string{"-"}},
+	{ReleaseNotes, []string{"w"}},
+	{Edit, []string{"enter", "e"}},
+	{Delete, []string{"D"}},
+	{Describe, []string{"E"}},
+	{Rename, []string{"r"}},
+	{Discard, []string{"X"}},
+	{Confirm, []string{"y"}},
+	{Overwrite, []string{"o"}},
+	{Reload, []string{"r"}},
+	{OnlyFile, []string{"f"}},
+	{EditAgain, []string{"e"}},
+	{Filter, []string{"/"}},
+	{New, []string{"n"}},
+	{Create, []string{"ctrl+s"}},
+	{OpenEditor, []string{"ctrl+e"}},
 }
 
 // The fixed keys are read before any action and cannot be bound.
@@ -144,15 +143,13 @@ const (
 // Map is the keys of every action, after the config file.
 type Map struct {
 	keys map[Action][]string
-	help map[Action]string
 }
 
 // Default is the map with every action at its default keys.
 func Default() Map {
-	m := Map{keys: map[Action][]string{}, help: map[Action]string{}}
+	m := Map{keys: map[Action][]string{}}
 	for _, d := range Defaults {
 		m.keys[d.Action] = slices.Clone(d.Keys)
-		m.help[d.Action] = d.Help
 	}
 	return m
 }
@@ -181,7 +178,7 @@ func (ps Problems) Error() string {
 // defaults. A name that is no action, and a key two actions want, are mistakes:
 // the error is Problems, with all of them.
 func (m Map) With(over map[string][]string) (Map, error) {
-	out := Map{keys: map[Action][]string{}, help: m.help}
+	out := Map{keys: map[Action][]string{}}
 	for a, k := range m.keys {
 		out.keys[a] = slices.Clone(k)
 	}
@@ -246,9 +243,6 @@ func (m Map) Matches(action Action, key string) bool { return slices.Contains(m.
 
 // Keys are action's keys.
 func (m Map) Keys(action Action) []string { return m.keys[action] }
-
-// HelpOf is the words of action.
-func (m Map) HelpOf(action Action) string { return m.help[action] }
 
 // glyphs are how key names show.
 var glyphs = map[string]string{"up": "↑", "down": "↓", "left": "←", "right": "→", "pgup": "PgUp", "pgdown": "PgDn"}

@@ -2,6 +2,7 @@ package filter
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -30,5 +31,22 @@ func TestFuzzy(t *testing.T) {
 	b, _, _ := Fuzzy("st", "10xinc/last-thing")
 	if a <= b {
 		t.Errorf("st: stailer %d should beat last-thing %d", a, b)
+	}
+}
+
+func TestAHitMovesToAWordStartWhenTheRestStillFits(t *testing.T) {
+	for _, tt := range []struct {
+		pattern, s string
+		want       []int
+	}{
+		// The b of xb gives way to the one starting a word
+		{"abc", "a xb b c", []int{0, 5, 7}},
+		// Here the word's b comes after the c, so xb stays
+		{"abcd", "a xb c b d", []int{0, 3, 5, 9}},
+	} {
+		_, hits, ok := Fuzzy(tt.pattern, tt.s)
+		if !ok || !slices.Equal(hits, tt.want) {
+			t.Errorf("%q in %q: %v, %v", tt.pattern, tt.s, hits, ok)
+		}
 	}
 }
