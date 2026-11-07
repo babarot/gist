@@ -103,6 +103,7 @@ func newRootCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobr
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		Use:           "gist [gist]",
+		Version:       version.String(),
 		Args: func(_ *cobra.Command, args []string) error {
 			// On a terminal an argument is a gist to open
 			if onTerminal := isTerminal(stdin) && isTerminal(stdout); len(args) > 0 && !onTerminal {
@@ -127,6 +128,8 @@ func newRootCommand(o *options, stdin io.Reader, stdout, stderr io.Writer) *cobr
 	}
 	root.SetOut(stdout)
 	root.SetErr(stderr)
+	// The same line as gist version prints
+	root.SetVersionTemplate("{{.Version}}\n")
 
 	flags := root.PersistentFlags()
 	flags.StringVar(&o.config, "config", filepath.Join(xdg.ConfigDir(), "config.toml"), "the config file")
