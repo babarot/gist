@@ -706,10 +706,10 @@ func TestTheGhostFitsANarrowTerminal(t *testing.T) {
 func TestFilteringBySize(t *testing.T) {
 	gs := fixture()
 	gs[0].Files[0].Size = 300 << 10
-	if got := rowsOf(gs, "size:>200KB"); len(got) != 1 || got[0].gist.ID != gs[0].ID {
+	if got := rowsOf(gs, "size:>200KB", time.Now()); len(got) != 1 || got[0].gist.ID != gs[0].ID {
 		t.Errorf("got %d rows", len(got))
 	}
-	if got := rowsOf(gs, "size:<200KB"); len(got) != len(gs)-1 {
+	if got := rowsOf(gs, "size:<200KB", time.Now()); len(got) != len(gs)-1 {
 		t.Errorf("got %d rows", len(got))
 	}
 }
@@ -755,5 +755,32 @@ func TestFilteringByOwner(t *testing.T) {
 	pressTab(t, m)
 	if got := m.tab().query; got != "owner:bob" || len(m.tab().rows) != 1 {
 		t.Errorf("got %q, %d rows", got, len(m.tab().rows))
+	}
+}
+
+func TestFilteringByAge(t *testing.T) {
+	gs := fixture() // 5m, 3h, 2d, 120d and 10y old
+	for _, tt := range []struct {
+		query string
+		rows  int
+	}{{"updated:<1h", 1}, {"updated:<7d", 3}, {"updated:>1mo", 2}, {"updated:>1y", 1}} {
+		if got := rowsOf(gs, tt.query, now); len(got) != tt.rows {
+			t.Errorf("%s: %d rows", tt.query, len(got))
+		}
+	}
+}
+
+func TestTheGhostSaysHowToWriteAnAge(t *testing.T) {
+	m := loaded(t, langGists(), 120, 34)
+	press(t, m, "/")
+	for _, step := range []struct{ typed, want string }{
+		{"updated:", "/ updated:<7d within 7 days"},
+		{"<", "/ updated:<7d"},
+		{"7", "/ updated:<7 m, h, d, w, mo or y"},
+	} {
+		typeText(t, m, step.typed)
+		if !strings.Contains(screen(m), step.want) {
+			t.Errorf("no %q in:\n%s", step.want, screen(m))
+		}
 	}
 }

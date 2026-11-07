@@ -237,7 +237,7 @@ func (m *Model) openStores(login string) {
 		}
 		if ok {
 			t.list, t.gists, t.loaded = l, l.Gists, true
-			t.rows = rowsOf(t.gists, t.query)
+			t.rows = rowsOf(t.gists, t.query, m.now())
 		}
 	}
 	m.applySelect()
@@ -463,7 +463,7 @@ func (m *Model) refilter(t *tab) {
 		id = t.rows[t.cur].gist.ID
 	}
 	height := t.cur - t.top
-	t.rows = rowsOf(t.gists, t.query)
+	t.rows = rowsOf(t.gists, t.query, m.now())
 	if i := slices.IndexFunc(t.rows, func(r row) bool { return r.gist.ID == id }); i >= 0 {
 		t.cur = i
 		t.top = i - height

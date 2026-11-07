@@ -3,6 +3,7 @@ package filter
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestParse(t *testing.T) {
@@ -191,7 +192,7 @@ func TestSizeCompletesItsKeyOnly(t *testing.T) {
 	}
 }
 
-func TestSizeHint(t *testing.T) {
+func TestBoundHint(t *testing.T) {
 	for word, want := range map[string]string{
 		"size:":       ">200KB, <1MB, also >= and <=",
 		"SIZE:":       ">200KB, <1MB, also >= and <=",
@@ -203,11 +204,17 @@ func TestSizeHint(t *testing.T) {
 		"size:>200KB": "",
 		"size:200kb":  "  not a size: try size:>200KB",
 		"size:>2gb":   "  not a size: try size:>200KB",
+		"updated:":    "<7d within 7 days, >1y over a year ago",
+		"updated:<":   "7d",
+		"updated:<7":  " m, h, d, w, mo or y",
+		"updated:<7m": "",
+		"updated:7d":  "  not an age: try updated:<7d",
+		"updated:<7x": "  not an age: try updated:<7d",
 		"file:a":      "",
 		"retry":       "",
 		"":            "",
 	} {
-		if got := SizeHint(word); got != want {
+		if got := BoundHint(word); got != want {
 			t.Errorf("%q: %q", word, got)
 		}
 	}
@@ -233,6 +240,46 @@ func TestOwner(t *testing.T) {
 		t.Errorf("got %q %q %v", key, value, ok)
 	}
 	if got := KeyRest("ow"); got != "ner:" {
+		t.Errorf("KeyRest is %q", got)
+	}
+}
+
+func TestUpdated(t *testing.T) {
+	const day = 24 * time.Hour
+	for _, tt := range []struct {
+		query string
+		age   time.Duration
+		want  bool
+	}{
+		{"updated:<7d", 6 * day, true},
+		{"updated:<7d", 7 * day, false},
+		{"updated:<=7d", 7 * day, true},
+		{"updated:>1y", 366 * day, true},
+		{"updated:>1y", 364 * day, false},
+		{"updated:<30m", 29 * time.Minute, true},
+		{"updated:<2h", 3 * time.Hour, false},
+		{"updated:<1w", 6 * day, true},
+		{"updated:<2mo", 59 * day, true},
+		{"updated:<2mo", 61 * day, false},
+		{"updated:>1d updated:<1w", 3 * day, true},
+		{"updated:>1d updated:<1w", 8 * day, false},
+		// Still being typed: everything stays
+		{"updated:", day, true},
+		{"updated:<", day, true},
+		{"updated:<7", day * 100, true},
+		// Wrong: nothing does
+		{"updated:7d", 7 * day, false},
+		{"updated:<7x", day, false},
+	} {
+		it := Item{Files: []string{"a.go"}, Age: tt.age}
+		if _, got := Match(Parse(tt.query), it); got != tt.want {
+			t.Errorf("%q at %v: %v", tt.query, tt.age, got)
+		}
+	}
+	if Parse("updated:<7d").Empty() {
+		t.Error("a bound narrows nothing")
+	}
+	if got := KeyRest("up"); got != "dated:" {
 		t.Errorf("KeyRest is %q", got)
 	}
 }
