@@ -469,13 +469,19 @@ func (m *Model) roleStyle(s markdown.Span) style {
 	return st
 }
 
+// totalSize is how many bytes the files of g are.
+func totalSize(g model.Gist) int64 {
+	var n int64
+	for _, f := range g.Files {
+		n += f.Size
+	}
+	return n
+}
+
 func (m *Model) drawInfo(c *canvas, l layout, g model.Gist, f model.File, read bool, x int) {
 	p := m.pal
 	now := m.now()
-	var total int64
-	for _, gf := range g.Files {
-		total += gf.Size
-	}
+	total := totalSize(g)
 	vis, visSt := "secret", style{fg: p.peach}
 	if g.Public {
 		vis, visSt = "public", style{fg: p.text}

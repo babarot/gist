@@ -202,19 +202,22 @@ func (m *Model) drawHeader(c *canvas) {
 }
 
 // columns is where the columns of the list are, for a terminal of width w.
-// Narrow terminals lose COMMENTS, then FILES.
+// Narrow terminals lose SIZE, then COMMENTS, then FILES. With the file first
+// there is no FILES: its row says +2 already.
 type columns struct {
-	owner, ownerW   int // the owner, on the starred tab; 0 wide elsewhere
-	lead, leadW     int // the first column: the description, or the file
-	desc, descW     int // the description, when the first column is the file
-	files, comments int // right edges, or 0 when dropped
-	vis, updated    int // left edge, right edge
+	owner, ownerW int // the owner, on the starred tab; 0 wide elsewhere
+	lead, leadW   int // the first column: the description, or the file
+	desc, descW   int // the description, when the first column is the file
+	files, sizes  int // right edges, or 0 when dropped
+	comments      int // right edge, or 0 when dropped
+	vis, updated  int // left edge, right edge
 }
 
 const (
 	rowLead     = 4 // the cursor and the mark
 	colGap      = 2
 	filesCol    = 5
+	sizeCol     = 9 // "1023.9 KB"
 	commentsCol = 8
 	visCol      = 6
 	updatedCol  = 7
@@ -222,6 +225,7 @@ const (
 	ownerColMax = 16
 	ownerHeader = "OWNER"
 	// The widths under which a column goes.
+	sizeFrom     = 100
 	commentsFrom = 90
 	filesFrom    = 80
 )
@@ -232,13 +236,17 @@ func (m *Model) columns() columns {
 	c.updated = w - 1
 	c.vis = c.updated - updatedCol - colGap - visCol
 	right := c.vis - colGap
+	if w >= sizeFrom {
+		c.sizes = right
+		right -= sizeCol + colGap
+	}
+	if w >= filesFrom && m.opt.Config.List.Lead != config.LeadFile {
+		c.files = right
+		right -= filesCol + colGap
+	}
 	if w >= commentsFrom {
 		c.comments = right
 		right -= commentsCol + colGap
-	}
-	if w >= filesFrom {
-		c.files = right
-		right -= filesCol + colGap
 	}
 	c.lead = rowLead
 	// A third of what is left, and none on a terminal too narrow for its name:
@@ -282,6 +290,9 @@ func (m *Model) drawColumns(c *canvas, y int) {
 	}
 	if cols.comments > 0 {
 		c.put(y, cols.comments-len("COMMENTS"), "COMMENTS", head)
+	}
+	if cols.sizes > 0 {
+		c.put(y, cols.sizes-len("SIZE"), "SIZE", head)
 	}
 	if cols.files > 0 {
 		c.put(y, cols.files-len("FILES"), "FILES", head)
@@ -392,6 +403,10 @@ func (m *Model) drawRow(c *canvas, y int, r row, cols columns, bg color.Color, n
 	if cols.comments > 0 && g.Comments > 0 {
 		s := strconv.Itoa(g.Comments)
 		c.put(y, cols.comments-len(s), s, dim)
+	}
+	if cols.sizes > 0 {
+		s := size(totalSize(g))
+		c.put(y, cols.sizes-len(s), s, dim)
 	}
 	if cols.files > 0 {
 		s := strconv.Itoa(len(g.Files))

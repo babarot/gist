@@ -1,10 +1,10 @@
 gist // @alice     1 mine (5)    2 starred (…)                                                                   via gh
-    DESCRIPTION                                                                        FILES  COMMENTS  VIS     UPDATED
-▎   escape ^[[31msequence^[[<age>    and a tab                                                1            secret     <age>
-    emoji ❤️ and a family 👨‍👩‍👦 and é                                                         1            secret     <age>
-    no-description.txt +1                                                                  2            secret     <age>
-    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確かめるための…      2            secret     <age>
-    a public gist wi╭ description of <id> ──────────────────────────────────────────────────────╮    public     <age>
+    DESCRIPTION                                                             COMMENTS  FILES       SIZE  VIS     UPDATED
+▎   escape ^[[31msequence^[[<age>    and a tab                                               1        8 B  secret     <age>
+    emoji ❤️ and a family 👨‍👩‍👦 and é                                                        1        8 B  secret     <age>
+    no-description.txt +1                                                                 2       16 B  secret     <age>
+    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確…                 2       16 B  secret     <age>
+    a public gist wi╭ description of <id> ──────────────────────────────────────────────────────╮ B  public     <age>
                     │                                                                              │
                     │  ┃ escape ^[[31msequence^[[<age> and a tab                                      │
                     │                                                                              │

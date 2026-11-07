@@ -1,10 +1,10 @@
 gist // @alice     1 mine (5)    2 starred (…)                                                                   via gh
-    DESCRIPTION                                                                        FILES  COMMENTS  VIS     UPDATED
-▎ ✎ escape ^[[31msequence^[[<age>    and a tab                                                1            secret     <age>
-    emoji ❤️ and a family 👨‍👩‍👦 and é                                                         1            secret     <age>
-    no-description.txt +1                                                                  2            secret     <age>
-    日本語の説明がある╭ GitHub side was updated ─────────────────────────────────────────────────╮      secret     <age>
-    a public gist with│                                                                          │      public     <age>
+    DESCRIPTION                                                             COMMENTS  FILES       SIZE  VIS     UPDATED
+▎ ✎ escape ^[[31msequence^[[<age>    and a tab                                               1        8 B  secret     <age>
+    emoji ❤️ and a family 👨‍👩‍👦 and é                                                        1        8 B  secret     <age>
+    no-description.txt +1                                                                 2       16 B  secret     <age>
+    日本語の説明がある╭ GitHub side was updated ─────────────────────────────────────────────────╮16 B  secret     <age>
+    a public gist with│                                                                          │24 B  public     <age>
                       │  x^[]0;title^G.txt  <id> was updated <age> after this edit start…  │
                       │  your edit is based on revision <id>; GitHub is at revision <id>.  │
                       │                                                                          │
