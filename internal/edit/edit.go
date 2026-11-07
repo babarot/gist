@@ -181,9 +181,6 @@ type Session struct {
 	lock   *state.Lock
 }
 
-// Gist is the ID of the gist being edited.
-func (s *Session) Gist() string { return s.gist }
-
 // File is the file being edited with this name, or nil.
 func (s *Session) File(name string) *FileEdit {
 	if i := slices.IndexFunc(s.Files, func(f *FileEdit) bool { return f.Name == name }); i >= 0 {
