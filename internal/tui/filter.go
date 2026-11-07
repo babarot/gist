@@ -32,7 +32,7 @@ func rowsOf(gists []model.Gist, query string, now time.Time) []row {
 			rows = append(rows, row{gist: g})
 			continue
 		}
-		it := filter.Item{Description: text.Line(g.Description), Public: g.Public, Owner: text.Line(g.Owner), Size: totalSize(g), Age: now.Sub(g.Updated)}
+		it := filter.Item{Description: text.Line(g.Description), Public: g.Public, Owner: text.Line(g.Owner), Size: totalSize(g), Age: now.Sub(g.Updated), Comments: g.Comments}
 		for _, f := range g.Files {
 			it.Files = append(it.Files, text.Line(f.Name))
 			if f.Language != "" {

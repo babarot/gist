@@ -1,9 +1,10 @@
 // Package filter narrows the list of gists: words found in order in a gist's
 // description or file names, and key:value terms that look in one thing only:
-// file:, desc:, vis:, lang:, owner:, size: and updated:.
+// file:, desc:, vis:, lang:, owner:, size:, updated: and comments:.
 package filter
 
 import (
+	"cmp"
 	"regexp"
 	"slices"
 	"strconv"
@@ -15,17 +16,18 @@ import (
 
 // The keys, with their colon.
 const (
-	FileKey    = "file:"
-	DescKey    = "desc:"
-	VisKey     = "vis:"
-	LangKey    = "lang:"
-	OwnerKey   = "owner:"
-	SizeKey    = "size:"
-	UpdatedKey = "updated:"
+	FileKey     = "file:"
+	DescKey     = "desc:"
+	VisKey      = "vis:"
+	LangKey     = "lang:"
+	OwnerKey    = "owner:"
+	SizeKey     = "size:"
+	UpdatedKey  = "updated:"
+	CommentsKey = "comments:"
 )
 
 // Keys are the keys.
-var Keys = []string{FileKey, DescKey, VisKey, LangKey, OwnerKey, SizeKey, UpdatedKey}
+var Keys = []string{FileKey, DescKey, VisKey, LangKey, OwnerKey, SizeKey, UpdatedKey, CommentsKey}
 
 // Query is the parsed filter, lower-cased.
 type Query struct {
@@ -35,14 +37,14 @@ type Query struct {
 	// login. Several of one key match any of them.
 	File, Desc, Vis, Lang, Owner []string
 	// Size are bounds on the size of a gist's files together and Updated on how
-	// long ago it changed, in nanoseconds. All of them must hold, so that two
-	// make a range.
-	Size, Updated []Bound
+	// long ago it changed, in nanoseconds, and Comments on how many comments it
+	// has. All of them must hold, so that two make a range.
+	Size, Updated, Comments []Bound
 }
 
 // Bound is a bound on a number, such as >200kb.
 type Bound struct {
-	// Op is >, >=, < or <=.
+	// Op is >, >=, <, <= or, for a number alone, =.
 	Op    string
 	Value float64
 }
@@ -55,15 +57,19 @@ func (b Bound) holds(n float64) bool {
 		return n >= b.Value
 	case "<":
 		return n < b.Value
+	case "=":
+		return n == b.Value
 	}
 	return n <= b.Value
 }
 
 // boundKey is a key that takes a bound: what its units are worth, and what the
 // ghost says at each step of typing one. Without "" among units, a number needs
-// a unit.
+// a unit. alone says a number needs no operator, for a count that can be exact;
+// a size or an age never is.
 type boundKey struct {
 	units                        map[string]float64
+	alone                        bool
 	start, number, unit, invalid string
 }
 
@@ -89,11 +95,18 @@ var boundKeys = map[string]boundKey{
 		unit:    " m, h, d, w, mo or y",
 		invalid: "  not an age: try updated:<7d",
 	},
+	CommentsKey: {
+		units:   map[string]float64{"": 1},
+		alone:   true,
+		start:   ">0, or 0 for none, also >=, < and <=",
+		number:  "0",
+		invalid: "  not a count: try comments:>0",
+	},
 }
 
 // boundTerm is a value of a key that takes a bound, lower-cased: an operator, a
 // number and a unit.
-var boundTerm = regexp.MustCompile(`^(>=|<=|>|<)(\d+\.?\d*|\.\d+)([a-z]*)$`)
+var boundTerm = regexp.MustCompile(`^(>=|<=|>|<)?(\d+\.?\d*|\.\d+)([a-z]*)$`)
 
 // parseBound reads a value of k. typing says it is not whole yet, so it is still
 // being typed; with neither ok nor typing, it is wrong.
@@ -102,7 +115,7 @@ func (k boundKey) parseBound(v string) (b Bound, ok, typing bool) {
 		return Bound{}, false, true
 	}
 	m := boundTerm.FindStringSubmatch(v)
-	if m == nil {
+	if m == nil || m[1] == "" && !k.alone {
 		return Bound{}, false, false
 	}
 	unit, known := k.units[m[3]]
@@ -113,7 +126,7 @@ func (k boundKey) parseBound(v string) (b Bound, ok, typing bool) {
 	if err != nil {
 		return Bound{}, false, false
 	}
-	return Bound{m[1], n * unit}, true, false
+	return Bound{cmp.Or(m[1], "="), n * unit}, true, false
 }
 
 func isOp(v string) bool { return v == ">" || v == "<" || v == ">=" || v == "<=" }
@@ -148,7 +161,7 @@ func BoundHint(word string) string {
 func Parse(s string) Query {
 	var q Query
 	fields := map[string]*[]string{FileKey: &q.File, DescKey: &q.Desc, VisKey: &q.Vis, LangKey: &q.Lang, OwnerKey: &q.Owner}
-	bounds := map[string]*[]Bound{SizeKey: &q.Size, UpdatedKey: &q.Updated}
+	bounds := map[string]*[]Bound{SizeKey: &q.Size, UpdatedKey: &q.Updated, CommentsKey: &q.Comments}
 	for w := range strings.FieldsSeq(strings.ToLower(s)) {
 		if key, v, ok := strings.Cut(w, ":"); ok {
 			if k, known := boundKeys[key+":"]; known {
@@ -216,7 +229,7 @@ func ValueTerm(word string) (key, value string, ok bool) {
 
 // Empty says the query narrows nothing.
 func (q Query) Empty() bool {
-	return len(q.Words)+len(q.File)+len(q.Desc)+len(q.Vis)+len(q.Lang)+len(q.Owner)+len(q.Size)+len(q.Updated) == 0
+	return len(q.Words)+len(q.File)+len(q.Desc)+len(q.Vis)+len(q.Lang)+len(q.Owner)+len(q.Size)+len(q.Updated)+len(q.Comments) == 0
 }
 
 // Item is what is looked in.
@@ -227,8 +240,9 @@ type Item struct {
 	Public      bool
 	Owner       string
 	// Size is the size of the files together, and Age how long ago it changed.
-	Size int64
-	Age  time.Duration
+	Size     int64
+	Age      time.Duration
+	Comments int
 }
 
 // Hits are the runes that matched, to show. Each is sorted.
@@ -278,7 +292,8 @@ func Match(q Query, it Item) (Hits, bool) {
 	if len(q.Vis) > 0 && !slices.Contains(q.Vis, vis) {
 		return Hits{}, false
 	}
-	if !allHold(q.Size, float64(it.Size)) || !allHold(q.Updated, float64(it.Age)) {
+	if !allHold(q.Size, float64(it.Size)) || !allHold(q.Updated, float64(it.Age)) ||
+		!allHold(q.Comments, float64(it.Comments)) {
 		return Hits{}, false
 	}
 	return h, true

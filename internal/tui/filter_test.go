@@ -784,3 +784,12 @@ func TestTheGhostSaysHowToWriteAnAge(t *testing.T) {
 		}
 	}
 }
+
+func TestFilteringByComments(t *testing.T) {
+	gs := fixture() // the first has 3
+	for query, rows := range map[string]int{"comments:>0": 1, "comments:0": len(gs) - 1, "comments:3": 1, "comments:>3": 0} {
+		if got := rowsOf(gs, query, now); len(got) != rows {
+			t.Errorf("%s: %d rows", query, len(got))
+		}
+	}
+}

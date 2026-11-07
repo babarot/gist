@@ -210,6 +210,12 @@ func TestBoundHint(t *testing.T) {
 		"updated:<7m": "",
 		"updated:7d":  "  not an age: try updated:<7d",
 		"updated:<7x": "  not an age: try updated:<7d",
+		"comments:":   ">0, or 0 for none, also >=, < and <=",
+		"comments:>":  "0",
+		"comments:>0": "",
+		"comments:3":  "",
+		"comments:x":  "  not a count: try comments:>0",
+		"comments:1k": "  not a count: try comments:>0",
 		"file:a":      "",
 		"retry":       "",
 		"":            "",
@@ -281,5 +287,38 @@ func TestUpdated(t *testing.T) {
 	}
 	if got := KeyRest("up"); got != "dated:" {
 		t.Errorf("KeyRest is %q", got)
+	}
+}
+
+func TestComments(t *testing.T) {
+	for _, tt := range []struct {
+		query    string
+		comments int
+		want     bool
+	}{
+		{"comments:>0", 1, true},
+		{"comments:>0", 0, false},
+		{"comments:0", 0, true},
+		{"comments:0", 1, false},
+		{"comments:3", 3, true},
+		{"comments:>=3", 3, true},
+		{"comments:<3", 3, false},
+		{"comments:<=3", 3, true},
+		{"comments:>1 comments:<4", 2, true},
+		{"comments:>1 comments:<4", 4, false},
+		{"comments:", 5, true},
+		{"comments:>", 5, true},
+		{"comments:many", 5, false},
+	} {
+		it := Item{Files: []string{"a.go"}, Comments: tt.comments}
+		if _, got := Match(Parse(tt.query), it); got != tt.want {
+			t.Errorf("%q on %d: %v", tt.query, tt.comments, got)
+		}
+	}
+	if got := KeyRest("co"); got != "mments:" {
+		t.Errorf("KeyRest is %q", got)
+	}
+	if _, got := Match(Parse("size:100"), Item{Files: []string{"a.go"}, Size: 100}); got {
+		t.Error("a size went without an operator")
 	}
 }
