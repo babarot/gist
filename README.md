@@ -9,7 +9,7 @@ gist
 It opens your gists in a list, with the files of the one under the cursor beside it, and a CLI does the same from a script:
 
 - the files drawn with their syntax, and Markdown rendered
-- a filter, fuzzy over what you type, with `file:`, `lang:`, `vis:` and `desc:` to look in one thing, `size:>200KB` to go by size, and tab to fill them in
+- a filter, fuzzy over what you type, with `file:`, `lang:`, `vis:`, `owner:` and `desc:` to look in one thing, `size:>200KB`, `updated:<7d` and `comments:>0` to go by size, age and comments, and tab to fill them in
 - edits in your own editor, with the diff to read before anything is pushed, and a draft kept if you stop there
 - a push that stops when the gist changed on GitHub since you opened it
 - the gists you starred, and their comments

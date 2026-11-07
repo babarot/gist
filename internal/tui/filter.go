@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"charm.land/bubbles/v2/textinput"
@@ -22,8 +23,8 @@ type row struct {
 	hits filter.Hits
 }
 
-// rowsOf are the gists a query leaves, in their order.
-func rowsOf(gists []model.Gist, query string) []row {
+// rowsOf are the gists a query leaves, in their order, as of now.
+func rowsOf(gists []model.Gist, query string, now time.Time) []row {
 	q := filter.Parse(query)
 	rows := make([]row, 0, len(gists))
 	for _, g := range gists {
@@ -31,7 +32,7 @@ func rowsOf(gists []model.Gist, query string) []row {
 			rows = append(rows, row{gist: g})
 			continue
 		}
-		it := filter.Item{Description: text.Line(g.Description), Public: g.Public, Size: totalSize(g)}
+		it := filter.Item{Description: text.Line(g.Description), Public: g.Public, Owner: text.Line(g.Owner), Size: totalSize(g), Age: now.Sub(g.Updated), Comments: g.Comments}
 		for _, f := range g.Files {
 			it.Files = append(it.Files, text.Line(f.Name))
 			if f.Language != "" {
@@ -111,7 +112,7 @@ func (m *Model) valueCandidates(query string) (head string, cands []string) {
 	}
 	low := strings.ToLower(value)
 	seen := map[string]int{}
-	for _, r := range rowsOf(m.tab().gists, query[:len(query)-len(word)]) {
+	for _, r := range rowsOf(m.tab().gists, query[:len(query)-len(word)], m.now()) {
 		for _, v := range valuesOf(key, r.gist) {
 			if l := strings.ToLower(v); l != low && strings.HasPrefix(l, low) {
 				seen[v]++
@@ -136,6 +137,12 @@ func valuesOf(key string, g model.Gist) []string {
 			return []string{"public"}
 		}
 		return []string{"secret"}
+	}
+	if key == filter.OwnerKey {
+		if g.Owner == "" {
+			return nil
+		}
+		return []string{text.Line(g.Owner)}
 	}
 	var out []string
 	for _, f := range g.Files {
@@ -194,7 +201,7 @@ func (m *Model) completeFilter() {
 }
 
 // filterGhost is what shows faint after the cursor: the keys while the filter is
-// empty, then what tab would fill in, and which of the values it is on. A size
+// empty, then what tab would fill in, and which of the values it is on. A bound
 // has no values, so there it says how to write one.
 func (m *Model) filterGhost() string {
 	f := m.filtering
@@ -208,7 +215,7 @@ func (m *Model) filterGhost() string {
 	if rest := filter.KeyRest(value); rest != "" {
 		return rest
 	}
-	if hint := filter.SizeHint(filter.LastWord(value)); hint != "" {
+	if hint := filter.BoundHint(filter.LastWord(value)); hint != "" {
 		return hint
 	}
 	count := func(i, n int) string {

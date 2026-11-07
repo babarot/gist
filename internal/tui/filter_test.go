@@ -706,10 +706,10 @@ func TestTheGhostFitsANarrowTerminal(t *testing.T) {
 func TestFilteringBySize(t *testing.T) {
 	gs := fixture()
 	gs[0].Files[0].Size = 300 << 10
-	if got := rowsOf(gs, "size:>200KB"); len(got) != 1 || got[0].gist.ID != gs[0].ID {
+	if got := rowsOf(gs, "size:>200KB", time.Now()); len(got) != 1 || got[0].gist.ID != gs[0].ID {
 		t.Errorf("got %d rows", len(got))
 	}
-	if got := rowsOf(gs, "size:<200KB"); len(got) != len(gs)-1 {
+	if got := rowsOf(gs, "size:<200KB", time.Now()); len(got) != len(gs)-1 {
 		t.Errorf("got %d rows", len(got))
 	}
 }
@@ -736,5 +736,60 @@ func TestTheGhostSaysHowToWriteASize(t *testing.T) {
 	typeText(t, m, "size:200kb")
 	if s := screen(m); !strings.Contains(s, "not a size: try size:>200KB") {
 		t.Errorf("got:\n%s", s)
+	}
+}
+
+func TestFilteringByOwner(t *testing.T) {
+	gs := fixture()
+	for i := range gs {
+		gs[i].Owner = "alice"
+	}
+	gs[1].Owner = "bob"
+	m := loaded(t, gs, 120, 34)
+	press(t, m, "/")
+	typeText(t, m, "owner:")
+	if s := screen(m); !strings.Contains(s, "/ owner:alice (1/2)") {
+		t.Errorf("got:\n%s", s)
+	}
+	pressTab(t, m)
+	pressTab(t, m)
+	if got := m.tab().query; got != "owner:bob" || len(m.tab().rows) != 1 {
+		t.Errorf("got %q, %d rows", got, len(m.tab().rows))
+	}
+}
+
+func TestFilteringByAge(t *testing.T) {
+	gs := fixture() // 5m, 3h, 2d, 120d and 10y old
+	for _, tt := range []struct {
+		query string
+		rows  int
+	}{{"updated:<1h", 1}, {"updated:<7d", 3}, {"updated:>1mo", 2}, {"updated:>1y", 1}} {
+		if got := rowsOf(gs, tt.query, now); len(got) != tt.rows {
+			t.Errorf("%s: %d rows", tt.query, len(got))
+		}
+	}
+}
+
+func TestTheGhostSaysHowToWriteAnAge(t *testing.T) {
+	m := loaded(t, langGists(), 120, 34)
+	press(t, m, "/")
+	for _, step := range []struct{ typed, want string }{
+		{"updated:", "/ updated:<7d within 7 days"},
+		{"<", "/ updated:<7d"},
+		{"7", "/ updated:<7 m, h, d, w, mo or y"},
+	} {
+		typeText(t, m, step.typed)
+		if !strings.Contains(screen(m), step.want) {
+			t.Errorf("no %q in:\n%s", step.want, screen(m))
+		}
+	}
+}
+
+func TestFilteringByComments(t *testing.T) {
+	gs := fixture() // the first has 3
+	for query, rows := range map[string]int{"comments:>0": 1, "comments:0": len(gs) - 1, "comments:3": 1, "comments:>3": 0} {
+		if got := rowsOf(gs, query, now); len(got) != rows {
+			t.Errorf("%s: %d rows", query, len(got))
+		}
 	}
 }
