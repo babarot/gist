@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 
@@ -113,6 +114,66 @@ func (m *Model) oneAtATime() bool {
 	}
 	m.line.Refuse(m.now(), "one gist at a time · "+m.keys.Hint(keymap.ClearSelection)+" clears the selection")
 	return true
+}
+
+// selectedGists are the gists selected, in the order of the mine tab, those
+// being written to among them: what reads them does not get in their way.
+func (m *Model) selectedGists() []model.Gist {
+	var gs []model.Gist
+	for _, g := range m.tabs[tabMine].gists {
+		if m.selected[g.ID] {
+			gs = append(gs, g)
+		}
+	}
+	return gs
+}
+
+// copySelectedURLs copies the URLs of the gists selected, a line each. The
+// selection stays: nothing was changed, so the next key can act on it too.
+func (m *Model) copySelectedURLs() tea.Cmd {
+	gs := m.selectedGists()
+	if len(gs) == 0 {
+		return nil
+	}
+	urls := make([]string, len(gs))
+	for i, g := range gs {
+		urls[i] = g.URL
+	}
+	if len(urls) == 1 {
+		m.line.Say(m.now(), "✓ copied "+urls[0])
+	} else {
+		m.line.Say(m.now(), fmt.Sprintf("✓ copied %d URLs", len(urls)))
+	}
+	return tea.SetClipboard(strings.Join(urls, "\n"))
+}
+
+// maxBrowse is the most gists the browser key opens at once: V can select
+// hundreds, and each is a tab of the browser.
+const maxBrowse = 10
+
+// browseSelected opens the gists selected in the browser, or none past
+// maxBrowse. The selection stays.
+func (m *Model) browseSelected() tea.Cmd {
+	gs := m.selectedGists()
+	switch {
+	case len(gs) == 0:
+		return nil
+	case len(gs) > maxBrowse:
+		m.line.Refuse(m.now(), fmt.Sprintf("open at most %d in the browser: %d selected", maxBrowse, len(gs)))
+		return nil
+	}
+	m.line.Say(m.now(), fmt.Sprintf("opening %d in the browser", len(gs)))
+	browse := m.opt.Browse
+	// One after another, so the tabs come in the order of the list
+	return func() tea.Msg {
+		var errs []error
+		for _, g := range gs {
+			if err := browse(g.URL); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		return browsedMsg{errors.Join(errs...)}
+	}
 }
 
 // shownSelected marks the gist as selected on the tab shown.
