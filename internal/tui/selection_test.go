@@ -121,7 +121,7 @@ func TestStarredGistsAreNotSelected(t *testing.T) {
 func TestKeysForOneGistRefuseWithASelection(t *testing.T) {
 	w, _ := several(t, 2)
 	press(t, w.m, " ")
-	for _, k := range []string{"e", "E", "r", "y", "Y", "o"} {
+	for _, k := range []string{"e", "E", "r", "Y"} {
 		press(t, w.m, k)
 		w.wants("one gist at a time · u clears the selection")
 		if w.m.uiState() != uiList {
@@ -319,5 +319,47 @@ func TestGistsGoneWhileTheBoxIsOpenAreNotDeleted(t *testing.T) {
 	w.wants("nothing to delete: the gists have left the list")
 	if deletes(w.s) != 0 {
 		t.Errorf("%d deletes", deletes(w.s))
+	}
+}
+
+func TestCopyTheURLsOfTheSelection(t *testing.T) {
+	w, _ := several(t, 3)
+	press(t, w.m, " ", "j", " ")
+	cmd := w.m.copyURL()
+	if cmd == nil {
+		t.Fatal("nothing copied")
+	}
+	var want []string
+	for _, g := range w.m.selectedGists() {
+		want = append(want, g.URL)
+	}
+	if got := fmt.Sprint(cmd()); got != strings.Join(want, "\n") || len(want) != 2 {
+		t.Errorf("copied %q, want %q", got, want)
+	}
+	w.wants("✓ copied 2 URLs")
+	if len(w.m.selected) != 2 {
+		t.Errorf("selected %v", w.m.selected)
+	}
+}
+
+func TestOpenTheSelectionInTheBrowser(t *testing.T) {
+	w, _ := several(t, maxBrowse+1)
+	var opened []string
+	w.m.opt.Browse = func(url string) error {
+		opened = append(opened, url)
+		return nil
+	}
+	press(t, w.m, "V", "o")
+	w.wants(fmt.Sprintf("open at most %d in the browser: %d selected", maxBrowse, maxBrowse+1))
+	if len(opened) != 0 {
+		t.Fatalf("opened %d", len(opened))
+	}
+	press(t, w.m, "k", " ", "o")
+	if len(opened) != maxBrowse {
+		t.Errorf("opened %d", len(opened))
+	}
+	w.wants(fmt.Sprintf("opened %d in the browser", maxBrowse))
+	if len(w.m.selected) != maxBrowse {
+		t.Errorf("selected %d", len(w.m.selected))
 	}
 }

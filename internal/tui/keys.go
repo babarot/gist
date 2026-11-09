@@ -202,8 +202,8 @@ func (m *Model) refresh() tea.Cmd {
 type browsedMsg struct{ err error }
 
 func (m *Model) browse() tea.Cmd {
-	if m.oneAtATime() {
-		return nil
+	if len(m.selected) > 0 {
+		return m.browseSelected()
 	}
 	g, ok := m.current()
 	if !ok {
@@ -213,8 +213,8 @@ func (m *Model) browse() tea.Cmd {
 }
 
 func (m *Model) copyURL() tea.Cmd {
-	if m.oneAtATime() {
-		return nil
+	if len(m.selected) > 0 {
+		return m.copySelectedURLs()
 	}
 	g, ok := m.current()
 	if !ok {
@@ -309,7 +309,8 @@ func (m *Model) keyHints() []hint {
 		return []hint{{"tab", "next"}, k("$EDITOR", keymap.OpenEditor), k("create", keymap.Create), {keymap.Back, "cancel"}}
 	}
 	if n := len(m.selected); n > 0 {
-		return []hint{k("delete "+strconv.Itoa(n), keymap.Delete), k("select", keymap.Select), k("select shown", keymap.SelectShown),
+		return []hint{k("delete "+strconv.Itoa(n), keymap.Delete), k("copy URLs", keymap.CopyURL), k("browser", keymap.Browse),
+			k("select", keymap.Select), k("select shown", keymap.SelectShown),
 			{m.keys.Hint(keymap.ClearSelection) + "/" + keymap.Back, "clear"}, k("filter", keymap.Filter), k("refresh", keymap.Refresh), k("keys", keymap.Help)}
 	}
 	starred := m.cur == tabStarred
