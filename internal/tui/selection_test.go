@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/babarot/gist/v2/internal/cache"
 	"github.com/babarot/gist/v2/internal/fakegist"
 )
 
@@ -160,6 +162,11 @@ func TestDeleteTheSelection(t *testing.T) {
 	w, gs := several(t, 5)
 	w.s.Fail("DELETE /gists/"+gs[1].ID, http.StatusInternalServerError)
 	w.s.Fail("DELETE /gists/"+gs[3].ID, http.StatusNotFound)
+	// gs[3] is the second row, newest first: a draft of it must stay
+	w.type_("edited\n")
+	press(t, w.m, "j")
+	enter(t, w.m)
+	press(t, w.m, "esc", "g")
 	press(t, w.m, "V", "D")
 	if w.m.uiState() != uiConfirmDelete {
 		t.Fatalf("state is %s", w.m.uiState())
@@ -182,6 +189,13 @@ func TestDeleteTheSelection(t *testing.T) {
 	}
 	if len(w.m.selected) != 0 {
 		t.Errorf("selected %v", w.m.selected)
+	}
+	if d, ok := w.draft(gs[3].ID, "f3.txt"); !ok || d != "edited\n" {
+		t.Errorf("the draft of the gist answered 404 is %q, %v", d, ok)
+	}
+	kept, ok, err := cache.Open(filepath.Join(w.m.opt.CacheDir, cache.MineFile), "github.com", "alice").Load()
+	if err != nil || !ok || len(kept.Gists) != 2 {
+		t.Errorf("the kept list has %d: %v, %v", len(kept.Gists), ok, err)
 	}
 	press(t, w.m, "u")
 	if got, want := selectedIDs(w.m), []string{gs[1].ID, gs[3].ID}; !slices.Equal(got, want) {
