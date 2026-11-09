@@ -307,3 +307,17 @@ func TestGoldenSelection(t *testing.T) {
 	press(t, long.m, "V", "D")
 	golden(t, "box-delete-many-long", stable(long))
 }
+
+func TestGistsGoneWhileTheBoxIsOpenAreNotDeleted(t *testing.T) {
+	w, gs := several(t, 2)
+	press(t, w.m, "V", "D")
+	for _, g := range gs {
+		w.s.Remove(g.ID)
+	}
+	settle(t, w.m, w.m.refresh())
+	press(t, w.m, "y")
+	w.wants("nothing to delete: the gists have left the list")
+	if deletes(w.s) != 0 {
+		t.Errorf("%d deletes", deletes(w.s))
+	}
+}

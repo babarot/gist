@@ -182,7 +182,11 @@ type deleteBatch struct {
 // at once, as gh-desk's ADR-094 has it, for the clear key to bring back.
 func (m *Model) deleteMany() tea.Cmd {
 	gs := m.deleteTargets()
-	if len(gs) == 0 {
+	switch {
+	case len(gs) == 0 && len(m.selected) == 0:
+		m.line.Refuse(m.now(), "nothing to delete: the gists have left the list")
+		return nil
+	case len(gs) == 0:
 		m.line.Refuse(m.now(), "wait for what is being sent")
 		return nil
 	}
