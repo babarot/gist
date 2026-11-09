@@ -162,12 +162,18 @@ func (m *Model) browseSelected() tea.Cmd {
 		m.line.Refuse(m.now(), fmt.Sprintf("open at most %d in the browser: %d selected", maxBrowse, len(gs)))
 		return nil
 	}
-	cmds := make([]tea.Cmd, len(gs))
-	for i, g := range gs {
-		cmds[i] = func() tea.Msg { return browsedMsg{m.opt.Browse(g.URL)} }
+	m.line.Say(m.now(), fmt.Sprintf("opening %d in the browser", len(gs)))
+	browse := m.opt.Browse
+	// One after another, so the tabs come in the order of the list
+	return func() tea.Msg {
+		var errs []error
+		for _, g := range gs {
+			if err := browse(g.URL); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		return browsedMsg{errors.Join(errs...)}
 	}
-	m.line.Say(m.now(), fmt.Sprintf("opened %d in the browser", len(gs)))
-	return tea.Batch(cmds...)
 }
 
 // shownSelected marks the gist as selected on the tab shown.

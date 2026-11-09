@@ -358,7 +358,10 @@ func TestOpenTheSelectionInTheBrowser(t *testing.T) {
 	if len(opened) != maxBrowse {
 		t.Errorf("opened %d", len(opened))
 	}
-	w.wants(fmt.Sprintf("opened %d in the browser", maxBrowse))
+	w.wants(fmt.Sprintf("opening %d in the browser", maxBrowse))
+	if want := w.m.selectedGists(); opened[0] != want[0].URL || opened[maxBrowse-1] != want[maxBrowse-1].URL {
+		t.Errorf("opened in another order: %v", opened)
+	}
 	if len(w.m.selected) != maxBrowse {
 		t.Errorf("selected %d", len(w.m.selected))
 	}
