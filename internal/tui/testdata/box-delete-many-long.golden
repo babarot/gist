@@ -1,0 +1,34 @@
+gist // @alice     1 mine (40)    2 starred (…)                                                    40 selected · via gh
+    DESCRIPTION                                                             COMMENTS  FILES       SIZE  VIS     UPDATED
+▎ ✓ gist 39                                                                               1        2 B  secret     <age>
+  ✓ gist 38           ╭ delete 40 gists ─────────────────────────────────────────────────────────╮ 2 B  secret     <age>
+  ✓ gist 37           │                                                                          │ 2 B  secret     <age>
+  ✓ gist 36           │  <id>  f39.txt  gist 39                                               ┃ 2 B  secret     <age>
+  ✓ gist 35           │  <id>  f38.txt  gist 38                                               ┃ 2 B  secret     <age>
+  ✓ gist 34           │  <id>  f37.txt  gist 37                                               ┃ 2 B  secret     <age>
+  ✓ gist 33           │  <id>  f36.txt  gist 36                                               ┃ 2 B  secret     <age>
+  ✓ gist 32           │  <id>  f35.txt  gist 35                                               ┃ 2 B  secret     <age>
+  ✓ gist 31           │  <id>  f34.txt  gist 34                                               ┃ 2 B  secret     <age>
+  ✓ gist 30           │  <id>  f33.txt  gist 33                                               ┃ 2 B  secret     <age>
+  ✓ gist 29           │  <id>  f32.txt  gist 32                                               ┃ 2 B  secret     <age>
+  ✓ gist 28           │  <id>  f31.txt  gist 31                                               ┃ 2 B  secret     <age>
+  ✓ gist 27           │  <id>  f30.txt  gist 30                                               ┃ 2 B  secret     <age>
+╭  f39.txt  ──────────│  <id>  f29.txt  gist 29                                               ┃omments (0)  ────────╮
+│    1  x             │  <id>  f28.txt  gist 28                                               ┃  <id>            │
+│                     │  <id>  f27.txt  gist 27                                               │y secret             │
+│                     │  <id>  f26.txt  gist 26                                               │  1 · 2 B            │
+│                     │  <id>  f25.txt  gist 25                                               │  1                  │
+│                     │  <id>  f24.txt  gist 24                                               │  0                  │
+│                     │  <id>  f23.txt  gist 23                                               │  <age>           │
+│                     │  <id>  f22.txt  gist 22                                               │  <age>           │
+│                     │  <id>  f21.txt  gist 21                                               │                     │
+│                     │  <id>  f20.txt  gist 20                                               │  f39.txt            │
+│                     │  <id>  f19.txt  gist 19                                               │  plaintext          │
+│                     │  <id>  f18.txt  gist 18                                               │  2 B · 1 lines      │
+│                     │                                                                          │                     │
+│                     │  This deletes 40 gists and their revisions on GitHub.                    │                     │
+│                     │  It cannot be undone.                                                    │                     │
+│                     │                                                                          │                     │
+╰─────────────────────│  delete these 40 gists? y yes · esc no                                   │8a3ab7 · c comments ─╯
+✓ 40 gists · saved to ╰──────────────────────────────────────────────────────────────────────────╯
+y delete · j/k scroll · esc no

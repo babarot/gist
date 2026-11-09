@@ -1,0 +1,30 @@
+gist // @alice     1 mine (5)    2 starred (…)                                                                                                                                      2 selected · via gh 
+    DESCRIPTION                                                                                                                                             COMMENTS  FILES       SIZE  VIS     UPDATED
+  ✓ a public gist with a comment                                                                                                                                   3      3     3.6 KB  public       5m 
+    日本語の説明がある Gist と、とても長い説明の末尾がどこで切れるかを確かめるための文字列を足していく                                                                    2     2.4 KB  secret       3h
+  ✓ no-description.txt +1                                                                                                                                                 2     2.4 KB  secret       2d 
+▎   emoji ❤️ and a family 👨‍👩‍👦 and é                                                                                                                                        1     1.2 KB  secret      4mo 
+    escape sequence    and a tab                                                                                                                                          1     1.2 KB  secret      10y
+
+
+
+
+╭  emoji.md  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
+│  content of emoji.md                                                                                                                                                 │ gist       4444444            │
+│                                                                                                                                                                      │ visibility secret             │
+│                                                                                                                                                                      │ files      1 · 1.2 KB         │
+│                                                                                                                                                                      │ revisions  2                  │
+│                                                                                                                                                                      │ comments   0                  │
+│                                                                                                                                                                      │ created    8mo ago            │
+│                                                                                                                                                                      │ updated    4mo ago            │
+│                                                                                                                                                                      │                               │
+│                                                                                                                                                                      │ file       emoji.md           │
+│                                                                                                                                                                      │ type       markdown           │
+│                                                                                                                                                                      │ size       1.2 KB · 1 lines   │
+│                                                                                                                                                                      │                               │
+│                                                                                                                                                                      │                               │
+│                                                                                                                                                                      │                               │
+│                                                                                                                                                                      │                               │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 4444444 · m plain · c comments ─╯
+✓ 5 gists · saved to the cache
+D delete 2 · space select · V select shown · u/esc clear · / filter · R refresh · ? keys

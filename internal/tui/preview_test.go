@@ -484,7 +484,7 @@ func TestAClickOnAFileTabAfterTheyMoved(t *testing.T) {
 	top := frameTop(m)
 	x := ansi.StringWidth(top[:strings.Index(top, "05-a-long")])
 	click(t, m, x, m.layout().boxY)
-	if g, _ := m.selected(); m.selectedFile(g) != 5 {
+	if g, _ := m.current(); m.selectedFile(g) != 5 {
 		t.Errorf("on file %d", m.selectedFile(g))
 	}
 }

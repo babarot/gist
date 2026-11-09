@@ -158,7 +158,7 @@ func (m *Model) readContents() tea.Cmd {
 	t := m.tab()
 	last := min(t.top+m.layout().listRows, len(t.rows))
 	wanted := make([]model.Gist, 0, max(0, last-t.top)+1)
-	if g, ok := m.selected(); ok {
+	if g, ok := m.current(); ok {
 		wanted = append(wanted, g)
 	}
 	for _, r := range t.rows[min(t.top, last):last] {
@@ -243,7 +243,7 @@ type dwellMsg struct {
 
 // dwell starts the wait for the cursor to rest on a gist.
 func (m *Model) dwell() tea.Cmd {
-	g, ok := m.selected()
+	g, ok := m.current()
 	if !ok || m.opt.Source == nil {
 		return nil
 	}
@@ -268,7 +268,7 @@ func (m *Model) dwelled(msg dwellMsg) tea.Cmd {
 	if msg.seq != m.preview.dwellSeq {
 		return nil
 	}
-	if g, ok := m.selected(); ok && g.ID == msg.id {
+	if g, ok := m.current(); ok && g.ID == msg.id {
 		return m.readComments(g)
 	}
 	return nil
@@ -277,7 +277,7 @@ func (m *Model) dwelled(msg dwellMsg) tea.Cmd {
 // readCommentsNow reads the comments of the gist under the cursor, once they
 // are asked for.
 func (m *Model) readCommentsNow() tea.Cmd {
-	g, ok := m.selected()
+	g, ok := m.current()
 	if !ok || m.side != sideComments {
 		return nil
 	}

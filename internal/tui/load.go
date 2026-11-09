@@ -41,6 +41,9 @@ func (m *Model) gotViewer(msg viewerMsg) tea.Cmd {
 		return nil
 	}
 	if msg.login != m.login {
+		// What another account selected is no gist of this one
+		clear(m.selected)
+		m.lastSelected = nil
 		for i := range m.tabs {
 			t := &m.tabs[i]
 			t.gists, t.rows, t.list, t.loaded, t.cur, t.top = nil, nil, cache.List{}, false, 0, 0

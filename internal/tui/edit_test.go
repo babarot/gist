@@ -367,13 +367,13 @@ func TestAPushMovesTheGistToTheTopWithTheCursor(t *testing.T) {
 		s.Add("newer", false, map[string]string{"b.txt": "b\n"})
 	})
 	press(t, w.m, "j")
-	if g, _ := w.m.selected(); g.ID != older.ID {
+	if g, _ := w.m.current(); g.ID != older.ID {
 		t.Fatalf("on %s", g.Description)
 	}
 	w.type_("edited\n")
 	enter(t, w.m)
 	press(t, w.m, "y")
-	if g, _ := w.m.selected(); g.ID != older.ID {
+	if g, _ := w.m.current(); g.ID != older.ID {
 		t.Errorf("the cursor stayed behind on %s", g.Description)
 	}
 	if w.m.tab().cur != 0 {
@@ -491,7 +491,7 @@ func TestDelete(t *testing.T) {
 		s.Add("keep", false, map[string]string{"k.txt": "k\n"})
 		s.Add("go", false, map[string]string{"a.txt": "a\n"})
 	})
-	g, _ := w.m.selected()
+	g, _ := w.m.current()
 	press(t, w.m, "D")
 	if w.m.uiState() != uiConfirmDelete {
 		t.Fatalf("state is %s", w.m.uiState())

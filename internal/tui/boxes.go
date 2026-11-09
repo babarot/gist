@@ -90,6 +90,10 @@ func plural(n int, one, many string) string {
 func (m *Model) drawDelete(c *canvas) {
 	p := m.pal
 	d := m.deleting
+	if d.many != nil {
+		m.drawDeleteMany(c)
+		return
+	}
 	g := d.gist
 	w, h := min(72, c.w-8), 11
 	x, y := m.boxAt(w, h, 5)

@@ -57,6 +57,10 @@ const (
 	New           Action = "new"
 	Create        Action = "create"
 	OpenEditor    Action = "open_editor"
+	// Select, SelectShown and ClearSelection are named as gh-desk names them.
+	Select         Action = "select"
+	SelectShown    Action = "select_shown"
+	ClearSelection Action = "clear_selection"
 )
 
 // Scope is where an action's keys are read. Two actions may share a key only
@@ -130,6 +134,9 @@ var Defaults = []Def{
 	{New, []string{"n"}},
 	{Create, []string{"ctrl+s"}},
 	{OpenEditor, []string{"ctrl+e"}},
+	{Select, []string{"space"}},
+	{SelectShown, []string{"V"}},
+	{ClearSelection, []string{"u"}},
 }
 
 // The fixed keys are read before any action and cannot be bound.

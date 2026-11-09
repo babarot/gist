@@ -15,7 +15,8 @@ type palette struct {
 	base, surface0, surface1, overlay            color.Color
 	subtext0, subtext1, text, dim                color.Color
 	blue, mauve, green, yellow, peach, red, teal color.Color
-	pick, fresh                                  color.Color
+	// pick is behind a selected row, and pickSel behind one under the cursor.
+	pick, pickSel, fresh color.Color
 	// tab is behind the tab shown that switches a pane: the blue, faded into base.
 	tab color.Color
 	// addMark and delMark are behind what changed within a line of a diff.
@@ -32,7 +33,7 @@ var themes = map[string]palette{
 		text: lipgloss.Color("#e0e4f0"), dim: lipgloss.Color("#706f87"),
 		blue: lipgloss.Color("#96bfff"), mauve: lipgloss.Color("#d4b0ff"), green: lipgloss.Color("#b5f0b0"),
 		yellow: lipgloss.Color("#ffe5a0"), peach: lipgloss.Color("#ffc49a"), red: lipgloss.Color("#f5a3b5"), teal: lipgloss.Color("#94e2d5"),
-		pick: lipgloss.Color("#3a3150"), fresh: lipgloss.Color("#26324a"), tab: lipgloss.Color("#485677"),
+		pick: lipgloss.Color("#3a3150"), pickSel: lipgloss.Color("#4d4068"), fresh: lipgloss.Color("#26324a"), tab: lipgloss.Color("#485677"),
 		addMark: lipgloss.Color("#2f5a3a"), delMark: lipgloss.Color("#6b2f40"),
 	},
 	config.ThemeLatte: {
@@ -41,7 +42,7 @@ var themes = map[string]palette{
 		text: lipgloss.Color("#4c4f69"), dim: lipgloss.Color("#9ca0b0"),
 		blue: lipgloss.Color("#1e66f5"), mauve: lipgloss.Color("#8839ef"), green: lipgloss.Color("#40a02b"),
 		yellow: lipgloss.Color("#df8e1d"), peach: lipgloss.Color("#fe640b"), red: lipgloss.Color("#d20f39"), teal: lipgloss.Color("#179299"),
-		pick: lipgloss.Color("#e6dcf7"), fresh: lipgloss.Color("#dce6fb"), tab: lipgloss.Color("#bbcef5"),
+		pick: lipgloss.Color("#e6dcf7"), pickSel: lipgloss.Color("#d6c6f2"), fresh: lipgloss.Color("#dce6fb"), tab: lipgloss.Color("#bbcef5"),
 		addMark: lipgloss.Color("#bfe8b5"), delMark: lipgloss.Color("#f5c2cd"),
 	},
 }

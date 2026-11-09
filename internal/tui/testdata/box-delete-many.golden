@@ -1,0 +1,34 @@
+gist // @alice     1 mine (4)    2 starred (…)                                             1 of 4 · 4 selected · via gh
+/ gist 3
+    DESCRIPTION                                                             COMMENTS  FILES       SIZE  VIS     UPDATED
+▎ ✓ gist 3            ╭ delete 3 gists ──────────────────────────────────────────────────────────╮ 2 B  secret     <age>
+                      │                                                                          │
+                      │  <id>  f3.txt  gist 3                                        ✎ draft  │
+                      │  <id>  f2.txt  gist 2                                     being sent  │
+                      │  <id>  f1.txt  gist 1                                                 │
+                      │  <id>  f0.txt  gist 0                                                 │
+                      │                                                                          │
+                      │  This deletes 3 gists and their revisions on GitHub.                     │
+                      │  It cannot be undone.                                                    │
+                      │  2 are not shown by the filter.                                          │
+                      │  1 has a draft; it goes too.                                             │
+                      │                                                                          │
+╭  f3.txt  ───────────│  delete these 3 gists? y yes · esc no                                    │omments (0)  ────────╮
+│    1  x             ╰──────────────────────────────────────────────────────────────────────────╯  <id>            │
+│                                                                                      │ visibility secret             │
+│                                                                                      │ files      1 · 2 B            │
+│                                                                                      │ revisions  1                  │
+│                                                                                      │ comments   0                  │
+│                                                                                      │ created    <age>           │
+│                                                                                      │ updated    <age>           │
+│                                                                                      │                               │
+│                                                                                      │ file       f3.txt             │
+│                                                                                      │ type       plaintext          │
+│                                                                                      │ size       2 B · 1 lines      │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+│                                                                                      │                               │
+╰─ ✎ draft · enter to continue ────────────────────────────────────────────────────────┴──────── <id> · c comments ─╯
+kept as a draft
+y delete · j/k scroll · esc no

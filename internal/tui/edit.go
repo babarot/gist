@@ -60,10 +60,13 @@ type inputState struct {
 	conflict *edit.ChangedError
 }
 
-// deleting is the question of deleting a gist.
+// deleting is the question of deleting a gist, or with many, the gists of
+// the selection; top is the first of them shown.
 type deleting struct {
 	gist model.Gist
 	file string
+	many []string
+	top  int
 }
 
 // discarding is the question of throwing a draft away.
@@ -101,7 +104,10 @@ type beganMsg struct {
 
 // startEdit starts editing the file shown, from its draft if it has one.
 func (m *Model) startEdit() tea.Cmd {
-	g, ok := m.selected()
+	if m.oneAtATime() {
+		return nil
+	}
+	g, ok := m.current()
 	if !ok || m.readOnly(g) || m.busyWith(g) {
 		return nil
 	}
@@ -504,7 +510,10 @@ func marks(s string, from, to int, spans []diff.Span, st, on style) []seg {
 
 // openInput opens a text box on the gist under the cursor.
 func (m *Model) openInput(kind inputKind) tea.Cmd {
-	g, ok := m.selected()
+	if m.oneAtATime() {
+		return nil
+	}
+	g, ok := m.current()
 	if !ok || m.readOnly(g) || m.busyWith(g) {
 		return nil
 	}
@@ -654,7 +663,10 @@ func (m *Model) gotInputSent(msg inputSentMsg) {
 
 // openDelete asks about deleting the gist under the cursor.
 func (m *Model) openDelete() tea.Cmd {
-	g, ok := m.selected()
+	if len(m.selected) > 0 {
+		return m.openDeleteMany()
+	}
+	g, ok := m.current()
 	if !ok || m.readOnly(g) || m.busyWith(g) {
 		return nil
 	}
@@ -668,13 +680,16 @@ func (m *Model) openDelete() tea.Cmd {
 
 func (m *Model) deleteKey(k string) tea.Cmd {
 	d := m.deleting
+	if d.many != nil {
+		return m.deleteManyKey(k)
+	}
 	switch {
 	case k == keymap.Back:
 		m.deleting = nil
 	case m.keys.Matches(keymap.Confirm, k):
 		m.deleting = nil
 		m.writing[d.gist.ID] = "delete"
-		return m.deleteGist(d.gist)
+		return m.deleteGist(d.gist, false)
 	case m.keys.Matches(keymap.OnlyFile, k) && len(d.gist.Files) > 1:
 		m.deleting = nil
 		m.writing[d.gist.ID] = "delete"
@@ -686,16 +701,19 @@ func (m *Model) deleteKey(k string) tea.Cmd {
 type deletedMsg struct {
 	gist string
 	err  error
+	// batch says it is one of the gists of a selection.
+	batch bool
 }
 
-func (m *Model) deleteGist(g model.Gist) tea.Cmd {
+// deleteGist deletes g; batch says it is one of the gists of a selection.
+func (m *Model) deleteGist(g model.Gist, batch bool) tea.Cmd {
 	editor, ctx := m.opt.Editor, m.ctx
 	return func() tea.Msg {
 		err := editor.Delete(ctx, g.ID)
 		if errors.Is(err, edit.ErrDraftsLeft) {
 			err = nil
 		}
-		return deletedMsg{g.ID, err}
+		return deletedMsg{gist: g.ID, err: err, batch: batch}
 	}
 }
 
@@ -705,16 +723,21 @@ func (m *Model) gotDeleted(msg deletedMsg) {
 		m.fail(msg.err)
 		return
 	}
+	m.dropGist(msg.gist)
+	m.line.Say(m.now(), "✓ deleted "+shortID(msg.gist))
+}
+
+// dropGist takes a gist GitHub deleted out of the lists, and what is kept of it.
+func (m *Model) dropGist(id string) {
 	for i := range m.tabs {
 		t := &m.tabs[i]
-		if i := slices.IndexFunc(t.gists, func(g model.Gist) bool { return g.ID == msg.gist }); i >= 0 {
+		if i := slices.IndexFunc(t.gists, func(g model.Gist) bool { return g.ID == id }); i >= 0 {
 			m.afterChange(t, slices.Delete(slices.Clone(t.gists), i, i+1))
 		}
 	}
-	m.preview.forget(msg.gist)
-	m.removeKept(msg.gist)
+	m.preview.forget(id)
+	m.removeKept(id)
 	m.readDrafts()
-	m.line.Say(m.now(), "✓ deleted "+shortID(msg.gist))
 }
 
 type fileRemovedMsg struct {
@@ -747,7 +770,10 @@ func (m *Model) gotFileRemoved(msg fileRemovedMsg) {
 // openDiscard asks about throwing away the draft of the gist under the cursor:
 // of the file shown, or if that has none, its first.
 func (m *Model) openDiscard() tea.Cmd {
-	g, ok := m.selected()
+	if m.oneAtATime() {
+		return nil
+	}
+	g, ok := m.current()
 	if !ok || !m.drafts[g.ID] {
 		return nil
 	}
