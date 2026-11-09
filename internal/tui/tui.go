@@ -147,6 +147,13 @@ type Model struct {
 	// writing are the gists being written to, and drafts those with drafts.
 	writing map[string]string
 	drafts  map[string]bool
+	// selected are the gists of the mine tab selected, which a key that acts on
+	// gists acts on, or refuses. lastSelected is the selection an action or
+	// the clear key took away, for that key to bring back.
+	selected     map[string]bool
+	lastSelected []string
+	// batch is the gists of a selection being deleted, one after another.
+	batch *deleteBatch
 	// runEditor gives the terminal to the editor; tests give another.
 	runEditor func(args []string) tea.Cmd
 	side      int
@@ -188,6 +195,7 @@ func New(o Options) *Model {
 		fileTab:   map[string]int{},
 		writing:   map[string]string{},
 		drafts:    map[string]bool{},
+		selected:  map[string]bool{},
 		runEditor: runProgram,
 		selectID:  o.Select,
 		boxHeight: defaultBoxHeight,
@@ -324,6 +332,9 @@ func (m *Model) update(msg tea.Msg) tea.Cmd {
 	case inputSentMsg:
 		m.gotInputSent(msg)
 	case deletedMsg:
+		if msg.batch {
+			return m.gotBatchDeleted(msg)
+		}
 		m.gotDeleted(msg)
 	case fileRemovedMsg:
 		m.gotFileRemoved(msg)
@@ -390,8 +401,8 @@ func (m *Model) timer() tea.Cmd {
 	return tea.Tick(due.Sub(now), func(time.Time) tea.Msg { return timerMsg{} })
 }
 
-// selected is the gist under the cursor.
-func (m *Model) selected() (model.Gist, bool) {
+// current is the gist under the cursor.
+func (m *Model) current() (model.Gist, bool) {
 	t := m.tab()
 	if t.cur < 0 || t.cur >= len(t.rows) {
 		return model.Gist{}, false
@@ -451,6 +462,9 @@ func (m *Model) keepCursorShown() {
 // list instead of the cursor, so the next key acts on the gist it was going to.
 func (m *Model) replace(t *tab, gists []model.Gist) {
 	t.gists = gists
+	if t == &m.tabs[tabMine] {
+		m.pruneSelection()
+	}
 	m.refilter(t)
 	m.applySelect()
 }

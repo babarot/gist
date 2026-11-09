@@ -52,6 +52,7 @@ gist reads GitHub with the account [gh](https://cli.github.com/) is logged in to
 | `j` `k`, `h` `l` | move, go to the previous or next file |
 | `enter` | edit the file in your editor, then read the diff and push it |
 | `n`, `D` | a new gist, delete |
+| `space`, `V`, `u` | select gists for `D` to delete together, select all shown, clear the selection |
 | `E`, `r` | change the description, rename the file |
 | `y`, `Y` | copy the URL, copy the file |
 | `/` | filter |

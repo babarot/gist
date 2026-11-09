@@ -133,7 +133,7 @@ func TestNoMatch(t *testing.T) {
 	if s := screen(m); !strings.Contains(s, "no gist matches /zzz") {
 		t.Errorf("got:\n%s", s)
 	}
-	if _, ok := m.selected(); ok {
+	if _, ok := m.current(); ok {
 		t.Error("a gist is under the cursor")
 	}
 }
@@ -302,7 +302,7 @@ func TestCreate(t *testing.T) {
 	if w.m.uiState() != uiList {
 		t.Fatalf("state is %s:\n%s", w.m.uiState(), w.screen())
 	}
-	g, ok := w.m.selected()
+	g, ok := w.m.current()
 	if !ok || g.Description != "日本語の説明" {
 		t.Fatalf("on %+v", g)
 	}
@@ -320,7 +320,7 @@ func TestCreatePublic(t *testing.T) {
 	press(t, w.m, " ")
 	w.wants("listed on your profile and searchable")
 	ctrl(t, w.m, 's')
-	g, _ := w.m.selected()
+	g, _ := w.m.current()
 	if !w.s.Get(g.ID).Public {
 		t.Error("not public")
 	}
@@ -428,7 +428,7 @@ func TestCreateClearsAFilterThatWouldHideIt(t *testing.T) {
 	press(t, w.m, "n")
 	fill(t, w, "a.txt", "made here", "a\n")
 	ctrl(t, w.m, 's')
-	if g, ok := w.m.selected(); !ok || g.Description != "made here" {
+	if g, ok := w.m.current(); !ok || g.Description != "made here" {
 		t.Errorf("on %+v", g)
 	}
 }
@@ -521,7 +521,7 @@ func TestChangesMadeDuringAReadingAreNotUndone(t *testing.T) {
 				t.Errorf("%d gists", got)
 			}
 			if name == "push" {
-				c, ok := w.m.selected()
+				c, ok := w.m.current()
 				if !ok || !c.Updated.Equal(w.s.Get(g.ID).Updated) {
 					t.Errorf("the row is from before the push: %v", c.Updated)
 				}

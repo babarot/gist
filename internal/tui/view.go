@@ -189,6 +189,9 @@ func (m *Model) drawHeader(c *canvas) {
 		}
 		right = append(right, seg{count, style{fg: p.yellow}}, dot)
 	}
+	if n := len(m.selected); n > 0 {
+		right = append(right, seg{fmt.Sprintf("%d selected", n), style{fg: p.mauve}}, dot)
+	}
 	right = append(right, seg{"via " + m.via, style{fg: p.overlay}})
 	w := 0
 	for _, s := range right {
@@ -339,7 +342,12 @@ func (m *Model) drawList(c *canvas, l layout) {
 		y := l.listY + i
 		var bg color.Color
 		at, fresh := t.fresh[g.ID]
+		picked := m.shownSelected(g.ID)
 		switch {
+		case picked && row == t.cur:
+			bg = p.pickSel
+		case picked:
+			bg = p.pick
 		case row == t.cur:
 			bg = p.surface0
 		case fresh && now.Sub(at) < freshFor:
@@ -350,6 +358,8 @@ func (m *Model) drawList(c *canvas, l layout) {
 			c.put(y, 0, "▎", style{fg: p.blue, bg: bg})
 		}
 		switch {
+		case picked:
+			c.put(y, 2, "✓", style{fg: p.mauve, bg: bg})
 		case m.drafts[g.ID]:
 			c.put(y, 2, draftMark, style{fg: p.peach, bg: bg})
 		case t.marks[g.ID]:

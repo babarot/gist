@@ -228,10 +228,14 @@ func (s *Server) Before(prefix string, f func()) {
 }
 
 // Fail has requests whose "METHOD path" starts with prefix answered with
-// status.
+// status; 0 answers them again.
 func (s *Server) Fail(prefix string, status int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if status == 0 {
+		delete(s.fail, prefix)
+		return
+	}
 	s.fail[prefix] = status
 }
 

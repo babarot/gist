@@ -266,7 +266,7 @@ func isQuit(cmd tea.Cmd) bool {
 func screen(m *Model) string { return ansi.Strip(m.render()) }
 
 func cursorID(m *Model) string {
-	g, _ := m.selected()
+	g, _ := m.current()
 	return g.ID[:7]
 }
 
@@ -543,7 +543,7 @@ func page(t *testing.T, m *Model, k string) {
 func TestFileTabsStopAtTheEnds(t *testing.T) {
 	m := loaded(t, fixture(), 120, 34)
 	press(t, m, "h")
-	g, _ := m.selected()
+	g, _ := m.current()
 	if m.selectedFile(g) != 0 {
 		t.Errorf("at %d", m.selectedFile(g))
 	}
@@ -562,7 +562,7 @@ func TestOpenGist(t *testing.T) {
 	o.Select = manyGists(40)[35].ID
 	m := newModel(t, o, 120, 34)
 	settle(t, m, m.Init())
-	if g, _ := m.selected(); g.ID != o.Select {
+	if g, _ := m.current(); g.ID != o.Select {
 		t.Errorf("the cursor is on %s", g.ID)
 	}
 	if !strings.Contains(screen(m), "gist number 35") {
@@ -712,7 +712,7 @@ func states(t *testing.T, w, h int) map[uiState]*Model {
 	conflict := world()
 	conflict.type_("edited\n")
 	enter(t, conflict.m)
-	g, _ := conflict.m.selected()
+	g, _ := conflict.m.current()
 	conflict.s.Edit(g.ID, g.Files[0].Name, "theirs\n")
 	press(t, conflict.m, "y")
 	out[uiConfirmConflict] = conflict.m
@@ -742,7 +742,7 @@ func states(t *testing.T, w, h int) map[uiState]*Model {
 	inputConflict := world()
 	press(t, inputConflict.m, "E")
 	typeText(t, inputConflict.m, "x")
-	g, _ = inputConflict.m.selected()
+	g, _ = inputConflict.m.current()
 	inputConflict.s.SetDescription(g.ID, "theirs")
 	enter(t, inputConflict.m)
 	out[uiInputConflict] = inputConflict.m
@@ -1005,7 +1005,7 @@ func TestClickAFileTab(t *testing.T) {
 	l := m.layout()
 	lines := strings.Split(screen(m), "\n")
 	click(t, m, ansi.StringWidth(lines[l.boxY][:strings.Index(lines[l.boxY], "go.mod")]), l.boxY)
-	if g, _ := m.selected(); m.selectedFile(g) != 2 {
+	if g, _ := m.current(); m.selectedFile(g) != 2 {
 		t.Errorf("file %d", m.selectedFile(g))
 	}
 }

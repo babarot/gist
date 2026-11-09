@@ -147,6 +147,22 @@ func status(err error) int {
 // IsNotFound says err is GitHub answering that a gist does not exist.
 func IsNotFound(err error) bool { return status(err) == http.StatusNotFound }
 
+// IsRateLimited says err is GitHub refusing for a rate limit: 429, or 403 with
+// the signs of one, as a secondary rate limit answers.
+func IsRateLimited(err error) bool {
+	e, ok := errors.AsType[*api.HTTPError](err)
+	switch {
+	case !ok:
+		return false
+	case e.StatusCode == http.StatusTooManyRequests:
+		return true
+	case e.StatusCode != http.StatusForbidden:
+		return false
+	}
+	return e.Headers.Get("Retry-After") != "" || e.Headers.Get("X-RateLimit-Remaining") == "0" ||
+		strings.Contains(strings.ToLower(e.Message), "rate limit")
+}
+
 // Access is what a token can do.
 type Access struct {
 	Login string

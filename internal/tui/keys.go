@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -139,6 +140,14 @@ func (m *Model) listKey(k string) tea.Cmd {
 		return m.openFilter()
 	case on(keymap.New):
 		return m.openForm()
+	case on(keymap.Select):
+		m.toggleSelect()
+	case on(keymap.SelectShown):
+		m.selectShown()
+	case on(keymap.ClearSelection):
+		m.clearOrRestore()
+	case k == keymap.Back && len(m.selected) > 0:
+		m.clearSelection()
 	case k == keymap.Back:
 		m.setFilter("")
 	}
@@ -158,7 +167,7 @@ func (m *Model) toggleSide() {
 
 // stepFile moves along the file tabs of the gist, stopping at the ends.
 func (m *Model) stepFile(by int) {
-	g, ok := m.selected()
+	g, ok := m.current()
 	if !ok {
 		return
 	}
@@ -193,7 +202,10 @@ func (m *Model) refresh() tea.Cmd {
 type browsedMsg struct{ err error }
 
 func (m *Model) browse() tea.Cmd {
-	g, ok := m.selected()
+	if m.oneAtATime() {
+		return nil
+	}
+	g, ok := m.current()
 	if !ok {
 		return nil
 	}
@@ -201,7 +213,10 @@ func (m *Model) browse() tea.Cmd {
 }
 
 func (m *Model) copyURL() tea.Cmd {
-	g, ok := m.selected()
+	if m.oneAtATime() {
+		return nil
+	}
+	g, ok := m.current()
 	if !ok {
 		return nil
 	}
@@ -222,7 +237,10 @@ type copyMsg struct {
 // copyFile copies the file shown, as it is written: what the preview has is
 // cleaned for drawing, and cut at a megabyte.
 func (m *Model) copyFile() tea.Cmd {
-	g, ok := m.selected()
+	if m.oneAtATime() {
+		return nil
+	}
+	g, ok := m.current()
 	if !ok || len(g.Files) == 0 {
 		return nil
 	}
@@ -272,6 +290,9 @@ func (m *Model) keyHints() []hint {
 	case uiConfirmConflict:
 		return []hint{k("overwrite", keymap.Overwrite), k("reload", keymap.Reload), {keymap.Back, "keep as draft"}}
 	case uiConfirmDelete:
+		if m.deleting != nil && m.deleting.many != nil {
+			return []hint{k("delete", keymap.Confirm), k("scroll", keymap.Down, keymap.Up), {keymap.Back, "no"}}
+		}
 		if m.deleting != nil && len(m.deleting.gist.Files) > 1 {
 			return []hint{k("delete gist", keymap.Confirm), k("only this file", keymap.OnlyFile), {keymap.Back, "no"}}
 		}
@@ -287,8 +308,15 @@ func (m *Model) keyHints() []hint {
 	case uiNew:
 		return []hint{{"tab", "next"}, k("$EDITOR", keymap.OpenEditor), k("create", keymap.Create), {keymap.Back, "cancel"}}
 	}
+	if n := len(m.selected); n > 0 {
+		return []hint{k("delete "+strconv.Itoa(n), keymap.Delete), k("select", keymap.Select), k("select shown", keymap.SelectShown),
+			{m.keys.Hint(keymap.ClearSelection) + "/" + keymap.Back, "clear"}, k("filter", keymap.Filter), k("refresh", keymap.Refresh), k("keys", keymap.Help)}
+	}
 	starred := m.cur == tabStarred
 	var hints []hint
+	if m.canRestore() {
+		hints = append(hints, k("restore selection", keymap.ClearSelection))
+	}
 	if m.tab().query != "" {
 		hints = append(hints, hint{keymap.Back, "clear filter"})
 	}
@@ -299,7 +327,7 @@ func (m *Model) keyHints() []hint {
 	if !starred {
 		hints = append(hints, k("delete", keymap.Delete), k("desc", keymap.Describe), k("rename", keymap.Rename))
 	}
-	if g, ok := m.selected(); ok {
+	if g, ok := m.current(); ok {
 		if !starred && m.drafts[g.ID] {
 			hints = append(hints, k("discard draft", keymap.Discard))
 		}
@@ -356,6 +384,9 @@ var helpGroups = []helpGroup{
 		{[]keymap.Action{keymap.Rename}, "rename the file"},
 		{[]keymap.Action{keymap.Delete}, "delete"},
 		{[]keymap.Action{keymap.Discard}, "discard the draft"},
+		{[]keymap.Action{keymap.Select}, "select"},
+		{[]keymap.Action{keymap.SelectShown}, "select shown"},
+		{[]keymap.Action{keymap.ClearSelection}, "clear / restore"},
 	}},
 	{"view", []helpRow{
 		{[]keymap.Action{keymap.ToggleSide}, "info / comments"},

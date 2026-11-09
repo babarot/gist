@@ -166,7 +166,7 @@ func (m *Model) scroll(by int) {
 }
 
 func (m *Model) scrollContent(by int) {
-	g, ok := m.selected()
+	g, ok := m.current()
 	if !ok {
 		return
 	}
@@ -180,7 +180,7 @@ func (m *Model) scrollContent(by int) {
 }
 
 func (m *Model) scrollComments(by int) {
-	g, ok := m.selected()
+	g, ok := m.current()
 	if !ok {
 		return
 	}
@@ -194,7 +194,7 @@ func (m *Model) drawPreview(c *canvas, l layout) {
 		return
 	}
 	c.box(0, l.boxY, c.w, l.boxH, p.surface1, nil)
-	g, ok := m.selected()
+	g, ok := m.current()
 	if !ok {
 		c.put(l.boxY, 2, " preview ", style{fg: p.subtext1, bold: true})
 		return
