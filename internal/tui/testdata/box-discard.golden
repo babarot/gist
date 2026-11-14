@@ -9,9 +9,13 @@ gist // @alice     1 mine (5)    2 starred (…)                                
                             │  x^[]0;title^G.txt  of <id>                               │
                             │  The edit that was not pushed goes away.                     │
                             │                                                              │
-╭  files (1)  ──────────────│                                                              │fo   comments (0)  ────────╮
-│  x^[]0;title^G.txt        │  y discard · esc keep                                        │t       <id>            │
-│    1  content             ╰──────────────────────────────────────────────────────────────╯ibility secret             │
+                            │                                                              │
+                            │  y discard · esc keep                                        │
+                            ╰──────────────────────────────────────────────────────────────╯
+
+╭  files (1)  ─────────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
+│  x^[]0;title^G.txt                                                                   │ gist       <id>            │
+│    1  content                                                                        │ visibility secret             │
 │                                                                                      │ files      1 · 8 B            │
 │                                                                                      │ revisions  1                  │
 │                                                                                      │ comments   0                  │
@@ -21,10 +25,6 @@ gist // @alice     1 mine (5)    2 starred (…)                                
 │                                                                                      │ file       x^[]0;title^G.txt  │
 │                                                                                      │ type       plaintext          │
 │                                                                                      │ size       8 B · 1 lines      │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
 ╰─ ✎ draft · enter to continue ────────────────────────────────────────────────────────┴──────── <id> · c comments ─╯
 kept as a draft
 y discard · esc keep

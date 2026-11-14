@@ -55,7 +55,13 @@ func (m *Model) layout() layout {
 		head++
 	}
 	room := m.height - head - footerRows
-	box := min(m.boxHeight, room-minListRows)
+	want := m.boxHeight
+	if want == 0 {
+		// Never resized: the preview takes the lower half, which the filter
+		// line does not move
+		want = (m.height - headerRows - footerRows) / 2
+	}
+	box := min(want, room-minListRows)
 	box = max(min(minBoxRows, room), box)
 	return layout{
 		listY: head, listRows: max(0, room-box),

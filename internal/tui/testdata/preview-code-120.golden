@@ -13,6 +13,8 @@ gist // @alice     1 mine (1)    2 starred (…)                                
 
 
 
+
+
 ╭  files (2)  ─────────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
 │  a.md   main.go                                                                      │ gist       1111111            │
 │    1  package main                                                                   │ visibility secret             │
@@ -25,8 +27,6 @@ gist // @alice     1 mine (1)    2 starred (…)                                
 │                                                                                      │ file       main.go            │
 │                                                                                      │ type       go                 │
 │                                                                                      │ size       65 B · 6 lines     │
-│                                                                                      │                               │
-│                                                                                      │                               │
 │                                                                                      │                               │
 │                                                                                      │                               │
 ╰──────────────────────────────────────────────────────────────────────────────────── 1111111 · h/l file · c comments ─╯

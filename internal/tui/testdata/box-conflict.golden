@@ -9,11 +9,15 @@ gist // @alice     1 mine (5)    2 starred (…)                                
                       │  your edit is based on revision <id>; GitHub is at revision <id>.  │
                       │                                                                          │
                       │  o overwrites with your edit; the replaced one stays as a revision.      │
-╭  files (1)  ────────│  r reads the new revision and shows your edit as a diff against it.      │omments (0)  ────────╮
-│  x^[]0;title^G.txt  │                                                                          │  <id>            │
-│    1  content       │                                                                          │y secret             │
-│                     │  o overwrite · r reload · esc keep as draft                              │  1 · 8 B            │
-│                     ╰──────────────────────────────────────────────────────────────────────────╯  1                  │
+                      │  r reads the new revision and shows your edit as a diff against it.      │
+                      │                                                                          │
+                      │                                                                          │
+                      │  o overwrite · r reload · esc keep as draft                              │
+╭  files (1)  ────────╰──────────────────────────────────────────────────────────────────────────╯omments (0)  ────────╮
+│  x^[]0;title^G.txt                                                                   │ gist       <id>            │
+│    1  content                                                                        │ visibility secret             │
+│                                                                                      │ files      1 · 8 B            │
+│                                                                                      │ revisions  1                  │
 │                                                                                      │ comments   0                  │
 │                                                                                      │ created    <age>           │
 │                                                                                      │ updated    <age>           │
@@ -21,10 +25,6 @@ gist // @alice     1 mine (5)    2 starred (…)                                
 │                                                                                      │ file       x^[]0;title^G.txt  │
 │                                                                                      │ type       plaintext          │
 │                                                                                      │ size       8 B · 1 lines      │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
 ╰─ ✎ draft · enter to continue ────────────────────────────────────────────────────────┴──────── <id> · c comments ─╯
 ✓ 5 gists · saved to the cache
 o overwrite · r reload · esc keep as draft

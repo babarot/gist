@@ -9,22 +9,22 @@ gist // @alice     1 mine (5)    2 starred (…)                                
                      │                                                                            │
                      │  visibility    ● secret   ○ public                                         │
                      │                only people with the URL can see it                         │
+                     │                                                                            │
+                     │  content       empty               ctrl+e opens $EDITOR                    │
+                     │                                                                            │
+                     │                                                                            │
 ╭  files (3)  ───────│                                                                            │mments (3)  ────────╮
-│  main.go   README.m│  content       empty               ctrl+e opens $EDITOR                    │ <id>            │
-│    1  content of ma│                                                                            │ public             │
-│                    │                                                                            │ 3 · 3.6 KB         │
-│                    │                                                                            │ 2                  │
-│                    │                                                                            │ 3                  │
-│                    │  tab next · ctrl+e $EDITOR · ctrl+s create · esc cancel                    │ <age>            │
-│                    ╰────────────────────────────────────────────────────────────────────────────╯ <age>             │
+│  main.go   README.m│                                                                            │ <id>            │
+│    1  content of ma│  tab next · ctrl+e $EDITOR · ctrl+s create · esc cancel                    │ public             │
+│                    ╰────────────────────────────────────────────────────────────────────────────╯ 3 · 3.6 KB         │
+│                                                                                      │ revisions  2                  │
+│                                                                                      │ comments   3                  │
+│                                                                                      │ created    <age>            │
+│                                                                                      │ updated    <age>             │
 │                                                                                      │                               │
 │                                                                                      │ file       main.go            │
 │                                                                                      │ type       go                 │
 │                                                                                      │ size       1.2 KB · 1 lines   │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
 ╰──────────────────────────────────────────────────────────────────────────────────── <id> · h/l file · c comments ─╯
 ✓ 5 gists · saved to the cache
 tab next · ctrl+e $EDITOR · ctrl+s create · esc cancel

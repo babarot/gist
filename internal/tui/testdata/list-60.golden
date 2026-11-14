@@ -9,6 +9,10 @@ gist // @alice     1 mine (5)    2 starred (…)       via gh
 
 
 
+
+
+
+
 ╭  files (3)  ─────────────┬  info   comments (3)  ────────╮
 │  main.go   README.md  …  │ gist       1111111            │
 │    1  content of main.go │ visibility public             │
@@ -21,10 +25,6 @@ gist // @alice     1 mine (5)    2 starred (…)       via gh
 │                          │ file       main.go            │
 │                          │ type       go                 │
 │                          │ size       1.2 KB · 1 lines   │
-│                          │                               │
-│                          │                               │
-│                          │                               │
-│                          │                               │
 ╰──────────────────────── 1111111 · h/l file · c comments ─╯
 ✓ 5 gists · saved to the cache
 enter edit · n new · o browser · y copy url · ? keys

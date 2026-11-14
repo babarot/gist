@@ -9,9 +9,13 @@ gist // @alice     1 mine (5)    2 starred (…)                                
                     │  ┃ escape ^[[31msequence^[[<age> and a tab                                      │
                     │                                                                              │
                     │  checked against the description on GitHub before saving                     │
-╭  files (1)  ──────│                                                                              │ments (0)  ────────╮
-│  x^[]0;title^G.txt│  enter save · esc cancel                                                     │<id>            │
-│    1  content     ╰──────────────────────────────────────────────────────────────────────────────╯secret             │
+                    │                                                                              │
+                    │  enter save · esc cancel                                                     │
+                    ╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭  files (1)  ─────────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
+│  x^[]0;title^G.txt                                                                   │ gist       <id>            │
+│    1  content                                                                        │ visibility secret             │
 │                                                                                      │ files      1 · 8 B            │
 │                                                                                      │ revisions  1                  │
 │                                                                                      │ comments   0                  │
@@ -21,10 +25,6 @@ gist // @alice     1 mine (5)    2 starred (…)                                
 │                                                                                      │ file       x^[]0;title^G.txt  │
 │                                                                                      │ type       plaintext          │
 │                                                                                      │ size       8 B · 1 lines      │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
 ╰──────────────────────────────────────────────────────────────────────────────────────┴──────── <id> · c comments ─╯
 ✓ 5 gists · saved to the cache
 enter save · esc cancel

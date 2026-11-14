@@ -13,6 +13,8 @@ gist // @alice     1 mine (1)    2 starred (…)                                
 
 
 
+
+
 ╭  files (2)  ─────────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
 │  a.md   main.go                                                                      │ gist       1111111            │
 │  設計書の見出し                                                                      ┃ visibility secret             │
@@ -23,12 +25,10 @@ gist // @alice     1 mine (1)    2 starred (…)                                
 │                                                                                      ┃ updated    1h ago             │
 │  • 項目その1                                                                         ┃                               │
 │  • [✓] 済んだ                                                                        ┃ file       a.md               │
-│  • [ ] まだ                                                                          ┃ type       markdown           │
-│                                                                                      ┃ size       349 B · 21 lines   │
+│  • [ ] まだ                                                                          │ type       markdown           │
+│                                                                                      │ size       349 B · 21 lines   │
 │  ▎ 引用の行                                                                          │                               │
 │                                                                                      │                               │
-│  列1 │ 列2                                                                           │                               │
-│  ────┼────                                                                           │                               │
 ╰──────────────────────────────────────────────────────────────────── 1111111 · h/l file · J/K · m plain · c comments ─╯
 ✓ 1 gist · saved to the cache
 enter edit · n new · o browser · y copy url · D delete · E desc · r rename · h/l file · c comments · ? keys
