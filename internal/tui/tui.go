@@ -175,8 +175,6 @@ type Model struct {
 	hits      []hit
 }
 
-const defaultBoxHeight = 17
-
 // New makes the model. What was kept of the lists shows at once, under the
 // account that last read them, which the first answer from GitHub confirms.
 func New(o Options) *Model {
@@ -198,7 +196,6 @@ func New(o Options) *Model {
 		selected:  map[string]bool{},
 		runEditor: runProgram,
 		selectID:  o.Select,
-		boxHeight: defaultBoxHeight,
 		plain:     o.Config.Preview.Markdown == config.MarkdownPlain,
 		preview:   newPreviewState(filepath.Join(o.CacheDir, "contents")),
 	}

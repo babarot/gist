@@ -9,22 +9,22 @@ gist // @alice     1 mine (5)    2 starred (…)                                
             │ g/G       top / bottom        n         new gist            m         markdown / plain       │
             │ PgDn/PgUp page down / up      E         edit the descripti… +/-       preview height         │
             │ J/K       scroll the preview  r         rename the file     /         fuzzy filter           │
-╭  files (3)│ h/l       prev / next file    D         delete              o         open in the browser    │)  ────────╮
-│  main.go  │ 1         mine                X         discard the draft   y         copy the URL           │           │
-│    1  cont│ 2         starred             space     select              Y         copy the file          │           │
-│           │                               V         select shown        R         refresh now            │KB         │
-│           │                               u         clear / restore     ?         this help              │           │
-│           │                                                             q         quit                   │           │
-│           │                                                                                              │           │
-│           │                                                                                              │           │
+            │ h/l       prev / next file    D         delete              o         open in the browser    │
+            │ 1         mine                X         discard the draft   y         copy the URL           │
+            │ 2         starred             space     select              Y         copy the file          │
+            │                               V         select shown        R         refresh now            │
+╭  files (3)│                               u         clear / restore     ?         this help              │)  ────────╮
+│  main.go  │                                                             q         quit                   │           │
+│    1  cont│                                                                                              │           │
+│           │                                                                                              │KB         │
 │           ╰──────────────────────────────────────────────────────────────────────────────────────────────╯           │
+│                                                                                      │ comments   3                  │
+│                                                                                      │ created    10m ago            │
+│                                                                                      │ updated    5m ago             │
+│                                                                                      │                               │
 │                                                                                      │ file       main.go            │
 │                                                                                      │ type       go                 │
 │                                                                                      │ size       1.2 KB · 1 lines   │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
 ╰──────────────────────────────────────────────────────────────────────────────────── 1111111 · h/l file · c comments ─╯
 ✓ 5 gists · saved to the cache
 esc close

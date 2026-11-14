@@ -13,6 +13,8 @@ gist // @alice     1 mine (1)    2 starred (…)                           via g
 
 
 
+
+
 ╭  files (2)  ─────────────────────────────────┬  info   comments (0)  ────────╮
 │  a.md   main.go                              │ gist       1111111            │
 │  設計書の見出し                              ┃ visibility secret             │
@@ -22,13 +24,11 @@ gist // @alice     1 mine (1)    2 starred (…)                           via g
 │                                              ┃ created    2h ago             │
 │  リスト                                      ┃ updated    1h ago             │
 │                                              ┃                               │
-│  • 項目その1                                 ┃ file       a.md               │
-│  • [✓] 済んだ                                ┃ type       markdown           │
-│  • [ ] まだ                                  ┃ size       349 B · 21 lines   │
+│  • 項目その1                                 │ file       a.md               │
+│  • [✓] 済んだ                                │ type       markdown           │
+│  • [ ] まだ                                  │ size       349 B · 21 lines   │
 │                                              │                               │
 │  ▎ 引用の行                                  │                               │
-│                                              │                               │
-│  列1 │ 列2                                   │                               │
 ╰──────────────────────────── 1111111 · h/l file · J/K · m plain · c comments ─╯
 ✓ 1 gist · saved to the cache
 enter edit · n new · o browser · y copy url · D delete · E desc · ? keys

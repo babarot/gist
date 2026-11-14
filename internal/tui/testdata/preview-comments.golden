@@ -13,6 +13,8 @@ gist // @alice     1 mine (2)    2 starred (…)                                
 
 
 
+
+
 ╭  files (1)  ──────────────────────────────────────────────────┬  info   comments (3)  ───────────────────────────────╮
 │  a.go                                                         │ bob · 1h ago                                         │
 │    1  content of a.go                                         │   comment 0                                          │
@@ -22,8 +24,6 @@ gist // @alice     1 mine (2)    2 starred (…)                                
 │                                                               │                                                      │
 │                                                               │ bob · 1h ago                                         │
 │                                                               │   comment 2                                          │
-│                                                               │                                                      │
-│                                                               │                                                      │
 │                                                               │                                                      │
 │                                                               │                                                      │
 │                                                               │                                                      │

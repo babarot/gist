@@ -9,6 +9,10 @@ gist // @alice     1 mine (5)    2 starred (…)              2 selected · via 
 
 
 
+
+
+
+
 ╭  files (1)  ─────────────────────────────────┬  info   comments (0)  ────────╮
 │  emoji.md                                    │ gist       4444444            │
 │  content of emoji.md                         │ visibility secret             │
@@ -21,10 +25,6 @@ gist // @alice     1 mine (5)    2 starred (…)              2 selected · via 
 │                                              │ file       emoji.md           │
 │                                              │ type       markdown           │
 │                                              │ size       1.2 KB · 1 lines   │
-│                                              │                               │
-│                                              │                               │
-│                                              │                               │
-│                                              │                               │
 ╰───────────────────────────────────────────── 4444444 · m plain · c comments ─╯
 ✓ 5 gists · saved to the cache
 D delete 2 · y copy URLs · o browser · space select · ? keys

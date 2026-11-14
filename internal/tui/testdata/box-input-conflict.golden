@@ -9,10 +9,14 @@ gist // @alice     1 mine (5)    2 starred (…)                                
                       │    theirs                                                                │
                       │                                                                          │
                       │  a description has no history: overwriting loses this one.               │
-╭  files (1)  ────────│                                                                          │omments (0)  ────────╮
-│  x^[]0;title^G.txt  │                                                                          │  <id>            │
-│    1  content       │  o overwrite · r reload · esc cancel                                     │y secret             │
-│                     ╰──────────────────────────────────────────────────────────────────────────╯  1 · 8 B            │
+                      │                                                                          │
+                      │                                                                          │
+                      │  o overwrite · r reload · esc cancel                                     │
+                      ╰──────────────────────────────────────────────────────────────────────────╯
+╭  files (1)  ─────────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
+│  x^[]0;title^G.txt                                                                   │ gist       <id>            │
+│    1  content                                                                        │ visibility secret             │
+│                                                                                      │ files      1 · 8 B            │
 │                                                                                      │ revisions  1                  │
 │                                                                                      │ comments   0                  │
 │                                                                                      │ created    <age>           │
@@ -21,10 +25,6 @@ gist // @alice     1 mine (5)    2 starred (…)                                
 │                                                                                      │ file       x^[]0;title^G.txt  │
 │                                                                                      │ type       plaintext          │
 │                                                                                      │ size       8 B · 1 lines      │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
-│                                                                                      │                               │
 ╰──────────────────────────────────────────────────────────────────────────────────────┴──────── <id> · c comments ─╯
 ✓ 5 gists · saved to the cache
 o overwrite · r reload · esc cancel

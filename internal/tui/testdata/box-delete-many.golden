@@ -13,8 +13,10 @@ gist // @alice     1 mine (4)    2 starred (…)                                
                       │  2 are not shown by the filter.                                          │
                       │  1 has a draft; it goes too.                                             │
                       │                                                                          │
-╭  files (1)  ────────│  delete these 3 gists? y yes · esc no                                    │omments (0)  ────────╮
-│  f3.txt             ╰──────────────────────────────────────────────────────────────────────────╯  <id>            │
+                      │  delete these 3 gists? y yes · esc no                                    │
+                      ╰──────────────────────────────────────────────────────────────────────────╯
+╭  files (1)  ─────────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
+│  f3.txt                                                                              │ gist       <id>            │
 │    1  x                                                                              │ visibility secret             │
 │                                                                                      │ files      1 · 2 B            │
 │                                                                                      │ revisions  1                  │
@@ -25,8 +27,6 @@ gist // @alice     1 mine (4)    2 starred (…)                                
 │                                                                                      │ file       f3.txt             │
 │                                                                                      │ type       plaintext          │
 │                                                                                      │ size       2 B · 1 lines      │
-│                                                                                      │                               │
-│                                                                                      │                               │
 │                                                                                      │                               │
 │                                                                                      │                               │
 ╰─ ✎ draft · enter to continue ────────────────────────────────────────────────────────┴──────── <id> · c comments ─╯
