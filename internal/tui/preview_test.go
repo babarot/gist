@@ -889,6 +889,20 @@ func TestCommentsScroll(t *testing.T) {
 	}
 }
 
+func TestAGapInACommentIsNotTheEndOfIt(t *testing.T) {
+	m, src := commented(t, 2)
+	src.comments["1111111"+strings.Repeat("0", 25)][0].Body = "first\n\nsecond"
+	press(t, m, "c")
+	lines := strings.Split(screen(m), "\n")
+	i := slices.IndexFunc(lines, func(l string) bool { return strings.Contains(l, "│ first") })
+	if i < 0 || !strings.Contains(lines[i+1], "│ │ ") || !strings.Contains(lines[i+2], "│ second") {
+		t.Fatalf("the gap is not marked as part of the comment:\n%s", strings.Join(lines, "\n"))
+	}
+	if strings.Contains(lines[i+3], "│ │") {
+		t.Errorf("the gap after the comment is marked:\n%s", strings.Join(lines, "\n"))
+	}
+}
+
 func TestMyCommentsStandOut(t *testing.T) {
 	m, src := commented(t, 1)
 	src.comments["1111111"+strings.Repeat("0", 25)][0].Author = "alice"
@@ -1073,6 +1087,34 @@ func TestCommentsUnderTheInfoOnALargeScreen(t *testing.T) {
 	}
 	if m.uiState() != uiListComments {
 		t.Errorf("state is %s", m.uiState())
+	}
+}
+
+// TestOnlyTheSideJAndKMoveHasATab is of a large screen, where the info and the
+// comments are both shown: J and K move the content or the comments, and only
+// the comments have a tab of the two, while c is on them.
+func TestOnlyTheSideJAndKMoveHasATab(t *testing.T) {
+	m := commentedOn(t, 2, 200, 60)
+	tabbed := func(name string) bool {
+		for _, row := range m.paint().rows {
+			var line strings.Builder
+			for _, cl := range row {
+				if cl.style.bg == m.pal.tab {
+					line.WriteString(cl.text)
+				}
+			}
+			if strings.Contains(line.String(), name) {
+				return true
+			}
+		}
+		return false
+	}
+	if tabbed("info") || tabbed("comments") {
+		t.Errorf("before c: info %v, comments %v", tabbed("info"), tabbed("comments"))
+	}
+	press(t, m, "c")
+	if tabbed("info") || !tabbed("comments") {
+		t.Errorf("after c: info %v, comments %v", tabbed("info"), tabbed("comments"))
 	}
 }
 
