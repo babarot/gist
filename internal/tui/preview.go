@@ -682,8 +682,10 @@ func (m *Model) commentLines(g model.Gist) [][]seg {
 			lines = markdown.Render(cm.Body, w)
 			m.preview.notes[k] = lines
 		}
+		// A line down the left of the body, so that a gap between its
+		// paragraphs does not read as the end of the comment
 		for _, l := range lines {
-			row := []seg{{"  ", style{}}}
+			row := []seg{{"│ ", style{fg: p.surface1}}}
 			for _, s := range l {
 				row = append(row, seg{s.Text, m.roleStyle(s)})
 			}

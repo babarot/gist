@@ -17,13 +17,13 @@ gist // @alice     1 mine (2)    2 starred (…)                                
 
 ╭  files (1)  ─────────────────────────────────────────────────────────────────────────┬  info   comments (3)  ────────╮
 │  a.go                                                                                │ bob · 1h ago                  │
-│    1  content of a.go                                                                │   comment 0                   │
+│    1  content of a.go                                                                │ │ comment 0                   │
 │                                                                                      │                               │
 │                                                                                      │ bob · 1h ago                  │
-│                                                                                      │   comment 1                   │
+│                                                                                      │ │ comment 1                   │
 │                                                                                      │                               │
 │                                                                                      │ bob · 1h ago                  │
-│                                                                                      │   comment 2                   │
+│                                                                                      │ │ comment 2                   │
 │                                                                                      │                               │
 │                                                                                      │                               │
 │                                                                                      │                               │

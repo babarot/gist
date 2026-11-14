@@ -889,6 +889,20 @@ func TestCommentsScroll(t *testing.T) {
 	}
 }
 
+func TestAGapInACommentIsNotTheEndOfIt(t *testing.T) {
+	m, src := commented(t, 2)
+	src.comments["1111111"+strings.Repeat("0", 25)][0].Body = "first\n\nsecond"
+	press(t, m, "c")
+	lines := strings.Split(screen(m), "\n")
+	i := slices.IndexFunc(lines, func(l string) bool { return strings.Contains(l, "│ first") })
+	if i < 0 || !strings.Contains(lines[i+1], "│ │ ") || !strings.Contains(lines[i+2], "│ second") {
+		t.Fatalf("the gap is not marked as part of the comment:\n%s", strings.Join(lines, "\n"))
+	}
+	if strings.Contains(lines[i+3], "│ │") {
+		t.Errorf("the gap after the comment is marked:\n%s", strings.Join(lines, "\n"))
+	}
+}
+
 func TestMyCommentsStandOut(t *testing.T) {
 	m, src := commented(t, 1)
 	src.comments["1111111"+strings.Repeat("0", 25)][0].Author = "alice"
