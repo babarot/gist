@@ -36,6 +36,8 @@ type Source interface {
 type Layout interface {
 	PreviewHeight() int
 	SavePreviewHeight(h int) error
+	PaneWidth() int
+	SavePaneWidth(w int) error
 }
 
 // Options are what the TUI starts with.
@@ -159,12 +161,18 @@ type Model struct {
 	side      int
 	plain     bool
 	boxHeight int
+	// paneW is the width the pane was dragged to, or 0 for the one it starts at.
+	paneW int
 	// rel is what is known of gist's releases, and relBox the box of their notes.
 	rel       releases
 	relBox    *releaseBox
 	lastClick time.Time
 	lastRow   int
 	dragging  bool
+	// draggingPane is the line between the content and the pane being dragged,
+	// and paneClick when it was last clicked, to tell a second click.
+	draggingPane bool
+	paneClick    time.Time
 
 	spinFrame int
 	spinning  bool
@@ -206,6 +214,7 @@ func New(o Options) *Model {
 		if h := o.Layout.PreviewHeight(); h > 0 {
 			m.boxHeight = h
 		}
+		m.paneW = max(0, o.Layout.PaneWidth())
 	}
 	for i := range m.tabs {
 		m.tabs[i].marks, m.tabs[i].fresh = map[string]bool{}, map[string]time.Time{}

@@ -21,12 +21,11 @@ import (
 const (
 	// infoWidth is the width of the info pane.
 	infoWidth = 30
-	// commentsShare is how much of the width the comments pane takes, in percent.
-	commentsShare = 46
-	// stackedShare is how much of the width the pane takes, in percent, when the
-	// comments go under the info; it is between infoWidth and stackedWidth.
-	stackedShare = 27
-	stackedWidth = 60
+	// paneShare is how much of the width the pane takes, in percent, with the
+	// comments under the info until its line is dragged; it is between infoWidth
+	// and paneMaxWidth. Otherwise it starts infoWidth wide.
+	paneShare    = 27
+	paneMaxWidth = 60
 	// stackMinWidth and stackMinRows are how large the screen and the preview
 	// have to be for the comments to go under the info instead of in its place.
 	stackMinWidth = 160
@@ -40,19 +39,43 @@ const (
 )
 
 // paneX is where the line between the content and the pane is, or the width of
-// the screen when there is no room for a pane.
+// the screen when there is no room for a pane. The info and the comments take
+// the same width, which only dragging the line changes; a width dragged to on
+// a larger screen gives way to the content here.
 func (m *Model) paneX() int {
-	w := infoWidth
+	most := m.width - 3 - minContent
+	if most < infoWidth {
+		return m.width
+	}
+	w := m.paneW
 	switch {
+	case w > 0:
 	case m.stacked():
-		w = min(stackedWidth, max(infoWidth, (m.width-4)*stackedShare/100))
-	case m.side == sideComments:
-		w = max(infoWidth, (m.width-4)*commentsShare/100)
+		w = min(paneMaxWidth, (m.width-4)*paneShare/100)
+	default:
+		w = infoWidth
 	}
-	if dx := m.width - 1 - w - 2; dx >= minContent {
-		return dx
+	return m.width - 3 - min(most, max(infoWidth, w))
+}
+
+// dragPaneTo sets the width of the pane from the column its line was dragged
+// to, as far as the content and the info have room.
+func (m *Model) dragPaneTo(x int) {
+	most := m.width - 3 - minContent
+	if most < infoWidth {
+		return
 	}
-	return m.width
+	m.paneW = min(most, max(infoWidth, m.width-3-x))
+}
+
+// keepPaneWidth keeps the width of the pane for the next launch.
+func (m *Model) keepPaneWidth() {
+	if m.opt.Layout == nil {
+		return
+	}
+	if err := m.opt.Layout.SavePaneWidth(m.paneW); err != nil {
+		m.opt.Log.Warn("the layout cannot be kept", "err", err.Error())
+	}
 }
 
 // stacked says the screen is large enough for the comments to go under the

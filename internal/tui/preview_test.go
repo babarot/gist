@@ -687,12 +687,82 @@ func TestCommentsPane(t *testing.T) {
 	}
 }
 
-func TestCommentsPaneIsWider(t *testing.T) {
+func TestCommentsPaneKeepsTheWidth(t *testing.T) {
 	m, _ := commented(t, 1)
 	info := m.paneX()
 	press(t, m, "c")
-	if m.paneX() >= info {
+	if m.paneX() != info {
 		t.Errorf("the pane went from %d to %d", info, m.paneX())
+	}
+}
+
+func dragPane(t *testing.T, m *Model, to int) {
+	t.Helper()
+	y := m.layout().boxY + 3
+	click(t, m, m.paneX(), y)
+	if !m.draggingPane {
+		t.Fatal("not dragging the pane")
+	}
+	m.Update(tea.MouseMotionMsg{X: to, Y: y, Button: tea.MouseLeft})
+	m.Update(tea.MouseReleaseMsg{X: to, Y: y, Button: tea.MouseLeft})
+}
+
+func TestDragThePanesLine(t *testing.T) {
+	store := &layoutStore{}
+	src := &source{pages: onePage(manyGists(1))}
+	o := options(t, src)
+	o.Layout = store
+	m := newModel(t, o, 120, 34)
+	settle(t, m, m.Init())
+	dragPane(t, m, 70)
+	if m.paneX() != 70 || store.w != 120-3-70 {
+		t.Errorf("the line is at %d, kept %d", m.paneX(), store.w)
+	}
+	if m2 := newModel(t, o, 120, 34); m2.paneX() != 70 {
+		t.Errorf("the next launch has it at %d", m2.paneX())
+	}
+	if m.contentWidth() != 70-4 {
+		t.Errorf("the content is %d wide", m.contentWidth())
+	}
+}
+
+func TestPanesLineStopsWhereThePartsWouldGo(t *testing.T) {
+	m := loaded(t, manyGists(1), 120, 34)
+	dragPane(t, m, 2)
+	if m.paneX() != minContent {
+		t.Errorf("the line is at %d", m.paneX())
+	}
+	m.paneClick = time.Time{}
+	dragPane(t, m, 119)
+	if w := 120 - 3 - m.paneX(); w != infoWidth {
+		t.Errorf("the pane is %d wide", w)
+	}
+}
+
+func TestAWidePaneGivesWayOnASmallerScreen(t *testing.T) {
+	store := &layoutStore{w: 150}
+	o := options(t, &source{pages: onePage(manyGists(1))})
+	o.Layout = store
+	m := newModel(t, o, 120, 34)
+	if m.paneX() != minContent {
+		t.Errorf("the line is at %d", m.paneX())
+	}
+	if store.w != 150 {
+		t.Errorf("kept %d", store.w)
+	}
+}
+
+func TestDoubleClickThePanesLinePutsItBack(t *testing.T) {
+	store := &layoutStore{}
+	o := options(t, &source{pages: onePage(manyGists(1))})
+	o.Layout = store
+	m := newModel(t, o, 120, 34)
+	settle(t, m, m.Init())
+	start := m.paneX()
+	dragPane(t, m, 60)
+	click(t, m, m.paneX(), m.layout().boxY+3)
+	if m.paneX() != start || store.w != 0 || m.draggingPane {
+		t.Errorf("the line is at %d, kept %d", m.paneX(), store.w)
 	}
 }
 
@@ -993,7 +1063,7 @@ func TestCommentsUnderTheInfoOnALargeScreen(t *testing.T) {
 			t.Errorf("no %q in:\n%s", want, s)
 		}
 	}
-	if x := m.paneX(); m.width-3-x > stackedWidth || m.width-3-x <= infoWidth {
+	if x := m.paneX(); m.width-3-x > paneMaxWidth || m.width-3-x <= infoWidth {
 		t.Errorf("the pane is %d wide", m.width-3-x)
 	}
 	x := m.paneX()

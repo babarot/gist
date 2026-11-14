@@ -162,7 +162,13 @@ func (s *source) Comments(_ context.Context, id string) ([]model.Comment, error)
 	return s.comments[id], s.commentsErr
 }
 
-type layoutStore struct{ h int }
+type layoutStore struct{ h, w int }
+
+func (l *layoutStore) PaneWidth() int { return l.w }
+func (l *layoutStore) SavePaneWidth(w int) error {
+	l.w = w
+	return nil
+}
 
 func (l *layoutStore) PreviewHeight() int { return l.h }
 func (l *layoutStore) SavePreviewHeight(h int) error {

@@ -32,6 +32,7 @@ func Open(dir string) *Store {
 // settings are what is remembered between launches.
 type settings struct {
 	PreviewHeight int         `json:"preview_height,omitempty"`
+	PaneWidth     int         `json:"pane_width,omitempty"`
 	Release       ReleaseSeen `json:"release,omitzero"`
 }
 
@@ -63,6 +64,16 @@ func (s *Store) PreviewHeight() int { return s.settings().PreviewHeight }
 func (s *Store) SavePreviewHeight(h int) error {
 	st := s.settings()
 	st.PreviewHeight = h
+	return s.saveSettings(st)
+}
+
+// PaneWidth is the width the pane beside the preview was dragged to, or 0.
+func (s *Store) PaneWidth() int { return s.settings().PaneWidth }
+
+// SavePaneWidth remembers the width of the pane; 0 forgets it.
+func (s *Store) SavePaneWidth(w int) error {
+	st := s.settings()
+	st.PaneWidth = w
 	return s.saveSettings(st)
 }
 
