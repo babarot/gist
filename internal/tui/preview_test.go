@@ -968,3 +968,64 @@ func TestTheTabsShownSitInTheFrame(t *testing.T) {
 		t.Error("the side shown has no tab of its own")
 	}
 }
+
+func commentedOn(t *testing.T, n, w, h int) *Model {
+	t.Helper()
+	g := gist("1111111", "d", time.Hour, "a.go")
+	g.Comments = n
+	src := &source{pages: onePage([]model.Gist{g, gist("2222222", "e", 2*time.Hour, "b.go")}),
+		comments: map[string][]model.Comment{g.ID: comments(n)}}
+	m := newModel(t, options(t, src), w, h)
+	settle(t, m, m.Init())
+	_, cmd := m.Update(dwellMsg{m.preview.dwellSeq, m.preview.dwellOn})
+	settle(t, m, cmd)
+	return m
+}
+
+func TestCommentsUnderTheInfoOnALargeScreen(t *testing.T) {
+	m := commentedOn(t, 2, 200, 60)
+	if !m.stacked() {
+		t.Fatal("not stacked")
+	}
+	s := screen(m)
+	for _, want := range []string{"visibility", "comments (2)", "bob · 1h ago", "comment 0"} {
+		if !strings.Contains(s, want) {
+			t.Errorf("no %q in:\n%s", want, s)
+		}
+	}
+	if x := m.paneX(); m.width-3-x > stackedWidth || m.width-3-x <= infoWidth {
+		t.Errorf("the pane is %d wide", m.width-3-x)
+	}
+	x := m.paneX()
+	press(t, m, "c")
+	if m.paneX() != x {
+		t.Errorf("c moved the pane from %d to %d", x, m.paneX())
+	}
+	if m.uiState() != uiListComments {
+		t.Errorf("state is %s", m.uiState())
+	}
+}
+
+func TestSmallScreenKeepsTheCommentsInPlaceOfTheInfo(t *testing.T) {
+	m := commentedOn(t, 2, 200, 30)
+	if m.stacked() {
+		t.Fatal("stacked in a low preview")
+	}
+	if s := screen(m); strings.Contains(s, "bob · 1h ago") {
+		t.Errorf("comments shown with the info:\n%s", s)
+	}
+}
+
+func TestWheelOverTheStackedComments(t *testing.T) {
+	m := commentedOn(t, 30, 200, 60)
+	g := m.tab().gists[0]
+	l := m.layout()
+	m.Update(wheelDown(m.paneX()+3, l.boxY+2))
+	if m.preview.commentScroll[g.ID] != 0 {
+		t.Error("the wheel over the info moved the comments")
+	}
+	m.Update(wheelDown(m.paneX()+3, m.commentsTop(l, g)+1))
+	if m.preview.commentScroll[g.ID] != 1 {
+		t.Errorf("scroll is %d", m.preview.commentScroll[g.ID])
+	}
+}

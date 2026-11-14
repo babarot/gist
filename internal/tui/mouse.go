@@ -103,7 +103,11 @@ func (m *Model) wheel(msg tea.MouseWheelMsg, x, y int) {
 		m.moveTo(m.tab().cur + by)
 	case y > l.boxY && y < l.boxY+l.boxH-1:
 		if x >= m.paneX() {
-			if m.side == sideComments {
+			g, ok := m.current()
+			switch {
+			case m.stacked() && ok && y >= m.commentsTop(l, g):
+				m.scrollComments(by)
+			case !m.stacked() && m.side == sideComments:
 				m.scrollComments(by)
 			}
 			return

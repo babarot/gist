@@ -335,9 +335,12 @@ func (m *Model) keyHints() []hint {
 		if len(g.Files) > 1 {
 			hints = append(hints, k("file", keymap.PrevFile, keymap.NextFile))
 		}
-		if m.side == sideComments {
+		switch {
+		case m.side == sideComments && m.stacked():
+			hints = append(hints, k("content", keymap.ToggleSide), k("comments", keymap.ScrollDown, keymap.ScrollUp))
+		case m.side == sideComments:
 			hints = append(hints, k("info", keymap.ToggleSide), k("comments", keymap.ScrollDown, keymap.ScrollUp))
-		} else {
+		default:
 			hints = append(hints, k("comments", keymap.ToggleSide))
 		}
 		if m.onMarkdown(g) {

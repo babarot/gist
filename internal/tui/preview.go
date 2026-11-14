@@ -23,6 +23,14 @@ const (
 	infoWidth = 30
 	// commentsShare is how much of the width the comments pane takes, in percent.
 	commentsShare = 46
+	// stackedShare is how much of the width the pane takes, in percent, when the
+	// comments go under the info; it is between infoWidth and stackedWidth.
+	stackedShare = 27
+	stackedWidth = 60
+	// stackMinWidth and stackMinRows are how large the screen and the preview
+	// have to be for the comments to go under the info instead of in its place.
+	stackMinWidth = 160
+	stackMinRows  = 20
 	// maxLines is the most lines of a file shown.
 	maxLines = 1000
 	// lineNumbers is the width of the line numbers and the gap after them.
@@ -35,7 +43,10 @@ const (
 // the screen when there is no room for a pane.
 func (m *Model) paneX() int {
 	w := infoWidth
-	if m.side == sideComments {
+	switch {
+	case m.stacked():
+		w = min(stackedWidth, max(infoWidth, (m.width-4)*stackedShare/100))
+	case m.side == sideComments:
 		w = max(infoWidth, (m.width-4)*commentsShare/100)
 	}
 	if dx := m.width - 1 - w - 2; dx >= minContent {
@@ -43,6 +54,16 @@ func (m *Model) paneX() int {
 	}
 	return m.width
 }
+
+// stacked says the screen is large enough for the comments to go under the
+// info, so that c only says which of the content and the comments J and K move.
+func (m *Model) stacked() bool {
+	return m.width >= stackMinWidth && m.innerRows() >= stackMinRows
+}
+
+// paneWidth is the room for the text of the pane, from two cells after its line
+// to the frame.
+func (m *Model) paneWidth() int { return max(infoWidth, m.width-3-m.paneX()) }
 
 func isMarkdown(name string) bool {
 	ext := strings.ToLower(filepath.Ext(name))
@@ -184,7 +205,7 @@ func (m *Model) scrollComments(by int) {
 	if !ok {
 		return
 	}
-	limit := max(0, len(m.commentLines(g))-m.innerRows())
+	limit := max(0, len(m.commentLines(g))-m.commentRoom(g))
 	m.preview.commentScroll[g.ID] = max(0, min(m.preview.commentScroll[g.ID]+by, limit))
 }
 
@@ -211,9 +232,15 @@ func (m *Model) drawPreview(c *canvas, l layout) {
 		c.put(l.boxY, dx, "┬", line)
 		c.put(l.boxY+l.boxH-1, dx, "┴", line)
 		m.drawSideTabs(c, l, g, dx)
-		if m.side == sideComments {
-			m.drawComments(c, l, g, dx+2)
-		} else {
+		switch {
+		case m.stacked():
+			m.drawInfo(c, l, g, f, read, dx+2)
+			top := m.commentsTop(l, g)
+			m.drawCommentsRule(c, l, g, dx, top-1)
+			m.drawComments(c, g, dx+2, top, l.boxY+l.boxH-1-top)
+		case m.side == sideComments:
+			m.drawComments(c, g, dx+2, l.boxY+1, l.boxH-2)
+		default:
 			m.drawInfo(c, l, g, f, read, dx+2)
 		}
 	}
@@ -253,9 +280,12 @@ func (m *Model) drawHints(c *canvas, l layout, g model.Gist, f model.File, read 
 			left = fmt.Sprintf(" %d of %d lines ", maxLines, n)
 		}
 	}
-	if m.side == sideComments {
+	switch {
+	case m.side == sideComments && m.stacked():
+		hints = append(hints, m.keys.Hint(keymap.ToggleSide)+" content", m.keys.Hint(keymap.ScrollDown, keymap.ScrollUp)+" comments")
+	case m.side == sideComments:
 		hints = append(hints, m.keys.Hint(keymap.ToggleSide)+" info", m.keys.Hint(keymap.ScrollDown, keymap.ScrollUp)+" comments")
-	} else {
+	default:
 		hints = append(hints, m.keys.Hint(keymap.ToggleSide)+" comments")
 	}
 	s := " " + strings.Join(hints, " · ") + " "
@@ -366,10 +396,15 @@ func (m *Model) drawSideTabs(c *canvas, l layout, g model.Gist, dx int) {
 	p := m.pal
 	line := style{fg: p.surface1}
 	x := c.put(l.boxY, dx+1, " ", line)
-	for i, label := range []string{"info", fmt.Sprintf("comments (%d)", g.Comments)} {
+	labels := []string{"info", fmt.Sprintf("comments (%d)", g.Comments)}
+	if m.stacked() {
+		// The comments have their own line under the info
+		labels = labels[:1]
+	}
+	for i, label := range labels {
 		x0 := x
 		s := " " + label + " "
-		if m.side == i {
+		if m.side == i || m.stacked() {
 			x = c.put(l.boxY, x, s, style{fg: p.text, bg: p.tab, bold: true})
 		} else {
 			x = c.put(l.boxY, x, s, style{fg: p.overlay})
@@ -495,7 +530,15 @@ func totalSize(g model.Gist) int64 {
 	return n
 }
 
-func (m *Model) drawInfo(c *canvas, l layout, g model.Gist, f model.File, read bool, x int) {
+// infoRow is a line of the info: a name and what it is.
+type infoRow struct {
+	k, v string
+	st   style
+}
+
+// infoRows are the lines of the info of g, with f the file shown; a row with no
+// name is a gap.
+func (m *Model) infoRows(g model.Gist, f model.File, read bool) []infoRow {
 	p := m.pal
 	now := m.now()
 	total := totalSize(g)
@@ -504,29 +547,25 @@ func (m *Model) drawInfo(c *canvas, l layout, g model.Gist, f model.File, read b
 		vis, visSt = "public", style{fg: p.text}
 	}
 	plain := style{fg: p.text}
-	type row struct {
-		k, v string
-		st   style
-	}
-	var rows []row
+	var rows []infoRow
 	if m.cur == tabStarred {
-		rows = append(rows, row{"owner", g.Owner, plain})
+		rows = append(rows, infoRow{"owner", g.Owner, plain})
 	}
 	revisions := "…"
 	if c2, ok := m.content(g); ok {
 		revisions = strconv.Itoa(len(c2.History))
 	}
 	rows = append(rows,
-		row{"gist", g.ID[:min(7, len(g.ID))], plain},
-		row{"visibility", vis, visSt},
-		row{"files", fmt.Sprintf("%d · %s", len(g.Files), size(total)), plain},
-		row{"revisions", revisions, plain},
-		row{"comments", strconv.Itoa(g.Comments), plain},
-		row{"created", when(now.Sub(g.Created)), plain},
-		row{"updated", when(now.Sub(g.Updated)), plain},
+		infoRow{"gist", g.ID[:min(7, len(g.ID))], plain},
+		infoRow{"visibility", vis, visSt},
+		infoRow{"files", fmt.Sprintf("%d · %s", len(g.Files), size(total)), plain},
+		infoRow{"revisions", revisions, plain},
+		infoRow{"comments", strconv.Itoa(g.Comments), plain},
+		infoRow{"created", when(now.Sub(g.Created)), plain},
+		infoRow{"updated", when(now.Sub(g.Updated)), plain},
 	)
 	if len(g.Files) > 0 {
-		rows = append(rows, row{}, row{"file", f.Name, plain})
+		rows = append(rows, infoRow{}, infoRow{"file", f.Name, plain})
 		sizeOf := size(f.Size)
 		kind := f.Language
 		switch {
@@ -537,11 +576,17 @@ func (m *Model) drawInfo(c *canvas, l layout, g model.Gist, f model.File, read b
 			sizeOf += fmt.Sprintf(" · %d lines", lineCount(f.Content))
 		}
 		if kind != "" {
-			rows = append(rows, row{"type", kind, plain})
+			rows = append(rows, infoRow{"type", kind, plain})
 		}
-		rows = append(rows, row{"size", sizeOf, plain})
+		rows = append(rows, infoRow{"size", sizeOf, plain})
 	}
-	for i, r := range rows {
+	return rows
+}
+
+func (m *Model) drawInfo(c *canvas, l layout, g model.Gist, f model.File, read bool, x int) {
+	p := m.pal
+	w := m.paneWidth()
+	for i, r := range m.infoRows(g, f, read) {
 		y := l.boxY + 1 + i
 		if y >= l.boxY+l.boxH-1 {
 			break
@@ -550,15 +595,50 @@ func (m *Model) drawInfo(c *canvas, l layout, g model.Gist, f model.File, read b
 			continue
 		}
 		c.put(y, x, r.k, style{fg: p.overlay})
-		c.putCut(y, x+11, []seg{{r.v, r.st}}, infoWidth-12, style{fg: p.overlay})
+		c.putCut(y, x+11, []seg{{r.v, r.st}}, w-12, style{fg: p.overlay})
 	}
+}
+
+// commentsTop is the first row of the comments when they are under the info:
+// a gap and the line of their name after it. The info of every file of g is as
+// long, so that the comments stay where they are as the files are stepped.
+func (m *Model) commentsTop(l layout, g model.Gist) int {
+	return l.boxY + 1 + len(m.infoRows(g, model.File{Language: "x"}, false)) + 2
+}
+
+// commentRoom is how many lines of the comments are in sight.
+func (m *Model) commentRoom(g model.Gist) int {
+	if !m.stacked() {
+		return m.innerRows()
+	}
+	l := m.layout()
+	return max(0, l.boxY+l.boxH-1-m.commentsTop(l, g))
+}
+
+// drawCommentsRule draws on row y across the pane the line the comments start
+// under, with their name, bright when J and K move them.
+func (m *Model) drawCommentsRule(c *canvas, l layout, g model.Gist, dx, y int) {
+	p := m.pal
+	line := style{fg: p.surface1}
+	c.put(y, dx, "├"+strings.Repeat("─", max(0, c.w-dx-2))+"┤", line)
+	label := fmt.Sprintf(" comments (%d) ", g.Comments)
+	st := style{fg: p.overlay}
+	if m.side == sideComments {
+		st = style{fg: p.text, bg: p.tab, bold: true}
+	}
+	x0 := dx + 2
+	x := c.put(y, x0, label, st)
+	m.addHit(y, x0, x, func() tea.Cmd {
+		m.toggleSide()
+		return m.readCommentsNow()
+	})
 }
 
 // commentLines are the comments as lines of the pane, oldest first.
 func (m *Model) commentLines(g model.Gist) [][]seg {
 	p := m.pal
 	cs := m.preview.comments[g.ID]
-	w := max(infoWidth, (m.width-4)*commentsShare/100) - 3
+	w := m.paneWidth() - 3
 	now := m.now()
 	var out [][]seg
 	for _, cm := range cs {
@@ -598,17 +678,25 @@ func when(d time.Duration) string {
 	return ago(d) + " ago"
 }
 
-func (m *Model) drawComments(c *canvas, l layout, g model.Gist, x int) {
+// drawComments draws the comments of g from column x in rows lines from top.
+func (m *Model) drawComments(c *canvas, g model.Gist, x, top, rows int) {
 	p := m.pal
-	top, rows := l.boxY+1, l.boxH-2
+	if rows <= 0 {
+		return
+	}
 	w := c.w - 2 - x
+	// Alone in the pane, a word on the comments is a line down, as the info is
+	at := top + 1
+	if m.stacked() {
+		at = top
+	}
 	if g.Comments == 0 {
-		c.put(top+1, x, "no comments", style{fg: p.dim})
+		c.put(at, x, "no comments", style{fg: p.dim})
 		return
 	}
 	if _, ok := m.preview.comments[g.ID]; !ok {
-		c.put(top+1, x, m.spinChar(), style{fg: p.blue})
-		c.put(top+1, x+2, "loading comments…", style{fg: p.subtext0})
+		c.put(at, x, m.spinChar(), style{fg: p.blue})
+		c.put(at, x+2, "loading comments…", style{fg: p.subtext0})
 		return
 	}
 	lines := m.commentLines(g)
