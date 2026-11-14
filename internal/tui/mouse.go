@@ -18,7 +18,8 @@ func (m *Model) addHit(y, x0, x1 int, act func() tea.Cmd) {
 	m.hits = append(m.hits, hit{y, x0, x1, act})
 }
 
-// mouse handles a click, the wheel and dragging the top edge of the preview.
+// mouse handles a click, the wheel, dragging the top edge of the preview and
+// dragging the line between its content and the pane.
 // What is open over the screen keeps the mouse from the list under it.
 func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	if m.sending {
@@ -51,13 +52,20 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 	mouse := msg.Mouse()
 	switch msg := msg.(type) {
 	case tea.MouseMotionMsg:
-		if m.dragging {
+		switch {
+		case m.dragging:
 			m.dragTo(mouse.Y)
+		case m.draggingPane:
+			m.dragPaneTo(mouse.X)
 		}
 	case tea.MouseReleaseMsg:
-		if m.dragging {
+		switch {
+		case m.dragging:
 			m.dragging = false
 			m.keepBoxHeight()
+		case m.draggingPane:
+			m.draggingPane = false
+			m.keepPaneWidth()
 		}
 	case tea.MouseWheelMsg:
 		m.wheel(msg, mouse.X, mouse.Y)
@@ -73,8 +81,19 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 				return h.act()
 			}
 		}
-		if l := m.layout(); l.boxH > 0 && mouse.Y == l.boxY {
+		l := m.layout()
+		switch {
+		case l.boxH > 0 && mouse.Y == l.boxY:
 			m.dragging = true
+		case mouse.Y > l.boxY && mouse.Y < l.boxY+l.boxH-1 && mouse.X == m.paneX():
+			// A second click on the line puts the pane back as it starts
+			if m.now().Sub(m.paneClick) < doubleClick {
+				m.paneW, m.paneClick = 0, time.Time{}
+				m.keepPaneWidth()
+				return nil
+			}
+			m.paneClick = m.now()
+			m.draggingPane = true
 		}
 	}
 	return nil
@@ -103,7 +122,11 @@ func (m *Model) wheel(msg tea.MouseWheelMsg, x, y int) {
 		m.moveTo(m.tab().cur + by)
 	case y > l.boxY && y < l.boxY+l.boxH-1:
 		if x >= m.paneX() {
-			if m.side == sideComments {
+			g, ok := m.current()
+			switch {
+			case m.stacked() && ok && y >= m.commentsTop(l, g):
+				m.scrollComments(by)
+			case !m.stacked() && m.side == sideComments:
 				m.scrollComments(by)
 			}
 			return
