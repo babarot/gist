@@ -175,7 +175,7 @@ func (m *Model) scrollContent(by int) {
 		return
 	}
 	k := fileKey{g.ID, f.Name}
-	limit := max(0, m.contentRows(g, f)-m.innerRows())
+	limit := max(0, m.contentRows(g, f)-m.contentRoom())
 	m.preview.scroll[k] = max(0, min(m.preview.scroll[k]+by, limit))
 }
 
@@ -219,8 +219,8 @@ func (m *Model) drawPreview(c *canvas, l layout) {
 	}
 	if read && !f.Binary {
 		k := fileKey{g.ID, f.Name}
-		inner, rows := l.boxH-2, m.contentRows(g, f)
-		m.drawThumb(c, min(dx, c.w-1), l.boxY+1, inner, min(m.preview.scroll[k], max(0, rows-inner)), rows, p.overlay)
+		inner, rows := m.contentRoom(), m.contentRows(g, f)
+		m.drawThumb(c, min(dx, c.w-1), contentTop(l), inner, min(m.preview.scroll[k], max(0, rows-inner)), rows, p.overlay)
 	}
 	// Last, as they can run longer than the pane they end under
 	m.drawHints(c, l, g, f, read)
@@ -236,7 +236,7 @@ func (m *Model) drawHints(c *canvas, l layout, g model.Gist, f model.File, read 
 	}
 	var left string
 	if read && !f.Binary {
-		if m.side == sideInfo && m.contentRows(g, f) > m.innerRows() {
+		if m.side == sideInfo && m.contentRows(g, f) > m.contentRoom() {
 			hints = append(hints, m.keys.Hint(keymap.ScrollDown, keymap.ScrollUp))
 		}
 		if isMarkdown(f.Name) {
@@ -302,14 +302,31 @@ func firstTab(widths []int, cur, room int) int {
 	return from
 }
 
-// drawFileTabs lays the files along the top of the frame, keeping the one shown
-// in sight however many there are. A file is a choice within the pane, so its
-// tab is fainter than those of drawSideTabs, which switch the pane.
+// contentTop is the first line of the content: the files are on the line
+// before it, under the top of the frame.
+func contentTop(l layout) int { return l.boxY + 2 }
+
+// contentRoom is how many lines of the content are in sight.
+func (m *Model) contentRoom() int { return max(0, m.innerRows()-1) }
+
+// drawFileTabs says along the top of the frame how many files there are and
+// lays them on the line under it, so that however many there are the top
+// stays a line. A file is a choice within the pane, so its tab is fainter than
+// those of drawSideTabs, which switch the pane.
 func (m *Model) drawFileTabs(c *canvas, l layout, g model.Gist, dx int) {
 	p := m.pal
 	line := style{fg: p.surface1}
-	end := dx - 2
 	x := c.put(l.boxY, 1, " ", line)
+	s := fmt.Sprintf(" files (%d) ", len(g.Files))
+	x = c.putCut(l.boxY, x, []seg{{s, style{fg: p.subtext1, bold: true}}}, dx-2-x, line)
+	c.put(l.boxY, x, " ", line)
+	m.putFileTabs(c, l.boxY+1, tabsX, min(dx, c.w-1)-1, g)
+}
+
+// putFileTabs lays the tabs of the files of g on line y from x to end,
+// keeping the one shown in sight however many there are.
+func (m *Model) putFileTabs(c *canvas, y, x, end int, g model.Gist) {
+	p := m.pal
 	cur := m.selectedFile(g)
 	widths := make([]int, len(g.Files))
 	for i, f := range g.Files {
@@ -317,31 +334,31 @@ func (m *Model) drawFileTabs(c *canvas, l layout, g model.Gist, dx int) {
 	}
 	from := firstTab(widths, cur, end-tabsX)
 	if from > 0 {
-		x = c.put(l.boxY, x, tabsBefore, style{fg: p.overlay})
+		x = c.put(y, x, tabsBefore, style{fg: p.overlay})
 	}
 	for i := from; i < len(g.Files); i++ {
 		s := " " + g.Files[i].Name + " "
 		on := style{fg: p.blue, bg: p.surface0, bold: true}
 		if x+widths[i] > end {
-			// Only the tab shown is cut, when it is wider than the frame
+			// Only the tab shown is cut, when it is wider than the room
 			if i == cur {
-				c.putCut(l.boxY, x, []seg{{s, on}}, end-x, on)
+				c.putCut(y, x, []seg{{s, on}}, end-x, on)
 			} else {
-				c.put(l.boxY, x, tabsAfter, style{fg: p.overlay})
+				c.put(y, x, tabsAfter, style{fg: p.overlay})
 			}
 			break
 		}
 		x0 := x
 		if i == cur {
-			x = c.put(l.boxY, x, s, on)
+			x = c.put(y, x, s, on)
 		} else {
-			x = c.put(l.boxY, x, s, style{fg: p.overlay})
+			x = c.put(y, x, s, style{fg: p.overlay})
 		}
-		m.addHit(l.boxY, x0, x, func() tea.Cmd {
+		m.addHit(y, x0, x, func() tea.Cmd {
 			m.fileTab[g.ID] = i
 			return nil
 		})
-		x = c.put(l.boxY, x, " ", line)
+		x = c.put(y, x, " ", style{})
 	}
 }
 
@@ -368,8 +385,8 @@ func (m *Model) drawSideTabs(c *canvas, l layout, g model.Gist, dx int) {
 func (m *Model) drawContent(c *canvas, l layout, g model.Gist, f model.File, read bool, dx int) {
 	p := m.pal
 	const x = 2
-	inner := l.boxH - 2
-	top := l.boxY + 1
+	inner := m.contentRoom()
+	top := contentTop(l)
 	switch {
 	case m.preview.failed[g.ID] && !read:
 		c.put(top, x, "this gist could not be read · R tries again", style{fg: p.red})

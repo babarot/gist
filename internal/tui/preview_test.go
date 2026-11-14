@@ -113,7 +113,7 @@ func TestLongCodeLinesAreCut(t *testing.T) {
 			line = l
 		}
 	}
-	if !strings.Contains(line, "…") || !strings.Contains(line, "│ gist") {
+	if !strings.Contains(line, "…") || !strings.Contains(line, "│ visibility") {
 		t.Errorf("got %q", line)
 	}
 }
@@ -456,22 +456,50 @@ func manyFiles(t *testing.T, w int) *Model {
 
 func frameTop(m *Model) string { return strings.Split(screen(m), "\n")[m.layout().boxY] }
 
+// fileStrip is the line under the frame's top, where the tabs of the files
+// are, up to the line before the pane.
+func fileStrip(m *Model) string {
+	line := []rune(strings.Split(screen(m), "\n")[m.layout().boxY+1])
+	return string(line[:min(m.paneX(), len(line))])
+}
+
+func TestManyFilesLeaveTheFrameTopALine(t *testing.T) {
+	m := manyFiles(t, 120)
+	top := frameTop(m)
+	if !strings.Contains(top, " files (11) ") || strings.Contains(top, "a-long") || !strings.Contains(top, "────") {
+		t.Errorf("got %q", top)
+	}
+	if s := fileStrip(m); !strings.Contains(s, "00-a-long") {
+		t.Errorf("got %q", s)
+	}
+}
+
+func TestOneFileHasItsTabUnderTheTopToo(t *testing.T) {
+	m, _ := preview(t, 120, 34, file("only.go", "package main\n"))
+	if top := frameTop(m); !strings.Contains(top, " files (1) ") || strings.Contains(top, "only.go") {
+		t.Errorf("got %q", top)
+	}
+	if s := fileStrip(m); !strings.Contains(s, " only.go ") {
+		t.Errorf("got %q", s)
+	}
+}
+
 func TestFileTabsFollowTheFileShown(t *testing.T) {
 	m := manyFiles(t, 120)
-	if top := frameTop(m); strings.Contains(top, "‹") || !strings.Contains(top, "…") {
+	if top := fileStrip(m); strings.Contains(top, "‹") || !strings.Contains(top, "…") {
 		t.Errorf("at the first: %q", top)
 	}
 	for i := range 11 {
-		if top := frameTop(m); !strings.Contains(top, fmt.Sprintf("%02d-a-long", i)) {
+		if top := fileStrip(m); !strings.Contains(top, fmt.Sprintf("%02d-a-long", i)) {
 			t.Errorf("file %d is not in %q", i, top)
 		}
 		press(t, m, "l")
 	}
-	if top := frameTop(m); !strings.Contains(top, "‹") || strings.Contains(top, "…") {
+	if top := fileStrip(m); !strings.Contains(top, "‹") || strings.Contains(top, "…") {
 		t.Errorf("at the last: %q", top)
 	}
 	for i := 10; i >= 0; i-- {
-		if top := frameTop(m); !strings.Contains(top, fmt.Sprintf("%02d-a-long", i)) {
+		if top := fileStrip(m); !strings.Contains(top, fmt.Sprintf("%02d-a-long", i)) {
 			t.Errorf("going back, file %d is not in %q", i, top)
 		}
 		press(t, m, "h")
@@ -481,9 +509,9 @@ func TestFileTabsFollowTheFileShown(t *testing.T) {
 func TestAClickOnAFileTabAfterTheyMoved(t *testing.T) {
 	m := manyFiles(t, 120)
 	press(t, m, "l", "l", "l", "l", "l", "l")
-	top := frameTop(m)
+	top := fileStrip(m)
 	x := ansi.StringWidth(top[:strings.Index(top, "05-a-long")])
-	click(t, m, x, m.layout().boxY)
+	click(t, m, x, m.layout().boxY+1)
 	if g, _ := m.current(); m.selectedFile(g) != 5 {
 		t.Errorf("on file %d", m.selectedFile(g))
 	}
@@ -492,7 +520,7 @@ func TestAClickOnAFileTabAfterTheyMoved(t *testing.T) {
 func TestATabWiderThanTheFrameIsCut(t *testing.T) {
 	m, _ := preview(t, 60, 24, file("a.txt", "x\n"), file(strings.Repeat("長", 40)+".txt", "y\n"))
 	press(t, m, "l")
-	top := frameTop(m)
+	top := fileStrip(m)
 	if !strings.Contains(top, "長") || strings.Count(top, "…") != 1 {
 		t.Errorf("got %q", top)
 	}
@@ -513,7 +541,7 @@ func TestSideTabsStayWhereTheyAre(t *testing.T) {
 
 func TestScrollStopsAtTheEnds(t *testing.T) {
 	m, _ := preview(t, 120, 34, file("a.txt", strings.Repeat("line\n", 40)))
-	inner := m.innerRows()
+	inner := m.contentRoom()
 	press(t, m, "K")
 	if s := screen(m); !strings.Contains(s, "   1  line") {
 		t.Errorf("got:\n%s", s)
@@ -576,7 +604,7 @@ func TestAScrollbarShowsWhereTheContentIs(t *testing.T) {
 	l := m.layout()
 	x := m.paneX()
 	top := thumbRows(m, x)
-	if len(top) == 0 || top[0] != l.boxY+1 {
+	if len(top) == 0 || top[0] != contentTop(l) {
 		t.Fatalf("at the top: %v", top)
 	}
 	for range 200 {
@@ -921,9 +949,13 @@ func TestAGistJustChangedIsNotNowAgo(t *testing.T) {
 func TestTheTabsShownSitInTheFrame(t *testing.T) {
 	m := loaded(t, fixture(), 120, 34)
 	backs := map[any]bool{}
-	for _, cl := range m.paint().rows[m.layout().boxY] {
-		if cl.style.bg != nil {
-			backs[cl.style.bg] = true
+	rows := m.paint().rows
+	// The files are on the line under the top.
+	for _, y := range []int{m.layout().boxY, m.layout().boxY + 1} {
+		for _, cl := range rows[y] {
+			if cl.style.bg != nil {
+				backs[cl.style.bg] = true
+			}
 		}
 	}
 	if backs[m.pal.blue] {
