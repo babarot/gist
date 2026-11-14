@@ -420,14 +420,16 @@ func (m *Model) drawSideTabs(c *canvas, l layout, g model.Gist, dx int) {
 	line := style{fg: p.surface1}
 	x := c.put(l.boxY, dx+1, " ", line)
 	labels := []string{"info", fmt.Sprintf("comments (%d)", g.Comments)}
-	if m.stacked() {
+	stacked := m.stacked()
+	if stacked {
 		// The comments have their own line under the info
 		labels = labels[:1]
 	}
 	for i, label := range labels {
 		x0 := x
 		s := " " + label + " "
-		if m.side == i || m.stacked() {
+		// Under the info J and K move the content, so it never has the tab
+		if m.side == i && !stacked {
 			x = c.put(l.boxY, x, s, style{fg: p.text, bg: p.tab, bold: true})
 		} else {
 			x = c.put(l.boxY, x, s, style{fg: p.overlay})

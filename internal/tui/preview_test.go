@@ -1090,6 +1090,34 @@ func TestCommentsUnderTheInfoOnALargeScreen(t *testing.T) {
 	}
 }
 
+// TestOnlyTheSideJAndKMoveHasATab is of a large screen, where the info and the
+// comments are both shown: J and K move the content or the comments, and only
+// the comments have a tab of the two, while c is on them.
+func TestOnlyTheSideJAndKMoveHasATab(t *testing.T) {
+	m := commentedOn(t, 2, 200, 60)
+	tabbed := func(name string) bool {
+		for _, row := range m.paint().rows {
+			var line strings.Builder
+			for _, cl := range row {
+				if cl.style.bg == m.pal.tab {
+					line.WriteString(cl.text)
+				}
+			}
+			if strings.Contains(line.String(), name) {
+				return true
+			}
+		}
+		return false
+	}
+	if tabbed("info") || tabbed("comments") {
+		t.Errorf("before c: info %v, comments %v", tabbed("info"), tabbed("comments"))
+	}
+	press(t, m, "c")
+	if tabbed("info") || !tabbed("comments") {
+		t.Errorf("after c: info %v, comments %v", tabbed("info"), tabbed("comments"))
+	}
+}
+
 func TestSmallScreenKeepsTheCommentsInPlaceOfTheInfo(t *testing.T) {
 	m := commentedOn(t, 2, 200, 30)
 	if m.stacked() {
