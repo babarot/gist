@@ -1,5 +1,17 @@
 # Changelog
 
+## [v2.2.0](https://github.com/babarot/gist/compare/v2.1.0...v2.2.0) - 2026-11-14
+### New Features
+- Select gists in the TUI and delete them together by @babarot in https://github.com/babarot/gist/pull/56
+### Bug fixes
+- Build with Go 1.26.11 to fix GO-2026-6859 in net/http by @babarot in https://github.com/babarot/gist/pull/60
+### Improvements
+- Copy and open the URLs of the selected gists by @babarot in https://github.com/babarot/gist/pull/58
+- Lay the files of a gist on a line of their own in the preview by @babarot in https://github.com/babarot/gist/pull/59
+- Start the preview at half the screen until it is resized by @babarot in https://github.com/babarot/gist/pull/61
+- Show the comments under the info on a large screen, and drag the pane to set its width by @babarot in https://github.com/babarot/gist/pull/62
+- Mark the comments apart and give the info no tab on a large screen by @babarot in https://github.com/babarot/gist/pull/63
+
 ## [v2.1.0](https://github.com/babarot/gist/compare/v2.0.0...v2.1.0) - 2026-11-07
 ### New Features
 - Copy the file shown with Y by @babarot in https://github.com/babarot/gist/pull/45
