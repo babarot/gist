@@ -9,9 +9,9 @@ gist // @alice     1 mine (5)    2 starred (…)                                
                       │    theirs                                                                │
                       │                                                                          │
                       │  a description has no history: overwriting loses this one.               │
-╭  x^[]0;title^G.txt  │                                                                          │omments (0)  ────────╮
-│    1  content       │                                                                          │  <id>            │
-│                     │  o overwrite · r reload · esc cancel                                     │y secret             │
+╭  files (1)  ────────│                                                                          │omments (0)  ────────╮
+│  x^[]0;title^G.txt  │                                                                          │  <id>            │
+│    1  content       │  o overwrite · r reload · esc cancel                                     │y secret             │
 │                     ╰──────────────────────────────────────────────────────────────────────────╯  1 · 8 B            │
 │                                                                                      │ revisions  1                  │
 │                                                                                      │ comments   0                  │

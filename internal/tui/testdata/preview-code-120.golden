@@ -13,14 +13,14 @@ gist // @alice     1 mine (1)    2 starred (…)                                
 
 
 
-╭  a.md   main.go  ────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
-│    1  package main                                                                   │ gist       1111111            │
-│    2                                                                                 │ visibility secret             │
-│    3  // main says hi                                                                │ files      2 · 2.4 KB         │
-│    4  func main() {                                                                  │ revisions  2                  │
-│    5      println("hi", 42)                                                          │ comments   0                  │
-│    6  }                                                                              │ created    2h ago             │
-│                                                                                      │ updated    1h ago             │
+╭  files (2)  ─────────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
+│  a.md   main.go                                                                      │ gist       1111111            │
+│    1  package main                                                                   │ visibility secret             │
+│    2                                                                                 │ files      2 · 2.4 KB         │
+│    3  // main says hi                                                                │ revisions  2                  │
+│    4  func main() {                                                                  │ comments   0                  │
+│    5      println("hi", 42)                                                          │ created    2h ago             │
+│    6  }                                                                              │ updated    1h ago             │
 │                                                                                      │                               │
 │                                                                                      │ file       main.go            │
 │                                                                                      │ type       go                 │

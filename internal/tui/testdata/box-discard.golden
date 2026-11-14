@@ -9,9 +9,9 @@ gist // @alice     1 mine (5)    2 starred (…)                                
                             │  x^[]0;title^G.txt  of <id>                               │
                             │  The edit that was not pushed goes away.                     │
                             │                                                              │
-╭  x^[]0;title^G.txt  ──────│                                                              │fo   comments (0)  ────────╮
-│    1  content             │  y discard · esc keep                                        │t       <id>            │
-│                           ╰──────────────────────────────────────────────────────────────╯ibility secret             │
+╭  files (1)  ──────────────│                                                              │fo   comments (0)  ────────╮
+│  x^[]0;title^G.txt        │  y discard · esc keep                                        │t       <id>            │
+│    1  content             ╰──────────────────────────────────────────────────────────────╯ibility secret             │
 │                                                                                      │ files      1 · 8 B            │
 │                                                                                      │ revisions  1                  │
 │                                                                                      │ comments   0                  │

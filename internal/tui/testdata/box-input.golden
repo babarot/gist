@@ -9,9 +9,9 @@ gist // @alice     1 mine (5)    2 starred (…)                                
                     │  ┃ escape ^[[31msequence^[[<age> and a tab                                      │
                     │                                                                              │
                     │  checked against the description on GitHub before saving                     │
-╭  x^[]0;title^G.txt│                                                                              │ments (0)  ────────╮
-│    1  content     │  enter save · esc cancel                                                     │<id>            │
-│                   ╰──────────────────────────────────────────────────────────────────────────────╯secret             │
+╭  files (1)  ──────│                                                                              │ments (0)  ────────╮
+│  x^[]0;title^G.txt│  enter save · esc cancel                                                     │<id>            │
+│    1  content     ╰──────────────────────────────────────────────────────────────────────────────╯secret             │
 │                                                                                      │ files      1 · 8 B            │
 │                                                                                      │ revisions  1                  │
 │                                                                                      │ comments   0                  │

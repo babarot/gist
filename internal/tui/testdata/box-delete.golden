@@ -9,9 +9,9 @@ gist // @alice     1 mine (5)    2 starred (…)                                
                         │  escape ^[[31msequence^[[<age>    and a tab                             │
                         │                                                                      │
                         │  This deletes the gist and its 1 revision on GitHub.                 │
-╭  x^[]0;title^G.txt  ──│  It cannot be undone.                                                │ comments (0)  ────────╮
-│    1  content         │                                                                      │    <id>            │
-│                       │                                                                      │ity secret             │
+╭  files (1)  ──────────│  It cannot be undone.                                                │ comments (0)  ────────╮
+│  x^[]0;title^G.txt    │                                                                      │    <id>            │
+│    1  content         │                                                                      │ity secret             │
 │                       │  delete this gist? y yes · esc no                                    │    1 · 8 B            │
 │                       ╰──────────────────────────────────────────────────────────────────────╯ns  1                  │
 │                                                                                      │ comments   0                  │

@@ -13,9 +13,9 @@ gist // @alice     1 mine (40)    2 starred (…)                               
   ✓ gist 29           │  <id>  f32.txt  gist 32                                               ┃ 2 B  secret     <age>
   ✓ gist 28           │  <id>  f31.txt  gist 31                                               ┃ 2 B  secret     <age>
   ✓ gist 27           │  <id>  f30.txt  gist 30                                               ┃ 2 B  secret     <age>
-╭  f39.txt  ──────────│  <id>  f29.txt  gist 29                                               ┃omments (0)  ────────╮
-│    1  x             │  <id>  f28.txt  gist 28                                               ┃  <id>            │
-│                     │  <id>  f27.txt  gist 27                                               │y secret             │
+╭  files (1)  ────────│  <id>  f29.txt  gist 29                                               ┃omments (0)  ────────╮
+│  f39.txt            │  <id>  f28.txt  gist 28                                               ┃  <id>            │
+│    1  x             │  <id>  f27.txt  gist 27                                               │y secret             │
 │                     │  <id>  f26.txt  gist 26                                               │  1 · 2 B            │
 │                     │  <id>  f25.txt  gist 25                                               │  1                  │
 │                     │  <id>  f24.txt  gist 24                                               │  0                  │

@@ -9,9 +9,9 @@ gist // @alice     1 mine (5)    2 starred (…)                                
 
 
 
-╭  main.go   README.md   go.mod  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬  info   comments (3)  ────────╮
-│    1  content of main.go                                                                                                                                             │ gist       1111111            │
-│                                                                                                                                                                      │ visibility public             │
+╭  files (3)  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬  info   comments (3)  ────────╮
+│  main.go   README.md   go.mod                                                                                                                                        │ gist       1111111            │
+│    1  content of main.go                                                                                                                                             │ visibility public             │
 │                                                                                                                                                                      │ files      3 · 3.6 KB         │
 │                                                                                                                                                                      │ revisions  2                  │
 │                                                                                                                                                                      │ comments   3                  │

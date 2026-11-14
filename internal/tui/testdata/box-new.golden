@@ -9,9 +9,9 @@ gist // @alice     1 mine (5)    2 starred (…)                                
                      │                                                                            │
                      │  visibility    ● secret   ○ public                                         │
                      │                only people with the URL can see it                         │
-╭  main.go   README.m│                                                                            │mments (3)  ────────╮
-│    1  content of ma│  content       empty               ctrl+e opens $EDITOR                    │ <id>            │
-│                    │                                                                            │ public             │
+╭  files (3)  ───────│                                                                            │mments (3)  ────────╮
+│  main.go   README.m│  content       empty               ctrl+e opens $EDITOR                    │ <id>            │
+│    1  content of ma│                                                                            │ public             │
 │                    │                                                                            │ 3 · 3.6 KB         │
 │                    │                                                                            │ 2                  │
 │                    │                                                                            │ 3                  │

@@ -13,11 +13,11 @@ gist // @alice     1 mine (1)    2 starred (…)                                
 
 
 
-╭  a.png  ─────────────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
-│                                                                                      │ gist       1111111            │
-│   binary file · image/png · 2.0 KB                                                   │ visibility secret             │
-│   o opens it in the browser                                                          │ files      1 · 1.2 KB         │
-│                                                                                      │ revisions  2                  │
+╭  files (1)  ─────────────────────────────────────────────────────────────────────────┬  info   comments (0)  ────────╮
+│  a.png                                                                               │ gist       1111111            │
+│                                                                                      │ visibility secret             │
+│   binary file · image/png · 2.0 KB                                                   │ files      1 · 1.2 KB         │
+│   o opens it in the browser                                                          │ revisions  2                  │
 │                                                                                      │ comments   0                  │
 │                                                                                      │ created    2h ago             │
 │                                                                                      │ updated    1h ago             │

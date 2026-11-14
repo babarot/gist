@@ -1004,7 +1004,8 @@ func TestClickAFileTab(t *testing.T) {
 	m := loaded(t, fixture(), 120, 34)
 	l := m.layout()
 	lines := strings.Split(screen(m), "\n")
-	click(t, m, ansi.StringWidth(lines[l.boxY][:strings.Index(lines[l.boxY], "go.mod")]), l.boxY)
+	strip := lines[l.boxY+1]
+	click(t, m, ansi.StringWidth(strip[:strings.Index(strip, "go.mod")]), l.boxY+1)
 	if g, _ := m.current(); m.selectedFile(g) != 2 {
 		t.Errorf("file %d", m.selectedFile(g))
 	}
