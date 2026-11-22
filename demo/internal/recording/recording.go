@@ -19,6 +19,7 @@ import (
 	"github.com/babarot/gist/v2/internal/state"
 	"github.com/babarot/gist/v2/internal/tui"
 	"github.com/babarot/gist/v2/internal/tui/keymap"
+	"github.com/babarot/gist/v2/internal/version"
 )
 
 // runner is what the made-up GitHub needs of who runs it.
@@ -45,12 +46,13 @@ func (r releases) Releases(ctx context.Context) ([]model.Release, error) { retur
 func (releases) Checked(string) error                                    { return nil }
 func (releases) Told(string) error                                       { return nil }
 
-// Version is the version the recording shows.
-const Version = "2.0.0"
-
-// Run runs the TUI until it quits. Nothing is read from or written to the
-// user's files.
-func Run() error {
+// Run runs the TUI until it quits, as the version tagpr last set, with its notes
+// from the CHANGELOG.md at changelog. Nothing is written to the user's files.
+func Run(changelog string) error {
+	rel, err := ReadChangelog(changelog, version.Version)
+	if err != nil {
+		return err
+	}
 	dir, err := os.MkdirTemp("", "gist-demo")
 	if err != nil {
 		return err
@@ -59,7 +61,7 @@ func Run() error {
 	r := &runner{}
 	defer r.close()
 	srv := fakegist.New(r)
-	Fill(srv, time.Now())
+	Fill(srv, time.Now(), rel)
 
 	log := logging.Discard()
 	client, err := github.New(log, github.Options{Token: "demo", Transport: srv.Transport()})
@@ -73,7 +75,7 @@ func Run() error {
 		Source: client, Via: "gh", Host: github.Host, CacheDir: filepath.Join(dir, "cache"),
 		Layout: store, Editor: &edit.Editor{API: client, State: store}, Config: cfg, Keys: keymap.Default(),
 		Log: log, Browse: func(string) error { return nil },
-		Release: &tui.Release{Version: Version, Running: Version, How: "brew upgrade babarot/tap/gist", Source: releases{client}},
+		Release: &tui.Release{Version: version.Version, Running: version.Version, How: "brew upgrade babarot/tap/gist", Source: releases{client}},
 	})
 	return err
 }
