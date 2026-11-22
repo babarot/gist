@@ -30,12 +30,11 @@ import (
 	"github.com/babarot/gist/v2/internal/state"
 	"github.com/babarot/gist/v2/internal/tui"
 	"github.com/babarot/gist/v2/internal/tui/keymap"
+	"github.com/babarot/gist/v2/internal/version"
 )
 
 const (
 	width, height = 120, 34
-	// version is the version the screens show.
-	version = "2.0.0"
 	// maxScreens stops a walk that has found something without an end.
 	maxScreens = 2000
 )
@@ -174,7 +173,7 @@ func run(out string) error {
 		Source: client, Via: "gh", Host: github.Host, CacheDir: filepath.Join(dir, "cache"),
 		Layout: store, Editor: &edit.Editor{API: client, State: store}, Config: cfg, Keys: keymap.Default(),
 		Log: discard, Browse: func(string) error { return nil }, Now: func() time.Time { return now },
-		Release: &tui.Release{Version: version, Running: version, How: "brew upgrade babarot/tap/gist", Source: releases{client}},
+		Release: &tui.Release{Version: version.Version, Running: version.Version, How: "brew upgrade babarot/tap/gist", Source: releases{client}},
 	})
 	p := tea.NewProgram(program{m}, tea.WithInput(nil), tea.WithOutput(io.Discard), tea.WithWindowSize(width, height))
 	go func() { _, _ = p.Run() }()
