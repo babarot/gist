@@ -1,5 +1,7 @@
 # Changelog
 
+## [v2.2.1](https://github.com/babarot/gist/compare/v2.2.0...v2.2.1) - 2026-11-22
+
 ## [v2.2.0](https://github.com/babarot/gist/compare/v2.1.0...v2.2.0) - 2026-11-14
 ### New Features
 - Select gists in the TUI and delete them together by @babarot in https://github.com/babarot/gist/pull/56
