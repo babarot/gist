@@ -18,13 +18,11 @@ type gist struct {
 }
 
 // Fill gives srv the recording's gists, aged from now, so that it reads the same
-// whenever it is made. Oldest first, as a gist added last is the newest.
-func Fill(srv *fakegist.Server, now time.Time) {
+// whenever it is made, and the releases rel. Oldest first, as a gist added last
+// is the newest.
+func Fill(srv *fakegist.Server, now time.Time, rel []fakegist.Release) {
 	srv.Login = Login
-	srv.Releases = []fakegist.Release{
-		{TagName: "v2.0.0", PublishedAt: now.Add(-3 * time.Hour), Body: notes},
-		{TagName: "v1.2.8", PublishedAt: now.Add(-30 * 24 * time.Hour), Body: "## What's Changed\n* Show the version the release was built with by @alice in https://github.com/babarot/gist/pull/19\n"},
-	}
+	srv.Releases = rel
 	for _, g := range mine {
 		srv.SetClock(now.Add(-g.age))
 		made := srv.Add(g.description, g.public, g.files)
@@ -38,13 +36,6 @@ func Fill(srv *fakegist.Server, now time.Time) {
 	srv.Star("ops-notes", "kubectl one-liners", map[string]string{"kubectl.md": kubectl})
 	srv.SetClock(now)
 }
-
-const notes = `## What's Changed
-### New Features
-* A TUI to read and edit your gists, with a scriptable CLI by @alice in https://github.com/babarot/gist/pull/25
-* Filter by file, language and visibility, with tab completion by @alice in https://github.com/babarot/gist/pull/36
-* Check a diff before it is pushed by @alice in https://github.com/babarot/gist/pull/30
-`
 
 var mine = []gist{
 	{400 * 24 * time.Hour, "Dockerfile for a small Go service", true, map[string]string{"Dockerfile": dockerfile}, nil},

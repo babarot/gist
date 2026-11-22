@@ -16,7 +16,10 @@ fi
 arch="$(docker version --format '{{.Server.Arch}}')"
 echo "Building the demo for linux/$arch ..."
 CGO_ENABLED=0 GOOS=linux GOARCH="$arch" go build -trimpath -o "$dir/.gist-demo" "$root/demo/recording"
-trap 'rm -f "$dir/.gist-demo"' EXIT
+# The release notes are the newest of CHANGELOG.md, copied in because only this
+# directory is in the container
+cp "$root/CHANGELOG.md" "$dir/.CHANGELOG.md"
+trap 'rm -f "$dir/.gist-demo" "$dir/.CHANGELOG.md"' EXIT
 
 "$dir/vhs.sh" "$@"
 

@@ -2,7 +2,8 @@
 # before it is pushed.
 #
 # Run with: mise run demo
-# gist runs for real against a made-up GitHub (demo/internal/recording).
+# gist runs for real against a made-up GitHub (demo/internal/recording), whose
+# releases are the newest of CHANGELOG.md.
 
 Output demo.mp4
 
@@ -18,7 +19,7 @@ Set TypingSpeed 60ms
 Set Framerate 30
 
 Hide
-Type "export COLORTERM=truecolor PS1='$ ' EDITOR=/data/edit.sh; gist() { /data/.gist-demo; }; clear"
+Type "export COLORTERM=truecolor PS1='$ ' EDITOR=/data/edit.sh; gist() { /data/.gist-demo /data/.CHANGELOG.md; }; clear"
 Enter
 Sleep 500ms
 Show
